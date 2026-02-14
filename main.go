@@ -313,7 +313,6 @@ type GeneratorConfig struct {
 
 func NewGenerator(c GeneratorConfig) *generator {
 	return &generator{
-		// deps: make(map[string][]string),
 		config: c,
 	}
 }
@@ -360,9 +359,6 @@ func (e *generator) Generate(w io.Writer) error {
 func (e *generator) processFile(file protoreflect.FileDescriptor, fdp *descriptorpb.FileDescriptorProto) error {
 	def := File{}
 	sourceCodeInfo := fdp.GetSourceCodeInfo()
-	// for _, location := range sourceCodeInfo.Location {
-	// 	fmt.Fprintf(os.Stderr, "location: %v => %s, %s, %s\n", location.Path, location.GetLeadingComments(), location.GetTrailingComments(), location.GetLeadingDetachedComments())
-	// }
 	path := []int32{12}
 	def.LeadingComments, def.TrailingComments = extractComments(sourceCodeInfo, path)
 	e.file = def
@@ -505,19 +501,6 @@ func (e *generator) addExternalImport(importLine string) {
 	}
 	e.externalImports = append(e.externalImports, importLine)
 }
-
-// func (e *generator) depend(referer string, dependee string) {
-// 	_, ok := e.deps[referer]
-// 	if !ok {
-// 		e.deps[referer] = []string{}
-// 	}
-// 	for _, dep := range e.deps[referer] {
-// 		if dep == dependee {
-// 			return
-// 		}
-// 	}
-// 	e.deps[referer] = append(e.deps[referer], dependee)
-// }
 
 func (e *generator) resolveBaseType(referer string, field protoreflect.FieldDescriptor) (string, error) {
 	switch field.Kind() {
@@ -669,74 +652,3 @@ func camelToSnakeCase(str string) string {
 	snake = matchAllCap.ReplaceAllString(snake, "${1}_${2}")
 	return strings.ToUpper(snake)
 }
-
-// type TopologicalSortable interface {
-// 	TopoKey() string
-// }
-//
-// // topologicalSort performs a topological sort on the provided data given the dependencies.
-// // `data` is a slice of items to sort, and `dependencies` maps an item key to a list of keys it depends on.
-// func topologicalSort[T TopologicalSortable](data []T, dependencies map[string][]string) ([]T, error) {
-// 	// Build the graph and calculate in-degrees (number of incoming edges)
-// 	inDegree := make(map[string]int)
-// 	graph := make(map[string][]string)
-//
-// 	for _, item := range data {
-// 		key := item.TopoKey()
-// 		inDegree[key] = 0
-// 		graph[key] = []string{}
-// 	}
-//
-// 	for node, deps := range dependencies {
-// 		for _, dep := range deps {
-// 			graph[dep] = append(graph[dep], node)
-// 			inDegree[node]++
-// 		}
-// 	}
-//
-// 	// Find all nodes with no incoming edges
-// 	var zeroInDegreeQueue []string
-// 	for node, count := range inDegree {
-// 		if count == 0 {
-// 			zeroInDegreeQueue = append(zeroInDegreeQueue, node)
-// 		}
-// 	}
-//
-// 	// Sort the zero-in-degree nodes to ensure determinism
-// 	sort.Strings(zeroInDegreeQueue)
-//
-// 	var result []T
-// 	visited := 0
-//
-// 	for len(zeroInDegreeQueue) > 0 {
-// 		// Remove the node from the queue
-// 		current := zeroInDegreeQueue[0]
-// 		zeroInDegreeQueue = zeroInDegreeQueue[1:]
-//
-// 		// Find the actual item corresponding to the current key
-// 		var currentItem T
-// 		for _, item := range data {
-// 			if item.TopoKey() == current {
-// 				currentItem = item
-// 				break
-// 			}
-// 		}
-//
-// 		result = append(result, currentItem)
-// 		visited++
-//
-// 		for _, neighbor := range graph[current] {
-// 			inDegree[neighbor]--
-// 			if inDegree[neighbor] == 0 {
-// 				zeroInDegreeQueue = append(zeroInDegreeQueue, neighbor)
-// 				sort.Strings(zeroInDegreeQueue) // Sort to maintain determinism
-// 			}
-// 		}
-// 	}
-//
-// 	if visited == len(data) {
-// 		return result, nil
-// 	}
-//
-// 	return nil, errors.New("cycle detected in graph")
-// }
