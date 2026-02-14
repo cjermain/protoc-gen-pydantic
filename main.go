@@ -43,13 +43,6 @@ func main() {
 		ParamFunc: flags.Set,
 	}
 	opts.Run(func(gen *protogen.Plugin) error {
-		protocVersion := "(unknown)"
-		if v := gen.Request.GetCompilerVersion(); v != nil {
-			protocVersion = fmt.Sprintf("v%v.%v.%v", v.GetMajor(), v.GetMinor(), v.GetPatch())
-			if s := v.GetSuffix(); s != "" {
-				protocVersion += "-" + s
-			}
-		}
 		gen.SupportedFeatures = SupportedFeatures
 
 		e := NewGenerator(GeneratorConfig{
@@ -214,23 +207,23 @@ type wktMapping struct {
 }
 
 var wellKnownTypes = map[string]wktMapping{
-	"google.protobuf.Timestamp":  {pythonType: "datetime.datetime", importLine: "import datetime"},
-	"google.protobuf.Duration":   {pythonType: "datetime.timedelta", importLine: "import datetime"},
-	"google.protobuf.Struct":     {pythonType: "dict[str, _Any]"},
-	"google.protobuf.Value":      {pythonType: "_Any"},
-	"google.protobuf.ListValue":  {pythonType: "list[_Any]"},
-	"google.protobuf.Empty":      {pythonType: "None"},
-	"google.protobuf.FieldMask":  {pythonType: "list[str]"},
-	"google.protobuf.Any":        {pythonType: "_Any"},
-	"google.protobuf.BoolValue":  {pythonType: "bool"},
-	"google.protobuf.Int32Value": {pythonType: "int"},
-	"google.protobuf.Int64Value": {pythonType: "int"},
+	"google.protobuf.Timestamp":   {pythonType: "datetime.datetime", importLine: "import datetime"},
+	"google.protobuf.Duration":    {pythonType: "datetime.timedelta", importLine: "import datetime"},
+	"google.protobuf.Struct":      {pythonType: "dict[str, _Any]"},
+	"google.protobuf.Value":       {pythonType: "_Any"},
+	"google.protobuf.ListValue":   {pythonType: "list[_Any]"},
+	"google.protobuf.Empty":       {pythonType: "None"},
+	"google.protobuf.FieldMask":   {pythonType: "list[str]"},
+	"google.protobuf.Any":         {pythonType: "_Any"},
+	"google.protobuf.BoolValue":   {pythonType: "bool"},
+	"google.protobuf.Int32Value":  {pythonType: "int"},
+	"google.protobuf.Int64Value":  {pythonType: "int"},
 	"google.protobuf.UInt32Value": {pythonType: "int"},
 	"google.protobuf.UInt64Value": {pythonType: "int"},
-	"google.protobuf.FloatValue": {pythonType: "float"},
+	"google.protobuf.FloatValue":  {pythonType: "float"},
 	"google.protobuf.DoubleValue": {pythonType: "float"},
 	"google.protobuf.StringValue": {pythonType: "str"},
-	"google.protobuf.BytesValue": {pythonType: "bytes"},
+	"google.protobuf.BytesValue":  {pythonType: "bytes"},
 }
 
 type EnumValue struct {
@@ -436,7 +429,9 @@ func (e *generator) processMessage(
 	// NOTE: Process nested enums and messages before the fields.
 	for i, nest := range iter(msg.Enums()) {
 		nest_path := append(path, 4, int32(i))
-		e.processEnum(nest, sourceCodeInfo, nest_path)
+		if err := e.processEnum(nest, sourceCodeInfo, nest_path); err != nil {
+			return err
+		}
 	}
 
 	for i, nest := range iter(msg.Messages()) {

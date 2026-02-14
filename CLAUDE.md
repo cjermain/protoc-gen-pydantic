@@ -35,6 +35,12 @@ cd test && uv run pytest -v
 
 # Full rebuild + test cycle
 go build -o protoc-gen-pydantic . && buf generate && cd test && uv run pytest -v
+
+# Run Go linter
+golangci-lint run
+
+# Install pre-commit hooks (one-time setup)
+pre-commit install
 ```
 
 ## Project Structure
