@@ -6,7 +6,7 @@ Package: test.api.v1
 from enum import Enum as _Enum
 from typing import Optional as _Optional
 
-from pydantic import BaseModel as _BaseModel, Field as _Field
+from pydantic import BaseModel as _BaseModel, ConfigDict as _ConfigDict, Field as _Field
 
 import google.protobuf.timestamp_pb2
 
@@ -81,6 +81,14 @@ class Foo_NestedMessage(_BaseModel):
     """
     Message leading comment.
     Message leading comment.
+
+    Attributes:
+      firstName (str):
+        Field leading comment.
+        Field leading comment.
+      lastName (str):
+        Field leading comment.
+        Field leading comment.
     """
     
     # Message trailing comment.
@@ -102,7 +110,107 @@ Field leading comment.
 
 class Foo(_BaseModel):
     """
+
+    Attributes:
+      int32 (int):
+      int64 (int):
+      uint32 (int):
+      uint64 (int):
+      fixed32 (int):
+      fixed64 (int):
+      sint32 (int):
+      sint64 (int):
+      sfixed32 (int):
+      sfixed64 (int):
+      bool_ (bool):
+      float_ (float):
+      double (float):
+      string (str):
+      bytes_ (bytes):
+      enum (Enum):
+      nestedEnum (Foo_NestedEnum):
+      message (Message):
+      nestedMessage (Foo_NestedMessage):
+      wktTimestamp (google.protobuf.timestamp_pb2.Timestamp):
+      int32Optional (_Optional[int]):
+      int64Optional (_Optional[int]):
+      uint32Optional (_Optional[int]):
+      uint64Optional (_Optional[int]):
+      fixed32Optional (_Optional[int]):
+      fixed64Optional (_Optional[int]):
+      sint32Optional (_Optional[int]):
+      sint64Optional (_Optional[int]):
+      sfixed32Optional (_Optional[int]):
+      sfixed64Optional (_Optional[int]):
+      boolOptional (_Optional[bool]):
+      floatOptional (_Optional[float]):
+      doubleOptional (_Optional[float]):
+      stringOptional (_Optional[str]):
+      bytesOptional (_Optional[bytes]):
+      enumOptional (_Optional[Enum]):
+      nestedEnumOptional (_Optional[Foo_NestedEnum]):
+      messageOptional (_Optional[Message]):
+      nestedMessageOptional (_Optional[Foo_NestedMessage]):
+      wktTimestampOptional (_Optional[google.protobuf.timestamp_pb2.Timestamp]):
+      int32Repeated (list[int]):
+      int64Repeated (list[int]):
+      uint32Repeated (list[int]):
+      uint64Repeated (list[int]):
+      fixed32Repeated (list[int]):
+      fixed64Repeated (list[int]):
+      sint32Repeated (list[int]):
+      sint64Repeated (list[int]):
+      sfixed32Repeated (list[int]):
+      sfixed64Repeated (list[int]):
+      boolRepeated (list[bool]):
+      floatRepeated (list[float]):
+      doubleRepeated (list[float]):
+      stringRepeated (list[str]):
+      bytesRepeated (list[bytes]):
+      enumRepeated (list[Enum]):
+      nestedEnumRepeated (list[Foo_NestedEnum]):
+      messageRepeated (list[Message]):
+      nestedMessageRepeated (list[Foo_NestedMessage]):
+      wktTimestampRepeated (list[google.protobuf.timestamp_pb2.Timestamp]):
+      int32MapKey (dict[int, str]):
+      int64MapKey (dict[int, str]):
+      uint32MapKey (dict[int, str]):
+      uint64MapKey (dict[int, str]):
+      fixed32MapKey (dict[int, str]):
+      fixed64MapKey (dict[int, str]):
+      sint32MapKey (dict[int, str]):
+      sint64MapKey (dict[int, str]):
+      sfixed32MapKey (dict[int, str]):
+      sfixed64MapKey (dict[int, str]):
+      boolMapKey (dict[bool, str]):
+      stringMapKey (dict[str, str]):
+        map<float, string> float_map_key = 76;
+        map<double, string> double_map_key = 77;
+      int32MapValue (dict[str, int]):
+      int64MapValue (dict[str, int]):
+      uint32MapValue (dict[str, int]):
+      uint64MapValue (dict[str, int]):
+      fixed32MapValue (dict[str, int]):
+      fixed64MapValue (dict[str, int]):
+      sint32MapValue (dict[str, int]):
+      sint64MapValue (dict[str, int]):
+      sfixed32MapValue (dict[str, int]):
+      sfixed64MapValue (dict[str, int]):
+      boolMapValue (dict[str, bool]):
+      floatMapValue (dict[str, float]):
+      doubleMapValue (dict[str, float]):
+      stringMapValue (dict[str, str]):
+      bytesMapValue (dict[str, bytes]):
+      enumMapValue (dict[str, Enum]):
+      nestedEnumMapValue (dict[str, Foo_NestedEnum]):
+      messageMapValue (dict[str, Message]):
+      nestedMessageMapValue (dict[str, Foo_NestedMessage]):
+      wktTimestampMapValue (dict[str, google.protobuf.timestamp_pb2.Timestamp]):
+      a (_Optional[int]):
+      b (_Optional[str]):
     """
+    model_config = _ConfigDict(arbitrary_types_allowed=True, populate_by_name=True)
+    
     
     
     int32: "int" = _Field(...)
@@ -125,15 +233,15 @@ class Foo(_BaseModel):
     
     sfixed64: "int" = _Field(...)
     
-    bool: "bool" = _Field(...)
+    bool_: "bool" = _Field(..., alias="bool")
     
-    float: "float" = _Field(...)
+    float_: "float" = _Field(..., alias="float")
     
     double: "float" = _Field(...)
     
     string: "str" = _Field(...)
     
-    bytes: "bytes" = _Field(...)
+    bytes_: "bytes" = _Field(..., alias="bytes")
     
     enum: "Enum" = _Field(...)
     
@@ -309,6 +417,14 @@ class Message(_BaseModel):
     """
     Message leading comment.
     Message leading comment.
+
+    Attributes:
+      firstName (str):
+        Field leading comment.
+        Field leading comment.
+      lastName (str):
+        Field leading comment.
+        Field leading comment.
     """
     
     # Message trailing comment.
@@ -330,6 +446,8 @@ Field leading comment.
 
 class Empty(_BaseModel):
     """
+
+    Attributes:
     """
     
     pass
