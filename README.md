@@ -177,8 +177,8 @@ class User(_BaseModel):
 
 ### `use_none_union_syntax_instead_of_optional`
 
-If `use_none_union_syntax_instead_of_optional` is `true`: `Optional[T]`
-If `use_none_union_syntax_instead_of_optional` is `false`: `T | None`
+If `use_none_union_syntax_instead_of_optional` is `true`: `T | None`
+If `use_none_union_syntax_instead_of_optional` is `false`: `Optional[T]`
 
 ## Contributing
 
