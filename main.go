@@ -59,7 +59,7 @@ func main() {
 			}
 
 			if err := e.processFile(f.Desc, f.Proto); err != nil {
-				return err
+				return fmt.Errorf("processing %s: %w", f.Desc.Path(), err)
 			}
 		}
 
@@ -426,14 +426,14 @@ func (e *generator) processMessage(
 	for i, nest := range iter(msg.Enums()) {
 		nest_path := append(path, 4, int32(i))
 		if err := e.processEnum(nest, sourceCodeInfo, nest_path); err != nil {
-			return err
+			return fmt.Errorf("enum %s: %w", string(nest.Name()), err)
 		}
 	}
 
 	for i, nest := range iter(msg.Messages()) {
 		nest_path := append(path, 3, int32(i))
 		if err := e.processMessage(nest, sourceCodeInfo, nest_path); err != nil {
-			return err
+			return fmt.Errorf("message %s: %w", string(nest.Name()), err)
 		}
 	}
 
@@ -447,7 +447,7 @@ func (e *generator) processMessage(
 		// fp := msgp.GetField()[i]
 		typ, err := e.resolveType(def.Name, field)
 		if err != nil {
-			return fmt.Errorf("failed to resolve type: %w", err)
+			return fmt.Errorf("field %s.%s: %w", def.Name, field.Name(), err)
 		}
 		fieldpath := append(path, 2, int32(i))
 		var oneOf *OneOf
