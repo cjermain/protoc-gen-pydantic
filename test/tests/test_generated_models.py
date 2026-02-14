@@ -1,4 +1,5 @@
 import datetime
+import subprocess
 
 import pytest
 from pydantic import ValidationError
@@ -461,3 +462,18 @@ def test_wkt_json_roundtrip(wkt):
     assert wkt2.wktStruct == wkt.wktStruct
     assert wkt2.wktBool is True
     assert wkt2.wktString == "test"
+
+
+# ---------------------------------------------------------------------------
+# Code formatting
+# ---------------------------------------------------------------------------
+
+
+def test_ruff_format():
+    """Generated code must be ruff-format clean."""
+    result = subprocess.run(
+        ["ruff", "format", "--check", "gen/api/v1/test_pydantic.py"],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, f"ruff format diff:\n{result.stderr or result.stdout}"
