@@ -74,7 +74,7 @@ Passed via `opt:` in buf.gen.yaml or `--pydantic_opt=` with protoc:
 ## Key Implementation Details
 
 ### Python Builtin Shadowing
-Proto fields named `bool`, `float`, `bytes` etc. shadow Python builtins. The generator renames these with a PEP 8 trailing underscore (e.g., `bool_`) and adds `Field(alias="bool")` with `ConfigDict(populate_by_name=True)`. The `pythonBuiltins` map in main.go controls which names trigger this.
+Proto fields named `bool`, `float`, `bytes` etc. shadow Python builtins. The generator renames these with a PEP 8 trailing underscore (e.g., `bool_`) and adds `Field(alias="bool")` with `ConfigDict(populate_by_name=True)`. The `reservedNames` map in main.go controls which names trigger this (Python builtins, keywords, and Pydantic BaseModel attributes).
 
 ### Well-Known Types
 Protobuf WKTs are mapped to native Python types (not raw `_pb2` classes):
@@ -116,7 +116,7 @@ Test coverage includes: enums, scalar fields, optional/repeated/map fields, oneo
 ### Go (main.go)
 - All code lives in a single `main.go` file
 - Template rendering uses Go `text/template` with the `modelTemplate` constant
-- Add new type mappings to the appropriate map (`wellKnownTypes`, `pythonBuiltins`)
+- Add new type mappings to the appropriate map (`wellKnownTypes`, `reservedNames`)
 - New plugin options: add to `GeneratorConfig` struct, parse in flag setup, wire through template
 
 ### Python (generated output)

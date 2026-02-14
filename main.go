@@ -188,9 +188,11 @@ Only one of the fields can be specified with: {{ .OneOf.FieldNames }} (oneof {{ 
 {{- end }}
 `
 
-// pythonBuiltins is the set of Python builtin names that must not be used as
-// Pydantic field names because they shadow the type annotations.
-var pythonBuiltins = map[string]bool{
+// reservedNames is the set of names that must not be used as Pydantic field
+// names. Fields with these names are renamed with a trailing underscore and
+// given an alias to preserve the original proto field name.
+var reservedNames = map[string]bool{
+	// Python builtins (shadow type annotations)
 	"int": true, "float": true, "bool": true, "str": true, "bytes": true,
 	"list": true, "dict": true, "set": true, "tuple": true, "type": true,
 	"object": true, "range": true, "map": true, "filter": true,
@@ -198,6 +200,24 @@ var pythonBuiltins = map[string]bool{
 	"sum": true, "abs": true, "round": true, "complex": true,
 	"frozenset": true, "memoryview": true, "bytearray": true,
 	"property": true, "classmethod": true, "staticmethod": true, "super": true,
+	// Python keywords (cause SyntaxError if used as identifiers)
+	"False": true, "None": true, "True": true,
+	"and": true, "as": true, "assert": true, "async": true, "await": true,
+	"break": true, "class": true, "continue": true, "def": true, "del": true,
+	"elif": true, "else": true, "except": true, "finally": true, "for": true,
+	"from": true, "global": true, "if": true, "import": true, "in": true,
+	"is": true, "lambda": true, "nonlocal": true, "not": true, "or": true,
+	"pass": true, "raise": true, "return": true, "try": true, "while": true,
+	"with": true, "yield": true,
+	// Pydantic BaseModel attributes (shadow model internals)
+	"model_config": true, "model_fields": true, "model_computed_fields": true,
+	"model_extra": true, "model_fields_set": true,
+	"model_construct": true, "model_copy": true,
+	"model_dump": true, "model_dump_json": true,
+	"model_json_schema": true, "model_parametrized_name": true,
+	"model_post_init": true, "model_rebuild": true,
+	"model_validate": true, "model_validate_json": true,
+	"model_validate_strings": true,
 }
 
 // wellKnownTypes maps protobuf well-known type full names to native Python types.
@@ -466,7 +486,7 @@ func (e *generator) processMessage(
 			name = string(field.Name())
 		}
 		var alias string
-		if pythonBuiltins[name] {
+		if reservedNames[name] {
 			alias = name
 			name = name + "_"
 		}
