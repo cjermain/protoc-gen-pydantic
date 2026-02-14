@@ -464,7 +464,6 @@ func (e *generator) processMessage(
 	def.LeadingComments, def.TrailingComments = extractComments(sourceCodeInfo, path)
 
 	for i, field := range iter(msg.Fields()) {
-		// fp := msgp.GetField()[i]
 		typ, err := e.resolveType(def.Name, field)
 		if err != nil {
 			return fmt.Errorf("field %s.%s: %w", def.Name, field.Name(), err)
@@ -580,7 +579,6 @@ func (e *generator) resolveBaseType(referer string, field protoreflect.FieldDesc
 	fieldpkg := string(msg.ParentFile().Package())
 	if pkg == fieldpkg {
 		typ := resolveName(msg)
-		// e.depend(referer, typ)
 		return typ, nil
 	}
 	srcname := strings.TrimSuffix(filepath.Base(msg.ParentFile().Path()), ".proto")
