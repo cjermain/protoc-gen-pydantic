@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"io"
@@ -98,14 +99,12 @@ from enum import Enum as _Enum
 from typing import Any as _Any, Optional as _Optional
 
 from pydantic import BaseModel as _BaseModel, ConfigDict as _ConfigDict, Field as _Field
-
 {{- range .ExternalImports }}
 
-{{ . }}{{ end }}
-
-
-
+{{ . }}
+{{- end }}
 {{- range .Enums }}
+
 
 class {{ .Name }}({{ if $config.UseIntegersForEnums }}int{{ else }}str{{ end }}, _Enum):
     """
@@ -140,10 +139,9 @@ class {{ .Name }}({{ if $config.UseIntegersForEnums }}int{{ else }}str{{ end }},
     # {{ . }}
     {{- end }}
     {{- end }}
-
 {{- end }}
-
 {{- range .Messages }}
+
 
 class {{ .Name }}(_BaseModel):
     """
@@ -160,27 +158,37 @@ class {{ .Name }}(_BaseModel):
     {{- end }}
     """
     {{- if .HasModelConfig }}
+
     model_config = _ConfigDict({{ if .HasArbitraryTypes }}arbitrary_types_allowed=True{{ end }}{{ if and .HasArbitraryTypes .HasAlias }}, {{ end }}{{ if .HasAlias }}populate_by_name=True{{ end }})
-    {{ end }}
-    {{ range .TrailingComments }}
+    {{- end }}
+    {{- range $i, $v := .TrailingComments }}{{ if eq $i 0 }}
+{{ end }}
+    # {{ $v }}
+    {{- end }}
+    {{ range .Fields }}
+    {{- range .LeadingComments }}
     # {{ . }}
     {{- end }}
-    {{- range .Fields }}
-    {{ range .LeadingComments }}
-    # {{ . }}
-    {{- end }}
-    {{ .Name }}: "{{ .Type }}" = _Field({{ if or .Optional (ne .OneOf nil) }}None{{ else }}...{{ end }}{{ if and (not $config.DisableFieldDescription) (or (ne (len .LeadingComments) 0) (ne .OneOf nil)) }}, description="""{{- range .LeadingComments -}}
-{{ . }}
+    {{- if and (not $config.DisableFieldDescription) (or (ne (len .LeadingComments) 0) (ne .OneOf nil)) }}
+    {{ .Name }}: "{{ .Type }}" = _Field(
+        {{ if or .Optional (ne .OneOf nil) }}None{{ else }}...{{ end }},
+        description="""{{- range .LeadingComments -}}{{ . }}
 {{ end }}{{ if ne .OneOf nil }}
-Only one of the fields can be specified with: {{ .OneOf.FieldNames }} (oneof {{ .OneOf.Name }}){{ end }}"""{{ end }}{{ if .Alias }}, alias="{{ .Alias }}"{{ end }})
+Only one of the fields can be specified with: {{ .OneOf.FieldNames }} (oneof {{ .OneOf.Name }}){{ end }}""",
+    {{- if .Alias }}
+        alias="{{ .Alias }}",
+    {{- end }}
+    )
+    {{- else }}
+    {{ .Name }}: "{{ .Type }}" = _Field({{ if or .Optional (ne .OneOf nil) }}None{{ else }}...{{ end }}{{ if .Alias }}, alias="{{ .Alias }}"{{ end }})
+    {{- end }}
     {{- range .TrailingComments }}
     # {{ . }}
     {{- end }}
-    {{- end }}
+    {{ end }}
     {{- if eq (len .Fields) 0 }}
     pass
-    {{ end }}
-
+    {{- end }}
 {{- end }}
 {{- range .File.TrailingComments }}
 # {{ . }}
@@ -318,11 +326,8 @@ func NewGenerator(c GeneratorConfig) *generator {
 }
 
 func (e *generator) Generate(w io.Writer) error {
-	// msgs, err := topologicalSort(e.Messages, e.deps)
-	// if err != nil {
-	// 	return err
-	// }
-	err := tmpl.Execute(w, struct {
+	var buf bytes.Buffer
+	err := tmpl.Execute(&buf, struct {
 		File            File
 		Enums           []Enum
 		Messages        []Message
@@ -331,7 +336,6 @@ func (e *generator) Generate(w io.Writer) error {
 	}{
 		e.file,
 		e.enums,
-		// msgs,
 		e.messages,
 		e.externalImports,
 		e.config,
@@ -339,7 +343,25 @@ func (e *generator) Generate(w io.Writer) error {
 	if err != nil {
 		return err
 	}
-	return nil
+
+	// Post-process: strip trailing whitespace from each line.
+	output := buf.String()
+	lines := strings.Split(output, "\n")
+	for i, line := range lines {
+		lines[i] = strings.TrimRight(line, " \t")
+	}
+	output = strings.Join(lines, "\n")
+
+	// Collapse 3+ consecutive blank lines to exactly 2.
+	for strings.Contains(output, "\n\n\n\n") {
+		output = strings.ReplaceAll(output, "\n\n\n\n", "\n\n\n")
+	}
+
+	// Ensure file ends with exactly one newline.
+	output = strings.TrimRight(output, "\n") + "\n"
+
+	_, err = io.WriteString(w, output)
+	return err
 }
 
 func (e *generator) processFile(file protoreflect.FileDescriptor, fdp *descriptorpb.FileDescriptorProto) error {
