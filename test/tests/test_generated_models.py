@@ -1,6 +1,7 @@
+import datetime
+
 import pytest
 from pydantic import ValidationError
-import google.protobuf.timestamp_pb2 as timestamp_pb2
 
 from gen.api.v1.test_pydantic import (
     Enum,
@@ -9,6 +10,7 @@ from gen.api.v1.test_pydantic import (
     Foo_NestedEnum,
     Foo_NestedMessage,
     Message,
+    WellKnownTypes,
 )
 
 
@@ -19,7 +21,7 @@ from gen.api.v1.test_pydantic import (
 
 @pytest.fixture
 def timestamp():
-    return timestamp_pb2.Timestamp(seconds=1700000000, nanos=0)
+    return datetime.datetime(2023, 11, 14, 22, 13, 20, tzinfo=datetime.timezone.utc)
 
 
 @pytest.fixture
@@ -236,7 +238,7 @@ def test_foo_alias_construction_by_alias(timestamp, message, nested_message):
 
 def test_foo_alias_in_dict_output(foo):
     """Dict serialization uses the alias (original proto name) by default."""
-    data = foo.model_dump(by_alias=True, exclude={"wktTimestamp", "wktTimestampOptional", "wktTimestampRepeated", "wktTimestampMapValue"})
+    data = foo.model_dump(by_alias=True)
     assert "bool" in data
     assert "float" in data
     assert "bytes" in data
@@ -356,6 +358,22 @@ def test_foo_missing_required_raises():
         Foo(int32=1)
 
 
+def test_foo_json_roundtrip(foo):
+    json_str = foo.model_dump_json()
+    foo2 = Foo.model_validate_json(json_str)
+    assert foo2.int32 == foo.int32
+    assert foo2.string == foo.string
+    assert foo2.enum == foo.enum
+    assert foo2.wktTimestamp == foo.wktTimestamp
+
+
+def test_foo_dict_roundtrip(foo):
+    d = foo.model_dump()
+    foo2 = Foo.model_validate(d)
+    assert foo2.message.firstName == "John"
+    assert foo2.nestedMessage.firstName == "Jane"
+
+
 def test_message_json_roundtrip(message):
     json_str = message.model_dump_json()
     m2 = Message.model_validate_json(json_str)
@@ -363,8 +381,83 @@ def test_message_json_roundtrip(message):
     assert m2.lastName == message.lastName
 
 
-def test_message_dict_roundtrip(message):
-    d = message.model_dump()
-    m2 = Message.model_validate(d)
-    assert m2.firstName == "John"
-    assert m2.lastName == "Doe"
+# ---------------------------------------------------------------------------
+# WellKnownTypes
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def wkt():
+    return WellKnownTypes(
+        wktTimestamp=datetime.datetime(2024, 1, 1, tzinfo=datetime.timezone.utc),
+        wktDuration=datetime.timedelta(seconds=30),
+        wktStruct={"key": "value", "nested": {"a": 1}},
+        wktValue="hello",
+        wktListValue=[1, "two", True],
+        wktAny={"type": "test"},
+        wktFieldMask=["field1", "field2"],
+        wktBool=True,
+        wktInt32=42,
+        wktInt64=9999999999,
+        wktUint32=100,
+        wktUint64=200,
+        wktFloat=3.14,
+        wktDouble=2.718,
+        wktString="test",
+        wktBytes=b"binary",
+        wktEmpty=None,
+    )
+
+
+def test_wkt_timestamp(wkt):
+    assert isinstance(wkt.wktTimestamp, datetime.datetime)
+    assert wkt.wktTimestamp.year == 2024
+
+
+def test_wkt_duration(wkt):
+    assert isinstance(wkt.wktDuration, datetime.timedelta)
+    assert wkt.wktDuration.total_seconds() == 30
+
+
+def test_wkt_struct(wkt):
+    assert isinstance(wkt.wktStruct, dict)
+    assert wkt.wktStruct["key"] == "value"
+
+
+def test_wkt_value(wkt):
+    assert wkt.wktValue == "hello"
+
+
+def test_wkt_list_value(wkt):
+    assert isinstance(wkt.wktListValue, list)
+    assert wkt.wktListValue == [1, "two", True]
+
+
+def test_wkt_field_mask(wkt):
+    assert wkt.wktFieldMask == ["field1", "field2"]
+
+
+def test_wkt_wrapper_types(wkt):
+    assert wkt.wktBool is True
+    assert wkt.wktInt32 == 42
+    assert wkt.wktInt64 == 9999999999
+    assert wkt.wktUint32 == 100
+    assert wkt.wktUint64 == 200
+    assert wkt.wktFloat == pytest.approx(3.14)
+    assert wkt.wktDouble == pytest.approx(2.718)
+    assert wkt.wktString == "test"
+    assert wkt.wktBytes == b"binary"
+
+
+def test_wkt_empty(wkt):
+    assert wkt.wktEmpty is None
+
+
+def test_wkt_json_roundtrip(wkt):
+    json_str = wkt.model_dump_json()
+    wkt2 = WellKnownTypes.model_validate_json(json_str)
+    assert wkt2.wktTimestamp == wkt.wktTimestamp
+    assert wkt2.wktDuration == wkt.wktDuration
+    assert wkt2.wktStruct == wkt.wktStruct
+    assert wkt2.wktBool is True
+    assert wkt2.wktString == "test"

@@ -3,7 +3,13 @@ syntax = "proto3";
 
 package test.api.v1;
 
+import "google/protobuf/any.proto";
+import "google/protobuf/duration.proto";
+import "google/protobuf/empty.proto";
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/struct.proto";
 import "google/protobuf/timestamp.proto";
+import "google/protobuf/wrappers.proto";
 
 option go_package = "github.com/ornew/protoc-gen-pydantic/test/api";
 
@@ -241,5 +247,25 @@ enum Enum {
 }
 
 message Empty {}
+
+message WellKnownTypes {
+  google.protobuf.Timestamp wkt_timestamp = 1;
+  google.protobuf.Duration wkt_duration = 2;
+  google.protobuf.Struct wkt_struct = 3;
+  google.protobuf.Value wkt_value = 4;
+  google.protobuf.ListValue wkt_list_value = 5;
+  google.protobuf.Any wkt_any = 6;
+  google.protobuf.FieldMask wkt_field_mask = 7;
+  google.protobuf.BoolValue wkt_bool = 8;
+  google.protobuf.Int32Value wkt_int32 = 9;
+  google.protobuf.Int64Value wkt_int64 = 10;
+  google.protobuf.UInt32Value wkt_uint32 = 11;
+  google.protobuf.UInt64Value wkt_uint64 = 12;
+  google.protobuf.FloatValue wkt_float = 13;
+  google.protobuf.DoubleValue wkt_double = 14;
+  google.protobuf.StringValue wkt_string = 15;
+  google.protobuf.BytesValue wkt_bytes = 16;
+  google.protobuf.Empty wkt_empty = 17;
+}
 
 // End file.

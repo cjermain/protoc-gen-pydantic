@@ -4,11 +4,11 @@ Package: test.api.v1
 """
 
 from enum import Enum as _Enum
-from typing import Optional as _Optional
+from typing import Any as _Any, Optional as _Optional
 
 from pydantic import BaseModel as _BaseModel, ConfigDict as _ConfigDict, Field as _Field
 
-import google.protobuf.timestamp_pb2
+import datetime
 
 class Enum(str, _Enum):
     """
@@ -131,7 +131,7 @@ class Foo(_BaseModel):
       nestedEnum (Foo_NestedEnum):
       message (Message):
       nestedMessage (Foo_NestedMessage):
-      wktTimestamp (google.protobuf.timestamp_pb2.Timestamp):
+      wktTimestamp (datetime.datetime):
       int32Optional (_Optional[int]):
       int64Optional (_Optional[int]):
       uint32Optional (_Optional[int]):
@@ -151,7 +151,7 @@ class Foo(_BaseModel):
       nestedEnumOptional (_Optional[Foo_NestedEnum]):
       messageOptional (_Optional[Message]):
       nestedMessageOptional (_Optional[Foo_NestedMessage]):
-      wktTimestampOptional (_Optional[google.protobuf.timestamp_pb2.Timestamp]):
+      wktTimestampOptional (_Optional[datetime.datetime]):
       int32Repeated (list[int]):
       int64Repeated (list[int]):
       uint32Repeated (list[int]):
@@ -171,7 +171,7 @@ class Foo(_BaseModel):
       nestedEnumRepeated (list[Foo_NestedEnum]):
       messageRepeated (list[Message]):
       nestedMessageRepeated (list[Foo_NestedMessage]):
-      wktTimestampRepeated (list[google.protobuf.timestamp_pb2.Timestamp]):
+      wktTimestampRepeated (list[datetime.datetime]):
       int32MapKey (dict[int, str]):
       int64MapKey (dict[int, str]):
       uint32MapKey (dict[int, str]):
@@ -205,11 +205,11 @@ class Foo(_BaseModel):
       nestedEnumMapValue (dict[str, Foo_NestedEnum]):
       messageMapValue (dict[str, Message]):
       nestedMessageMapValue (dict[str, Foo_NestedMessage]):
-      wktTimestampMapValue (dict[str, google.protobuf.timestamp_pb2.Timestamp]):
+      wktTimestampMapValue (dict[str, datetime.datetime]):
       a (_Optional[int]):
       b (_Optional[str]):
     """
-    model_config = _ConfigDict(arbitrary_types_allowed=True, populate_by_name=True)
+    model_config = _ConfigDict(populate_by_name=True)
     
     
     
@@ -251,7 +251,7 @@ class Foo(_BaseModel):
     
     nestedMessage: "Foo_NestedMessage" = _Field(...)
     
-    wktTimestamp: "google.protobuf.timestamp_pb2.Timestamp" = _Field(...)
+    wktTimestamp: "datetime.datetime" = _Field(...)
     
     int32Optional: "_Optional[int]" = _Field(None)
     
@@ -291,7 +291,7 @@ class Foo(_BaseModel):
     
     nestedMessageOptional: "_Optional[Foo_NestedMessage]" = _Field(None)
     
-    wktTimestampOptional: "_Optional[google.protobuf.timestamp_pb2.Timestamp]" = _Field(None)
+    wktTimestampOptional: "_Optional[datetime.datetime]" = _Field(None)
     
     int32Repeated: "list[int]" = _Field(...)
     
@@ -331,7 +331,7 @@ class Foo(_BaseModel):
     
     nestedMessageRepeated: "list[Foo_NestedMessage]" = _Field(...)
     
-    wktTimestampRepeated: "list[google.protobuf.timestamp_pb2.Timestamp]" = _Field(...)
+    wktTimestampRepeated: "list[datetime.datetime]" = _Field(...)
     
     int32MapKey: "dict[int, str]" = _Field(...)
     
@@ -405,7 +405,7 @@ map<double, string> double_map_key = 77;
     
     nestedMessageMapValue: "dict[str, Foo_NestedMessage]" = _Field(...)
     
-    wktTimestampMapValue: "dict[str, google.protobuf.timestamp_pb2.Timestamp]" = _Field(...)
+    wktTimestampMapValue: "dict[str, datetime.datetime]" = _Field(...)
     
     a: "_Optional[int]" = _Field(None, description="""
 Only one of the fields can be specified with: [a b] (oneof union)""")
@@ -452,3 +452,61 @@ class Empty(_BaseModel):
     
     pass
     
+
+class WellKnownTypes(_BaseModel):
+    """
+
+    Attributes:
+      wktTimestamp (datetime.datetime):
+      wktDuration (datetime.timedelta):
+      wktStruct (dict[str, _Any]):
+      wktValue (_Any):
+      wktListValue (list[_Any]):
+      wktAny (_Any):
+      wktFieldMask (list[str]):
+      wktBool (bool):
+      wktInt32 (int):
+      wktInt64 (int):
+      wktUint32 (int):
+      wktUint64 (int):
+      wktFloat (float):
+      wktDouble (float):
+      wktString (str):
+      wktBytes (bytes):
+      wktEmpty (None):
+    """
+    
+    
+    wktTimestamp: "datetime.datetime" = _Field(...)
+    
+    wktDuration: "datetime.timedelta" = _Field(...)
+    
+    wktStruct: "dict[str, _Any]" = _Field(...)
+    
+    wktValue: "_Any" = _Field(...)
+    
+    wktListValue: "list[_Any]" = _Field(...)
+    
+    wktAny: "_Any" = _Field(...)
+    
+    wktFieldMask: "list[str]" = _Field(...)
+    
+    wktBool: "bool" = _Field(...)
+    
+    wktInt32: "int" = _Field(...)
+    
+    wktInt64: "int" = _Field(...)
+    
+    wktUint32: "int" = _Field(...)
+    
+    wktUint64: "int" = _Field(...)
+    
+    wktFloat: "float" = _Field(...)
+    
+    wktDouble: "float" = _Field(...)
+    
+    wktString: "str" = _Field(...)
+    
+    wktBytes: "bytes" = _Field(...)
+    
+    wktEmpty: "None" = _Field(...)
