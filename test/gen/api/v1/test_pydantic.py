@@ -535,3 +535,35 @@ class WellKnownTypes(_BaseModel):
     wktBytes: "bytes" = _Field(...)
 
     wktEmpty: "None" = _Field(...)
+
+
+class ReservedFieldNames(_BaseModel):
+    """
+
+    Attributes:
+      modelConfig (str):
+      modelFields (str):
+      modelDump (str):
+    """
+
+    modelConfig: "str" = _Field(...)
+
+    modelFields: "str" = _Field(...)
+
+    modelDump: "str" = _Field(...)
+
+
+class TreeNode(_BaseModel):
+    """
+
+    Attributes:
+      name (str):
+      children (list[TreeNode]):
+      parent (_Optional[TreeNode]):
+    """
+
+    name: "str" = _Field(...)
+
+    children: "list[TreeNode]" = _Field(...)
+
+    parent: "_Optional[TreeNode]" = _Field(None)

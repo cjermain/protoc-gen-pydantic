@@ -11,6 +11,8 @@ from gen.api.v1.test_pydantic import (
     Foo_NestedEnum,
     Foo_NestedMessage,
     Message,
+    ReservedFieldNames,
+    TreeNode,
     WellKnownTypes,
 )
 
@@ -462,6 +464,68 @@ def test_wkt_json_roundtrip(wkt):
     assert wkt2.wktStruct == wkt.wktStruct
     assert wkt2.wktBool is True
     assert wkt2.wktString == "test"
+
+
+# ---------------------------------------------------------------------------
+# Reserved field names (Pydantic BaseModel attributes)
+# ---------------------------------------------------------------------------
+
+
+def test_reserved_field_names():
+    """Fields named after Pydantic internals should not shadow BaseModel attributes."""
+    obj = ReservedFieldNames(modelConfig="a", modelFields="b", modelDump="c")
+    assert obj.modelConfig == "a"
+    assert obj.modelFields == "b"
+    assert obj.modelDump == "c"
+
+
+def test_reserved_field_names_roundtrip():
+    """Reserved field name model should survive JSON roundtrip."""
+    obj = ReservedFieldNames(modelConfig="a", modelFields="b", modelDump="c")
+    data = obj.model_dump()
+    restored = ReservedFieldNames(**data)
+    assert restored == obj
+
+
+# ---------------------------------------------------------------------------
+# Self-referencing messages
+# ---------------------------------------------------------------------------
+
+
+def test_tree_node_leaf():
+    """A leaf node with no children or parent."""
+    leaf = TreeNode(name="leaf", children=[])
+    assert leaf.name == "leaf"
+    assert leaf.children == []
+    assert leaf.parent is None
+
+
+def test_tree_node_nested():
+    """A tree with nested children."""
+    tree = TreeNode(
+        name="root",
+        children=[
+            TreeNode(name="child1", children=[]),
+            TreeNode(
+                name="child2",
+                children=[TreeNode(name="grandchild", children=[])],
+            ),
+        ],
+    )
+    assert tree.name == "root"
+    assert len(tree.children) == 2
+    assert tree.children[1].children[0].name == "grandchild"
+
+
+def test_tree_node_json_roundtrip():
+    """Self-referencing model should survive JSON roundtrip."""
+    tree = TreeNode(
+        name="root",
+        children=[TreeNode(name="child", children=[])],
+    )
+    json_str = tree.model_dump_json()
+    restored = TreeNode.model_validate_json(json_str)
+    assert restored == tree
 
 
 # ---------------------------------------------------------------------------

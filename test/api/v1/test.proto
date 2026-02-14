@@ -268,4 +268,16 @@ message WellKnownTypes {
   google.protobuf.Empty wkt_empty = 17;
 }
 
+message ReservedFieldNames {
+  string model_config = 1;
+  string model_fields = 2;
+  string model_dump = 3;
+}
+
+message TreeNode {
+  string name = 1;
+  repeated TreeNode children = 2;
+  optional TreeNode parent = 3;
+}
+
 // End file.
