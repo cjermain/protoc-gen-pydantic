@@ -15,18 +15,6 @@ class Enum(str, _Enum):
     """
     Enum leading comment.
     Enum leading comment.
-
-    # Enum value leading comment 0.
-    # Enum value leading comment 0.
-    UNSPECIFIED = "UNSPECIFIED"  # 0
-
-    # Enum value leading comment 1.
-    # Enum value leading comment 1.
-    ACTIVE = "ACTIVE"  # 1
-
-    # Enum value leading comment 2.
-    # Enum value leading comment 2.
-    INACTIVE = "INACTIVE"  # 2
     """
 
     # Enum trailing comment.
@@ -53,15 +41,6 @@ class Foo_NestedEnum(str, _Enum):
     """
     Enum leading comment.
     Enum leading comment.
-
-    # Enum value leading comment 0.
-    UNSPECIFIED = "UNSPECIFIED"  # 0
-
-    # Enum value leading comment 1.
-    ACTIVE = "ACTIVE"  # 1
-
-    # Enum value leading comment 2.
-    INACTIVE = "INACTIVE"  # 2
     """
 
     # Enum trailing comment.

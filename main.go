@@ -104,17 +104,6 @@ class {{ .Name }}({{ if $config.UseIntegersForEnums }}int{{ else }}str{{ end }},
     {{- range .LeadingComments }}
     {{ . }}
     {{- end }}
-
-    {{- range .Values }}
-    {{ range .LeadingComments }}
-    # {{ . }}
-    {{- end }}
-    {{- if $config.UseIntegersForEnums }}
-    {{ .Name }} = {{ .Number }}  # {{ .Name }}
-    {{ else }}
-    {{ .Name }} = "{{ .Name }}"  # {{ .Number }}
-    {{- end }}
-    {{- end }}
     """
     {{ range .TrailingComments }}
     # {{ . }}
