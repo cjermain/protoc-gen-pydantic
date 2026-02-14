@@ -3,7 +3,8 @@ name = "test"
 version = "0.1.0"
 description = "Add your description here"
 authors = [
-    { name = "“Arata", email = "old.river.new@gmail.com" }
+    { name = "Arata", email = "old.river.new@gmail.com" },
+    { name = "Colin Jermain" },
 ]
 dependencies = [
     "pydantic>=2.9.2",
