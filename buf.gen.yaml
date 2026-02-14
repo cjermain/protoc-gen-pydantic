@@ -13,4 +13,4 @@ plugins:
       # - use_integers_for_enums=true
     out: test/gen
 inputs:
-  - directory: test/api
+  - directory: test
