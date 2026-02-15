@@ -130,7 +130,7 @@ class {{ .Name }}({{ if $config.UseIntegersForEnums }}int{{ else }}str{{ end }},
     {{- end }}
     {{- if $config.UseIntegersForEnums }}
     {{ .Name }} = {{ .Number }}  # {{ .Name }}
-    {{ else }}
+    {{- else }}
     {{ .Name }} = "{{ .Name }}"  # {{ .Number }}
     {{- end }}
     {{- range .TrailingComments }}

@@ -46,10 +46,10 @@ jobs:
         run: go build -o protoc-gen-pydantic .
 
       - name: Generate models
-        run: rm -rf test/gen && buf generate
+        run: rm -rf test/gen test/gen_options && buf generate
 
       - name: Verify generated files are up-to-date
-        run: git diff --exit-code test/gen/
+        run: git diff --exit-code test/gen/ test/gen_options/
 
   test:
     needs: generate

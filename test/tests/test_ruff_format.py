@@ -3,7 +3,10 @@ from pathlib import Path
 
 import pytest
 
-GENERATED_FILES = sorted(Path("gen").rglob("*_pydantic.py"))
+GENERATED_FILES = sorted(
+    list(Path("gen").rglob("*_pydantic.py"))
+    + list(Path("gen_options").rglob("*_pydantic.py"))
+)
 
 
 @pytest.mark.parametrize("file_path", GENERATED_FILES, ids=lambda p: str(p))
