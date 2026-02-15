@@ -20,6 +20,16 @@ jobs:
 
       - uses: golangci/golangci-lint-action@v7
 
+      - uses: astral-sh/setup-uv@v7
+        with:
+          python-version: "3.12"
+
+      - name: Ruff check
+        run: cd test && uv run ruff check tests/
+
+      - name: Ruff format
+        run: cd test && uv run ruff format --check tests/
+
   generate:
     runs-on: ubuntu-latest
     steps:

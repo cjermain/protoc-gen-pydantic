@@ -3,6 +3,14 @@ repos:
     rev: v2.9.0
     hooks:
       - id: golangci-lint
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.1
+    hooks:
+      - id: ruff
+        args: [--fix]
+        files: ^test/tests/
+      - id: ruff-format
+        files: ^test/tests/
   - repo: local
     hooks:
       - id: check-generated-files
