@@ -4,7 +4,7 @@ Package: test.api.v1
 """
 
 from enum import Enum as _Enum
-from typing import Any as _Any, Optional as _Optional
+from typing import Optional as _Optional
 
 from pydantic import BaseModel as _BaseModel, ConfigDict as _ConfigDict, Field as _Field
 
