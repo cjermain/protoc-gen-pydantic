@@ -1,2 +1,22 @@
-
+# Build output
 dist/
+protoc-gen-pydantic
+
+# Go
+*.exe
+*.test
+*.out
+
+# Python
+__pycache__/
+*.py[oc]
+*.egg-info
+
+# OS
+.DS_Store
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*~
