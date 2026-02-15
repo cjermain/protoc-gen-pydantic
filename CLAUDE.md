@@ -45,7 +45,7 @@ pre-commit install
 
 ```
 ├── main.go                          # All Go plugin code
-├── go.mod / go.sum                  # Go module (github.com/ornew/protoc-gen-pydantic)
+├── go.mod / go.sum                  # Go module (github.com/cjermain/protoc-gen-pydantic)
 ├── buf.yaml                         # Buf workspace config
 ├── buf.gen.yaml                     # Buf code generation config
 ├── .goreleaser.yaml                 # Release automation

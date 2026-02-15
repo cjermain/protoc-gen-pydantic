@@ -6,7 +6,7 @@ package test.api.v1;
 import "api/v1/enums.proto";
 import "google/protobuf/timestamp.proto";
 
-option go_package = "github.com/ornew/protoc-gen-pydantic/test/api";
+option go_package = "github.com/cjermain/protoc-gen-pydantic/test/api";
 
 message Foo {
   int32 int32 = 2;

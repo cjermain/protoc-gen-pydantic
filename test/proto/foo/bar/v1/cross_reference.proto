@@ -4,7 +4,7 @@ package test.foo.bar.v1;
 
 import "api/v1/types.proto";
 
-option go_package = "github.com/ornew/protoc-gen-pydantic/test/foo/bar/v1";
+option go_package = "github.com/cjermain/protoc-gen-pydantic/test/foo/bar/v1";
 
 message CrossRefMessage {
   string id = 1;

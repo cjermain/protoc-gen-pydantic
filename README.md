@@ -1,6 +1,8 @@
 # protoc-gen-pydantic
 
-`protoc-gen-pydantic` is a `protoc` plugin that automatically generates [Pydantic](https://docs.pydantic.dev/) model definitions from `.proto` files. This tool is designed to help developers seamlessly integrate protobuf-defined models with Pydantic, a powerful data validation and settings management library for Python.
+`protoc-gen-pydantic` is a `protoc` plugin that automatically generates [Pydantic v2](https://docs.pydantic.dev/) model definitions from `.proto` files. This tool helps developers seamlessly integrate protobuf-defined models with Pydantic, a powerful data validation and settings management library for Python.
+
+> Forked from [ornew/protoc-gen-pydantic](https://github.com/ornew/protoc-gen-pydantic), originally created by [Arata Furukawa](https://github.com/ornew).
 
 ## Features
 
@@ -9,10 +11,13 @@
 - Generates Pydantic models with type annotations and field descriptions.
 - Supports `oneof`, `optional`, `repeated`, and `map` fields.
 - Retains comments from `.proto` files as docstrings in the generated models.
+- Maps well-known types to native Python types (e.g. `Timestamp` → `datetime`, `Struct` → `dict[str, Any]`).
+- Handles Python builtin/keyword shadowing with PEP 8 trailing underscore aliases.
+- Cross-package message references.
 
 ## Installation
 
-You can download the binaries from GitHub [Releases](https://github.com/ornew/protoc-gen-pydantic/releases).
+You can download the binaries from GitHub [Releases](https://github.com/cjermain/protoc-gen-pydantic/releases).
 
 ### Build from Source
 
@@ -21,7 +26,7 @@ You first need to have Go installed. If you don't have Go installed, you can dow
 Clone the repository and build the plugin:
 
 ```sh
-git clone https://github.com/ornew/protoc-gen-pydantic
+git clone https://github.com/cjermain/protoc-gen-pydantic
 cd protoc-gen-pydantic
 go build -o protoc-gen-pydantic main.go
 ```
@@ -94,13 +99,15 @@ class User(_BaseModel):
 
 ## Options
 
-| option | description |
-|--------|-------------|
-| `preserving_proto_field_name` | Use the proto field naming for the output field name. If `false`, it will be in caml-case according to `protojson` rules. Defaults to `false`. |
-| `auto_trim_enum_prefix` | Automatically remove prefixes from enum fields. Defaults to `true` |
-| `use_integers_for_enums` | Use integers for enum values instead of enum names. Defaults to `false`. |
-| `disable_field_description` | Disable generating the field description. Defaults to `false`. |
-| `use_none_union_syntax_instead_of_optional` | Use `T | None` instead of `Optional[T]`. |
+Passed via `opt:` in buf.gen.yaml or `--pydantic_opt=` with protoc:
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `preserving_proto_field_name` | `false` | Use the proto field naming for the output field name. If `false`, it will be in camelCase according to `protojson` rules. |
+| `auto_trim_enum_prefix` | `true` | Automatically remove prefixes from enum fields. |
+| `use_integers_for_enums` | `false` | Use integers for enum values instead of enum names. |
+| `disable_field_description` | `false` | Disable generating the field description. |
+| `use_none_union_syntax_instead_of_optional` | `false` | Use `T \| None` instead of `Optional[T]`. |
 
 ### `auto_trim_enum_prefix`
 
@@ -186,11 +193,8 @@ Contributions are welcome! Please open an issue or submit a pull request with yo
 
 ## License
 
-This project is licensed under the Apache License 2.0. See LICENSE for more details.
+This project is licensed under the Apache License 2.0. See [LICENSE](LICENSE) for more details.
 
-## Contact
+## Acknowledgments
 
-If you have any questions, feel free to reach out to the author:
-
-- Name: Arata Furukawa
-- Email: old.river.new@gmail.com
+This project was originally created by [Arata Furukawa](https://github.com/ornew) ([ornew/protoc-gen-pydantic](https://github.com/ornew/protoc-gen-pydantic)).

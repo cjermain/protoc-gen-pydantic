@@ -1,4 +1,4 @@
-module github.com/ornew/protoc-gen-pydantic
+module github.com/cjermain/protoc-gen-pydantic
 
 go 1.23.1
 
