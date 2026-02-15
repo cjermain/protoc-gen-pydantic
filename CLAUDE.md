@@ -34,7 +34,7 @@ buf generate
 cd test && uv run pytest -v
 
 # Full rebuild + test cycle
-go build -o protoc-gen-pydantic . && buf generate && cd test && uv run pytest -v
+go build -o protoc-gen-pydantic . && rm -rf test/gen test/gen_options && buf generate && cd test && uv run pytest -v
 
 # Run Go linter
 golangci-lint run
@@ -57,7 +57,10 @@ pre-commit install
     │   ├── buf.yaml                 # Buf module config
     │   ├── api/v1/*.proto           # Proto definitions for testing
     │   └── foo/bar/v1/*.proto       # Cross-package proto definitions
-    ├── gen/                         # Generated output (committed)
+    ├── gen/                         # Generated output, default options (committed)
+    │   ├── api/v1/*_pydantic.py
+    │   └── foo/bar/v1/*_pydantic.py
+    ├── gen_options/                  # Generated output, all non-default options (committed)
     │   ├── api/v1/*_pydantic.py
     │   └── foo/bar/v1/*_pydantic.py
     └── tests/                       # Pytest suite
@@ -111,7 +114,7 @@ Test coverage includes: enums, scalar fields, optional/repeated/map fields, oneo
 
 ### Adding Tests
 1. Add proto definitions to `test/proto/api/v1/*.proto`
-2. Rebuild and regenerate: `go build -o protoc-gen-pydantic . && buf generate`
+2. Rebuild and regenerate: `go build -o protoc-gen-pydantic . && rm -rf test/gen test/gen_options && buf generate`
 3. Add pytest functions to `test/tests/test_generated_models.py`
 4. Run: `cd test && uv run pytest -v`
 
