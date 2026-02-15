@@ -114,8 +114,10 @@ class {{ .Name }}({{ if $config.UseIntegersForEnums }}int{{ else }}str{{ end }},
     {{ . }}
     {{- end }}
     """
+    {{- if .TrailingComments }}
     {{ range .TrailingComments }}
     # {{ . }}
+    {{- end }}
     {{- end }}
     {{- range .Values }}
     {{ range .LeadingComments }}
@@ -418,8 +420,8 @@ func (e *generator) processEnum(
 		if e.config.AutoTrimEnumPrefix {
 			valueName = strings.TrimPrefix(valueName, prefix)
 		}
-		fieldpath := append(path, 2, int32(i))
-		leadingComments, trailingComments := extractComments(sourceCodeInfo, fieldpath)
+		fieldPath := append(append([]int32{}, path...), 2, int32(i))
+		leadingComments, trailingComments := extractComments(sourceCodeInfo, fieldPath)
 		def.Values = append(def.Values, EnumValue{
 			Name:             valueName,
 			Number:           int32(v.Number()),
@@ -443,15 +445,15 @@ func (e *generator) processMessage(
 
 	// NOTE: Process nested enums and messages before the fields.
 	for i, nest := range iter(msg.Enums()) {
-		nest_path := append(path, 4, int32(i))
-		if err := e.processEnum(nest, sourceCodeInfo, nest_path); err != nil {
+		nestPath := append(append([]int32{}, path...), 4, int32(i))
+		if err := e.processEnum(nest, sourceCodeInfo, nestPath); err != nil {
 			return fmt.Errorf("enum %s: %w", string(nest.Name()), err)
 		}
 	}
 
 	for i, nest := range iter(msg.Messages()) {
-		nest_path := append(path, 3, int32(i))
-		if err := e.processMessage(nest, sourceCodeInfo, nest_path); err != nil {
+		nestPath := append(append([]int32{}, path...), 3, int32(i))
+		if err := e.processMessage(nest, sourceCodeInfo, nestPath); err != nil {
 			return fmt.Errorf("message %s: %w", string(nest.Name()), err)
 		}
 	}
@@ -467,7 +469,7 @@ func (e *generator) processMessage(
 		if err != nil {
 			return fmt.Errorf("field %s.%s: %w", def.Name, field.Name(), err)
 		}
-		fieldpath := append(path, 2, int32(i))
+		fieldPath := append(append([]int32{}, path...), 2, int32(i))
 		var oneOf *OneOf
 		if oo := field.ContainingOneof(); !field.HasOptionalKeyword() && oo != nil {
 			var fieldNames []string
@@ -496,7 +498,7 @@ func (e *generator) processMessage(
 			OneOf:    oneOf,
 			// Description: resolveFieldDescription(field),
 		}
-		f.LeadingComments, f.TrailingComments = extractComments(sourceCodeInfo, fieldpath)
+		f.LeadingComments, f.TrailingComments = extractComments(sourceCodeInfo, fieldPath)
 		def.Fields = append(def.Fields, f)
 	}
 
