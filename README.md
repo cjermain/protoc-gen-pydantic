@@ -14,6 +14,7 @@
 - Maps well-known types to native Python types (e.g. `Timestamp` → `datetime`, `Struct` → `dict[str, Any]`).
 - Handles Python builtin/keyword shadowing with PEP 8 trailing underscore aliases.
 - Cross-package message references.
+- Preserves enum value options (built-in `deprecated`/`debug_redact` and custom extensions) as accessible metadata on enum members.
 
 ## Installation
 

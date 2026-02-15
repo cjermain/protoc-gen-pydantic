@@ -8,10 +8,10 @@ protoc-gen-pydantic is a `protoc` plugin written in Go that generates Pydantic v
 
 ## Architecture
 
-**Single-file Go plugin** (`main.go`, ~725 lines):
+**Single-file Go plugin** (`main.go`, ~990 lines):
 - Reads `CodeGeneratorRequest` from stdin, writes `CodeGeneratorResponse` to stdout
 - Uses Go `text/template` to render Python code
-- Key types: `generator`, `Message`, `Field`, `Enum`, `EnumValue`, `OneOf`
+- Key types: `generator`, `Message`, `Field`, `Enum`, `EnumValue`, `CustomOption`, `OneOf`
 - Key functions: `processFile()` → `processMessage()`/`processEnum()` → `resolveType()`/`resolveBaseType()`
 
 **Code generation flow:**
@@ -108,7 +108,7 @@ just test
 cd test && uv run pytest -v -k test_wkt_timestamp
 ```
 
-Test coverage includes: enums, scalar fields, optional/repeated/map fields, oneof, builtin alias handling, well-known types, and JSON/dict roundtrips.
+Test coverage includes: enums, scalar fields, optional/repeated/map fields, oneof, builtin alias handling, well-known types, enum value options (built-in and custom), and JSON/dict roundtrips.
 
 ### Adding Tests
 1. Add proto definitions to `test/proto/api/v1/*.proto`
