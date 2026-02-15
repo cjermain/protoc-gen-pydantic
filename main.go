@@ -493,7 +493,7 @@ func (e *generator) processMessage(
 			Alias:    alias,
 			Type:     typ,
 			Optional: field.HasOptionalKeyword(),
-			OneOf:         oneOf,
+			OneOf:    oneOf,
 			// Description: resolveFieldDescription(field),
 		}
 		f.LeadingComments, f.TrailingComments = extractComments(sourceCodeInfo, fieldpath)
