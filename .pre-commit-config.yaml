@@ -3,3 +3,11 @@ repos:
     rev: v2.9.0
     hooks:
       - id: golangci-lint
+  - repo: local
+    hooks:
+      - id: check-generated-files
+        name: check generated files are up-to-date
+        entry: bash -c 'go build -o protoc-gen-pydantic . && rm -rf test/gen && buf generate && git diff --exit-code test/gen/'
+        language: system
+        files: '(\.go|\.proto)$'
+        pass_filenames: false

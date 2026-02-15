@@ -1,4 +1,4 @@
-name: test
+name: ci
 
 on:
   push:
@@ -20,7 +20,29 @@ jobs:
 
       - uses: golangci/golangci-lint-action@v7
 
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - uses: bufbuild/buf-setup-action@v1
+
+      - name: Build plugin
+        run: go build -o protoc-gen-pydantic .
+
+      - name: Generate models
+        run: rm -rf test/gen && buf generate
+
+      - name: Verify generated files are up-to-date
+        run: git diff --exit-code test/gen/
+
   test:
+    needs: generate
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
