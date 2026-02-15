@@ -20,15 +20,14 @@ jobs:
 
       - uses: golangci/golangci-lint-action@v7
 
+      - uses: extractions/setup-just@v3
+
       - uses: astral-sh/setup-uv@v7
         with:
           python-version: "3.12"
 
-      - name: Ruff check
-        run: cd test && uv run ruff check tests/
-
-      - name: Ruff format
-        run: cd test && uv run ruff format --check tests/
+      - name: Lint Python
+        run: just lint-python
 
   generate:
     runs-on: ubuntu-latest
@@ -42,14 +41,10 @@ jobs:
 
       - uses: bufbuild/buf-setup-action@v1
 
-      - name: Build plugin
-        run: go build -o protoc-gen-pydantic .
-
-      - name: Generate models
-        run: rm -rf test/gen test/gen_options && buf generate
+      - uses: extractions/setup-just@v3
 
       - name: Verify generated files are up-to-date
-        run: git diff --exit-code test/gen/ test/gen_options/
+        run: just check-generated
 
   test:
     needs: generate
@@ -64,15 +59,11 @@ jobs:
 
       - uses: bufbuild/buf-setup-action@v1
 
+      - uses: extractions/setup-just@v3
+
       - uses: astral-sh/setup-uv@v7
         with:
           python-version: "3.12"
 
-      - name: Build plugin
-        run: go build -o protoc-gen-pydantic .
-
-      - name: Generate models
-        run: buf generate
-
-      - name: Run tests
-        run: cd test && uv run pytest -v
+      - name: Build, generate, and test
+        run: just dev

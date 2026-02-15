@@ -23,21 +23,19 @@ protoc-gen-pydantic is a `protoc` plugin written in Go that generates Pydantic v
 
 ## Dev Commands
 
+This project uses [just](https://github.com/casey/just) as a command runner. Run `just --list` to see all recipes.
+
 ```bash
-# Build the Go binary
-go build -o protoc-gen-pydantic .
-
-# Generate Python models from test protos (requires buf CLI)
-buf generate
-
-# Run Python tests
-cd test && uv run pytest -v
-
-# Full rebuild + test cycle
-go build -o protoc-gen-pydantic . && rm -rf test/gen test/gen_options && buf generate && cd test && uv run pytest -v
-
-# Run Go linter
-golangci-lint run
+just build              # Build the Go binary
+just generate           # Build + generate Python models from test protos
+just test               # Run Python tests
+just dev                # Full rebuild + generate + test cycle
+just lint               # Run all linters (Go + Python)
+just lint-go            # Run Go linter
+just lint-python        # Run Python linters on test suite
+just fix-python         # Auto-fix Python lint issues
+just check-generated    # Verify generated files match committed versions
+just clean              # Remove build artifacts and generated files
 
 # Install pre-commit hooks (one-time setup)
 pre-commit install
@@ -104,7 +102,7 @@ Tests use pytest with fixtures and `@pytest.mark.parametrize`. Do not use unitte
 
 ```bash
 # Run all tests
-cd test && uv run pytest -v
+just test
 
 # Run specific test
 cd test && uv run pytest -v -k test_wkt_timestamp
@@ -114,9 +112,9 @@ Test coverage includes: enums, scalar fields, optional/repeated/map fields, oneo
 
 ### Adding Tests
 1. Add proto definitions to `test/proto/api/v1/*.proto`
-2. Rebuild and regenerate: `go build -o protoc-gen-pydantic . && rm -rf test/gen test/gen_options && buf generate`
+2. Rebuild and regenerate: `just generate`
 3. Add pytest functions to `test/tests/test_generated_models.py`
-4. Run: `cd test && uv run pytest -v`
+4. Run: `just test`
 
 ## Code Style
 

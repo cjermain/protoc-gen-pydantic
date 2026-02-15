@@ -15,7 +15,7 @@ repos:
     hooks:
       - id: check-generated-files
         name: check generated files are up-to-date
-        entry: bash -c 'go build -o protoc-gen-pydantic . && rm -rf test/gen test/gen_options && buf generate && git diff --exit-code test/gen/ test/gen_options/'
+        entry: just check-generated
         language: system
         files: '(\.go|\.proto)$'
         pass_filenames: false
