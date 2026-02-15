@@ -26,8 +26,7 @@ dev = [
 managed = true
 
 [tool.uv.build-backend]
-module-name = "gen"
-module-root = ""
+module-root = "gen"
 namespace = true
 
 [tool.pyright]

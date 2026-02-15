@@ -8,33 +8,9 @@ from typing import Any as _Any, Optional as _Optional
 
 from pydantic import BaseModel as _BaseModel, ConfigDict as _ConfigDict, Field as _Field
 
+from .enums_pydantic import Enum
+
 import datetime
-
-
-class Enum(str, _Enum):
-    """
-    Enum leading comment.
-    Enum leading comment.
-    """
-
-    # Enum trailing comment.
-    # Enum trailing comment.
-
-    # Enum value leading comment 0.
-    # Enum value leading comment 0.
-    UNSPECIFIED = "UNSPECIFIED"  # 0
-    # Enum value right comment 0.
-
-    # Enum value leading comment 1.
-    # Enum value leading comment 1.
-    ACTIVE = "ACTIVE"  # 1
-    # Enum value trailing comment 1.
-    # Enum value trailing comment 1.
-
-    # Enum value leading comment 2.
-    # Enum value leading comment 2.
-    INACTIVE = "INACTIVE"  # 2
-    # Enum value right comment 2.
 
 
 class Foo_NestedEnum(str, _Enum):
@@ -456,93 +432,3 @@ class Empty(_BaseModel):
     """
 
     pass
-
-
-class WellKnownTypes(_BaseModel):
-    """
-
-    Attributes:
-      wktTimestamp (datetime.datetime):
-      wktDuration (datetime.timedelta):
-      wktStruct (dict[str, _Any]):
-      wktValue (_Any):
-      wktListValue (list[_Any]):
-      wktAny (_Any):
-      wktFieldMask (list[str]):
-      wktBool (bool):
-      wktInt32 (int):
-      wktInt64 (int):
-      wktUint32 (int):
-      wktUint64 (int):
-      wktFloat (float):
-      wktDouble (float):
-      wktString (str):
-      wktBytes (bytes):
-      wktEmpty (None):
-    """
-
-    wktTimestamp: "datetime.datetime" = _Field(...)
-
-    wktDuration: "datetime.timedelta" = _Field(...)
-
-    wktStruct: "dict[str, _Any]" = _Field(...)
-
-    wktValue: "_Any" = _Field(...)
-
-    wktListValue: "list[_Any]" = _Field(...)
-
-    wktAny: "_Any" = _Field(...)
-
-    wktFieldMask: "list[str]" = _Field(...)
-
-    wktBool: "bool" = _Field(...)
-
-    wktInt32: "int" = _Field(...)
-
-    wktInt64: "int" = _Field(...)
-
-    wktUint32: "int" = _Field(...)
-
-    wktUint64: "int" = _Field(...)
-
-    wktFloat: "float" = _Field(...)
-
-    wktDouble: "float" = _Field(...)
-
-    wktString: "str" = _Field(...)
-
-    wktBytes: "bytes" = _Field(...)
-
-    wktEmpty: "None" = _Field(...)
-
-
-class ReservedFieldNames(_BaseModel):
-    """
-
-    Attributes:
-      modelConfig (str):
-      modelFields (str):
-      modelDump (str):
-    """
-
-    modelConfig: "str" = _Field(...)
-
-    modelFields: "str" = _Field(...)
-
-    modelDump: "str" = _Field(...)
-
-
-class TreeNode(_BaseModel):
-    """
-
-    Attributes:
-      name (str):
-      children (list[TreeNode]):
-      parent (_Optional[TreeNode]):
-    """
-
-    name: "str" = _Field(...)
-
-    children: "list[TreeNode]" = _Field(...)
-
-    parent: "_Optional[TreeNode]" = _Field(None)

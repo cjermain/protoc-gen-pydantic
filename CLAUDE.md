@@ -53,10 +53,14 @@ pre-commit install
 ├── .goreleaser.yaml                 # Release automation
 └── test/
     ├── pyproject.toml               # Python project config (uv + pydantic)
-    ├── api/v1/test.proto            # Proto definitions for testing
-    ├── gen/api/v1/test_pydantic.py  # Generated output (committed)
-    └── tests/
-        └── test_generated_models.py # Pytest suite
+    ├── proto/                       # Proto source files
+    │   ├── buf.yaml                 # Buf module config
+    │   ├── api/v1/*.proto           # Proto definitions for testing
+    │   └── foo/bar/v1/*.proto       # Cross-package proto definitions
+    ├── gen/                         # Generated output (committed)
+    │   ├── api/v1/*_pydantic.py
+    │   └── foo/bar/v1/*_pydantic.py
+    └── tests/                       # Pytest suite
 ```
 
 ## Plugin Options
@@ -106,7 +110,7 @@ cd test && uv run pytest -v -k test_wkt_timestamp
 Test coverage includes: enums, scalar fields, optional/repeated/map fields, oneof, builtin alias handling, well-known types, and JSON/dict roundtrips.
 
 ### Adding Tests
-1. Add proto definitions to `test/api/v1/test.proto`
+1. Add proto definitions to `test/proto/api/v1/*.proto`
 2. Rebuild and regenerate: `go build -o protoc-gen-pydantic . && buf generate`
 3. Add pytest functions to `test/tests/test_generated_models.py`
 4. Run: `cd test && uv run pytest -v`

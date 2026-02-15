@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package test.api.v1;
+
+option go_package = "github.com/ornew/protoc-gen-pydantic/test/api";
+
+message ReservedFieldNames {
+  string model_config = 1;
+  string model_fields = 2;
+  string model_dump = 3;
+}
