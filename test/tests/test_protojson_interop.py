@@ -17,10 +17,35 @@ from api.v1.enums_pydantic import Enum
 from api.v1.known_types_pydantic import WellKnownTypes
 from api.v1.types_pydantic import Foo, Foo_NestedEnum, Foo_NestedMessage, Message
 
+_WKT_DEFAULTS = dict(
+    wktTimestamp=datetime.datetime(2024, 1, 1, tzinfo=datetime.timezone.utc),
+    wktDuration=datetime.timedelta(seconds=0),
+    wktStruct={},
+    wktValue=None,
+    wktListValue=[],
+    wktAny=None,
+    wktFieldMask=[],
+    wktBool=False,
+    wktInt32=0,
+    wktInt64=0,
+    wktUint32=0,
+    wktUint64=0,
+    wktFloat=0.0,
+    wktDouble=0.0,
+    wktString="",
+    wktBytes=b"",
+    wktEmpty=None,
+)
+
+
+def make_wkt(**overrides):
+    """Create a WellKnownTypes with sensible defaults, overriding specific fields."""
+    return WellKnownTypes(**{**_WKT_DEFAULTS, **overrides})
+
 
 @pytest.fixture
 def wkt():
-    return WellKnownTypes(
+    return make_wkt(
         wktTimestamp=datetime.datetime(
             2024, 1, 15, 10, 30, 0, tzinfo=datetime.timezone.utc
         ),
@@ -39,7 +64,6 @@ def wkt():
         wktDouble=2.718,
         wktString="test",
         wktBytes=b"binary",
-        wktEmpty=None,
     )
 
 
@@ -159,24 +183,9 @@ def test_int32_stays_int_in_json_mode(foo_minimal):
 
 def test_int64_accepts_string_input():
     """Accepts string int64 from other systems."""
-    wkt = WellKnownTypes(
-        wktTimestamp=datetime.datetime(2024, 1, 1, tzinfo=datetime.timezone.utc),
-        wktDuration=datetime.timedelta(seconds=0),
-        wktStruct={},
-        wktValue=None,
-        wktListValue=[],
-        wktAny=None,
-        wktFieldMask=[],
-        wktBool=False,
-        wktInt32=0,
+    wkt = make_wkt(
         wktInt64="9007199254740993",
-        wktUint32=0,
         wktUint64="9007199254740993",
-        wktFloat=0.0,
-        wktDouble=0.0,
-        wktString="",
-        wktBytes=b"",
-        wktEmpty=None,
     )
     assert wkt.wktInt64 == 9007199254740993
     assert wkt.wktUint64 == 9007199254740993
@@ -205,25 +214,7 @@ def test_timestamp_python_mode_datetime(wkt):
 def test_timestamp_accepts_rfc3339():
     """Accepts RFC 3339 string from other systems."""
     wkt = WellKnownTypes.model_validate(
-        {
-            "wktTimestamp": "2024-01-15T10:30:00Z",
-            "wktDuration": "0s",
-            "wktStruct": {},
-            "wktValue": None,
-            "wktListValue": [],
-            "wktAny": None,
-            "wktFieldMask": [],
-            "wktBool": False,
-            "wktInt32": 0,
-            "wktInt64": 0,
-            "wktUint32": 0,
-            "wktUint64": 0,
-            "wktFloat": 0.0,
-            "wktDouble": 0.0,
-            "wktString": "",
-            "wktBytes": b"",
-            "wktEmpty": None,
-        }
+        {**_WKT_DEFAULTS, "wktTimestamp": "2024-01-15T10:30:00Z", "wktDuration": "0s"}
     )
     assert isinstance(wkt.wktTimestamp, datetime.datetime)
     assert wkt.wktTimestamp.year == 2024
@@ -234,25 +225,7 @@ def test_timestamp_accepts_rfc3339():
 def test_timestamp_with_microseconds():
     """Timestamp preserves microsecond precision."""
     ts = datetime.datetime(2024, 1, 15, 10, 30, 0, 123456, tzinfo=datetime.timezone.utc)
-    wkt = WellKnownTypes(
-        wktTimestamp=ts,
-        wktDuration=datetime.timedelta(seconds=0),
-        wktStruct={},
-        wktValue=None,
-        wktListValue=[],
-        wktAny=None,
-        wktFieldMask=[],
-        wktBool=False,
-        wktInt32=0,
-        wktInt64=0,
-        wktUint32=0,
-        wktUint64=0,
-        wktFloat=0.0,
-        wktDouble=0.0,
-        wktString="",
-        wktBytes=b"",
-        wktEmpty=None,
-    )
+    wkt = make_wkt(wktTimestamp=ts)
     data = wkt.model_dump(mode="json")
     assert data["wktTimestamp"] == "2024-01-15T10:30:00.123456Z"
 
@@ -279,52 +252,14 @@ def test_duration_python_mode_timedelta(wkt):
 
 def test_duration_integer_seconds():
     """Duration with whole seconds omits decimal."""
-    wkt = WellKnownTypes(
-        wktTimestamp=datetime.datetime(2024, 1, 1, tzinfo=datetime.timezone.utc),
-        wktDuration=datetime.timedelta(seconds=30),
-        wktStruct={},
-        wktValue=None,
-        wktListValue=[],
-        wktAny=None,
-        wktFieldMask=[],
-        wktBool=False,
-        wktInt32=0,
-        wktInt64=0,
-        wktUint32=0,
-        wktUint64=0,
-        wktFloat=0.0,
-        wktDouble=0.0,
-        wktString="",
-        wktBytes=b"",
-        wktEmpty=None,
-    )
+    wkt = make_wkt(wktDuration=datetime.timedelta(seconds=30))
     data = wkt.model_dump(mode="json")
     assert data["wktDuration"] == "30s"
 
 
 def test_duration_accepts_string():
     """Accepts duration string from other systems."""
-    wkt = WellKnownTypes.model_validate(
-        {
-            "wktTimestamp": "2024-01-01T00:00:00Z",
-            "wktDuration": "3.5s",
-            "wktStruct": {},
-            "wktValue": None,
-            "wktListValue": [],
-            "wktAny": None,
-            "wktFieldMask": [],
-            "wktBool": False,
-            "wktInt32": 0,
-            "wktInt64": 0,
-            "wktUint32": 0,
-            "wktUint64": 0,
-            "wktFloat": 0.0,
-            "wktDouble": 0.0,
-            "wktString": "",
-            "wktBytes": b"",
-            "wktEmpty": None,
-        }
-    )
+    wkt = WellKnownTypes.model_validate({**_WKT_DEFAULTS, "wktDuration": "3.5s"})
     assert wkt.wktDuration == datetime.timedelta(seconds=3, milliseconds=500)
 
 
@@ -340,25 +275,7 @@ def test_bytes_base64(foo_minimal):
 
 def test_nan_infinity():
     """NaN and Infinity serialize as strings in model_dump_json()."""
-    wkt = WellKnownTypes(
-        wktTimestamp=datetime.datetime(2024, 1, 1, tzinfo=datetime.timezone.utc),
-        wktDuration=datetime.timedelta(seconds=0),
-        wktStruct={},
-        wktValue=None,
-        wktListValue=[],
-        wktAny=None,
-        wktFieldMask=[],
-        wktBool=False,
-        wktInt32=0,
-        wktInt64=0,
-        wktUint32=0,
-        wktUint64=0,
-        wktFloat=float("nan"),
-        wktDouble=float("inf"),
-        wktString="",
-        wktBytes=b"",
-        wktEmpty=None,
-    )
+    wkt = make_wkt(wktFloat=float("nan"), wktDouble=float("inf"))
     json_str = wkt.model_dump_json()
     assert '"NaN"' in json_str
     assert '"Infinity"' in json_str
@@ -369,24 +286,10 @@ def test_nan_infinity():
 
 def test_int64_json_roundtrip():
     """int64 survives JSON serialization roundtrip."""
-    wkt = WellKnownTypes(
-        wktTimestamp=datetime.datetime(2024, 1, 1, tzinfo=datetime.timezone.utc),
+    wkt = make_wkt(
         wktDuration=datetime.timedelta(seconds=30),
-        wktStruct={},
-        wktValue=None,
-        wktListValue=[],
-        wktAny=None,
-        wktFieldMask=[],
-        wktBool=False,
-        wktInt32=0,
         wktInt64=9007199254740993,
-        wktUint32=0,
         wktUint64=9007199254740993,
-        wktFloat=0.0,
-        wktDouble=0.0,
-        wktString="",
-        wktBytes=b"",
-        wktEmpty=None,
     )
     json_str = wkt.model_dump_json()
     wkt2 = WellKnownTypes.model_validate_json(json_str)
@@ -397,25 +300,7 @@ def test_int64_json_roundtrip():
 def test_timestamp_json_roundtrip():
     """Timestamp survives JSON serialization roundtrip."""
     ts = datetime.datetime(2024, 1, 15, 10, 30, 0, 123456, tzinfo=datetime.timezone.utc)
-    wkt = WellKnownTypes(
-        wktTimestamp=ts,
-        wktDuration=datetime.timedelta(seconds=30),
-        wktStruct={},
-        wktValue=None,
-        wktListValue=[],
-        wktAny=None,
-        wktFieldMask=[],
-        wktBool=False,
-        wktInt32=0,
-        wktInt64=0,
-        wktUint32=0,
-        wktUint64=0,
-        wktFloat=0.0,
-        wktDouble=0.0,
-        wktString="",
-        wktBytes=b"",
-        wktEmpty=None,
-    )
+    wkt = make_wkt(wktTimestamp=ts, wktDuration=datetime.timedelta(seconds=30))
     json_str = wkt.model_dump_json()
     wkt2 = WellKnownTypes.model_validate_json(json_str)
     assert wkt2.wktTimestamp == ts
@@ -424,25 +309,7 @@ def test_timestamp_json_roundtrip():
 def test_duration_json_roundtrip():
     """Duration survives JSON serialization roundtrip."""
     dur = datetime.timedelta(seconds=3, milliseconds=500)
-    wkt = WellKnownTypes(
-        wktTimestamp=datetime.datetime(2024, 1, 1, tzinfo=datetime.timezone.utc),
-        wktDuration=dur,
-        wktStruct={},
-        wktValue=None,
-        wktListValue=[],
-        wktAny=None,
-        wktFieldMask=[],
-        wktBool=False,
-        wktInt32=0,
-        wktInt64=0,
-        wktUint32=0,
-        wktUint64=0,
-        wktFloat=0.0,
-        wktDouble=0.0,
-        wktString="",
-        wktBytes=b"",
-        wktEmpty=None,
-    )
+    wkt = make_wkt(wktDuration=dur)
     json_str = wkt.model_dump_json()
     wkt2 = WellKnownTypes.model_validate_json(json_str)
     assert wkt2.wktDuration == dur
