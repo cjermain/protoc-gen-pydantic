@@ -6,23 +6,28 @@ from api.v1.custom_options_pydantic import Color, Currency
 # --- custom options access ---
 
 
-@pytest.mark.parametrize(
-    "member,expected",
-    [
-        (
-            Currency.USD,
-            {"display_name": "US Dollar", "priority": 1, "is_default": True},
-        ),
-        (Currency.EUR, {"display_name": "Euro", "priority": 2}),
-        (Currency.GBP, {"display_name": "British Pound"}),
-    ],
-)
-def test_custom_options(member, expected):
-    assert member.options.custom_options == expected
+def test_custom_options_usd():
+    assert Currency.USD.options.display_name == "US Dollar"
+    assert Currency.USD.options.priority == 1
+    assert Currency.USD.options.is_default is True
 
 
-def test_custom_options_default_empty_dict():
-    assert Currency.UNSPECIFIED.options.custom_options == {}
+def test_custom_options_eur():
+    assert Currency.EUR.options.display_name == "Euro"
+    assert Currency.EUR.options.priority == 2
+    assert Currency.EUR.options.is_default is None
+
+
+def test_custom_options_gbp():
+    assert Currency.GBP.options.display_name == "British Pound"
+    assert Currency.GBP.options.priority is None
+    assert Currency.GBP.options.is_default is None
+
+
+def test_custom_options_default_none():
+    assert Currency.UNSPECIFIED.options.display_name is None
+    assert Currency.UNSPECIFIED.options.priority is None
+    assert Currency.UNSPECIFIED.options.is_default is None
 
 
 # --- built-in options still work ---
