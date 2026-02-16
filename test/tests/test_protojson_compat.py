@@ -4,6 +4,9 @@ Verifies that:
 - JSON produced by protobuf library can be parsed by Pydantic models
 - Proto-compatible JSON from Pydantic can be parsed by protobuf library
 - Full roundtrip preserves data
+
+Requires protoc to be installed. The pb2 files are generated on-the-fly
+by the pytest_configure hook in conftest.py.
 """
 
 import datetime
@@ -11,8 +14,8 @@ import json
 import sys
 from pathlib import Path
 
-# Extend the api.v1 namespace to include gen_pb2/ so pb2 modules are importable
-# alongside pydantic modules from gen/.
+# gen_pb2/ is generated on-the-fly by the pytest_configure hook in conftest.py.
+# Extend the api.v1 namespace so pb2 modules are importable alongside pydantic modules.
 _gen_pb2_path = str(Path(__file__).resolve().parent.parent / "gen_pb2")
 if _gen_pb2_path not in sys.path:
     sys.path.insert(0, _gen_pb2_path)

@@ -188,6 +188,26 @@ class User(_BaseModel):
 If `use_none_union_syntax_instead_of_optional` is `true`: `T | None`
 If `use_none_union_syntax_instead_of_optional` is `false`: `Optional[T]`
 
+## Development
+
+This project uses [just](https://github.com/casey/just) as a command runner. After cloning, run:
+
+```sh
+just init
+```
+
+This checks that all required tools are installed (`go`, `buf`, `protoc`, `uv`, `golangci-lint`), syncs the Python virtual environment, and installs pre-commit hooks.
+
+Other useful commands:
+
+```sh
+just dev    # Full rebuild + generate + test cycle
+just lint   # Run all linters (Go + Python)
+just test   # Run Python tests only
+```
+
+Run `just --list` to see all available recipes.
+
 ## Contributing
 
 Contributions are welcome! Please open an issue or submit a pull request with your changes.

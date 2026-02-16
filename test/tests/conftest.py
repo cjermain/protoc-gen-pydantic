@@ -1,9 +1,32 @@
 import datetime
+import subprocess
+from pathlib import Path
 
 import pytest
 
 from api.v1.enums_pydantic import Enum
 from api.v1.types_pydantic import Foo, Foo_NestedEnum, Foo_NestedMessage, Message
+
+# Directory paths relative to the test root (test/)
+_TEST_ROOT = Path(__file__).resolve().parent.parent
+_GEN_PB2_DIR = _TEST_ROOT / "gen_pb2"
+_PROTO_DIR = _TEST_ROOT / "proto"
+
+
+def pytest_configure(config):
+    """Generate protobuf Python files on-the-fly before test collection."""
+    if _GEN_PB2_DIR.exists():
+        return
+    _GEN_PB2_DIR.mkdir(parents=True, exist_ok=True)
+    proto_files = list(_PROTO_DIR.rglob("*.proto"))
+    subprocess.check_call(
+        [
+            "protoc",
+            f"--proto_path={_PROTO_DIR}",
+            f"--python_out={_GEN_PB2_DIR}",
+            *[str(p.relative_to(_PROTO_DIR)) for p in proto_files],
+        ],
+    )
 
 
 @pytest.fixture

@@ -12,6 +12,9 @@ __pycache__/
 *.py[oc]
 *.egg-info
 
+# Generated protobuf Python files (generated on-the-fly during tests)
+test/gen_pb2/
+
 # OS
 .DS_Store
 

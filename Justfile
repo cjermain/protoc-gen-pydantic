@@ -1,10 +1,33 @@
+# Check required tools and install pre-commit hooks
+init:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    missing=()
+    for cmd in go buf protoc uv golangci-lint; do
+        if ! command -v "$cmd" &>/dev/null; then
+            missing+=("$cmd")
+        fi
+    done
+    if [ ${#missing[@]} -ne 0 ]; then
+        echo "Missing required tools: ${missing[*]}"
+        exit 1
+    fi
+    echo "go:             $(go version | awk '{print $3}')"
+    echo "buf:            $(buf --version)"
+    echo "protoc:         $(protoc --version | awk '{print $2}')"
+    echo "uv:             $(uv --version | awk '{print $2}')"
+    echo "golangci-lint:  $(golangci-lint --version | awk '{print $4}')"
+    cd test && uv sync
+    pre-commit install
+    echo "Ready to go."
+
 # Build the protoc-gen-pydantic binary
 build:
     go build -o protoc-gen-pydantic .
 
 # Generate Python models from test protos
 generate: build
-    rm -rf test/gen test/gen_options test/gen_pb2
+    rm -rf test/gen test/gen_options
     buf generate
 
 # Run Python tests
@@ -33,9 +56,9 @@ fix-python:
 
 # Verify generated files match committed versions
 check-generated: generate
-    git diff --exit-code test/gen/ test/gen_options/ test/gen_pb2/
+    git diff --exit-code test/gen/ test/gen_options/
 
 # Remove build artifacts and generated files
 clean:
     rm -f protoc-gen-pydantic
-    rm -rf test/gen test/gen_options test/gen_pb2
+    rm -rf test/gen test/gen_options

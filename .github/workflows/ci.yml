@@ -59,6 +59,8 @@ jobs:
 
       - uses: bufbuild/buf-setup-action@v1
 
+      - uses: arduino/setup-protoc@v3
+
       - uses: extractions/setup-just@v3
 
       - uses: astral-sh/setup-uv@v7
