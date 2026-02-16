@@ -23,7 +23,6 @@ init:
     pre-commit install
     echo "Ready to go."
 
-
 # Build the protoc-gen-pydantic binary
 build:
     go build -o protoc-gen-pydantic .

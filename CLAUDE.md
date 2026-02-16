@@ -44,9 +44,12 @@ just clean              # Remove build artifacts and generated files
 ```
 ├── main.go                          # All Go plugin code
 ├── go.mod / go.sum                  # Go module (github.com/cjermain/protoc-gen-pydantic)
+├── Justfile                         # Command runner recipes (just)
+├── CLAUDE.md                        # Claude Code project instructions
 ├── buf.yaml                         # Buf workspace config
 ├── buf.gen.yaml                     # Buf code generation config
 ├── .goreleaser.yaml                 # Release automation
+├── .pre-commit-config.yaml          # Pre-commit hook config
 └── test/
     ├── pyproject.toml               # Python project config (uv + pydantic)
     ├── proto/                       # Proto source files

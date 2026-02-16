@@ -41,11 +41,12 @@ go build -o protoc-gen-pydantic .
 To generate Pydantic model definitions, use `protoc` with your `.proto` files specifying `--pydantic_out`:
 
 ```sh
-protoc --plugin=protoc-gen-pydantic=./protoc-gen-pydantic \
-       --pydantic_out=./gen \
+protoc --pydantic_out=./gen \
        --proto_path=./proto_files \
        ./api/example.proto
 ```
+
+If the binary is not on your `PATH`, specify it explicitly with `--plugin=protoc-gen-pydantic=./protoc-gen-pydantic`.
 
 If you use [buf](https://buf.build/):
 
@@ -58,7 +59,7 @@ plugins:
       - paths=source_relative
     out: gen
 inputs:
-  - directory: api
+  - directory: proto
 ```
 
 ```sh
@@ -105,11 +106,11 @@ Passed via `opt:` in buf.gen.yaml or `--pydantic_opt=` with protoc:
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `preserving_proto_field_name` | `false` | Use the proto field naming for the output field name. If `false`, it will be in camelCase according to `protojson` rules. |
-| `auto_trim_enum_prefix` | `true` | Automatically remove prefixes from enum fields. |
-| `use_integers_for_enums` | `false` | Use integers for enum values instead of enum names. |
-| `disable_field_description` | `false` | Disable generating the field description. |
-| `use_none_union_syntax_instead_of_optional` | `false` | Use `T \| None` instead of `Optional[T]`. |
+| `preserving_proto_field_name` | `false` | Keep snake_case proto field names instead of camelCase |
+| `auto_trim_enum_prefix` | `true` | Remove enum type name prefix from value names |
+| `use_integers_for_enums` | `false` | Use integer values for enums instead of string names |
+| `disable_field_description` | `false` | Omit `description=` from generated fields |
+| `use_none_union_syntax_instead_of_optional` | `false` | Use `T \| None` instead of `Optional[T]` |
 
 ### `preserving_proto_field_name`
 
