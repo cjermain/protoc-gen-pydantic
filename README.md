@@ -20,16 +20,20 @@
 
 You can download the binaries from GitHub [Releases](https://github.com/cjermain/protoc-gen-pydantic/releases).
 
-### Build from Source
+### Install with Go
 
-You first need to have Go installed. If you don't have Go installed, you can download it from the Go downloads page.
+```sh
+go install github.com/cjermain/protoc-gen-pydantic@latest
+```
+
+### Build from Source
 
 Clone the repository and build the plugin:
 
 ```sh
 git clone https://github.com/cjermain/protoc-gen-pydantic
 cd protoc-gen-pydantic
-go build -o protoc-gen-pydantic main.go
+go build -o protoc-gen-pydantic .
 ```
 
 ## Usage
@@ -160,8 +164,6 @@ class Status(int, _Enum):
 
 ### `disable_field_description`
 
-If `disable_field_description` is `true`:
-
 ```proto
 message User {
     // User name
@@ -169,13 +171,15 @@ message User {
 }
 ```
 
+If `disable_field_description` is `false` (default):
+
 ```python
 class User(_BaseModel):
     # User name
     name: str = _Field(..., description="User name")
 ```
 
-If `disable_field_description` is `false`:
+If `disable_field_description` is `true`:
 
 ```python
 class User(_BaseModel):
