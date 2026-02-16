@@ -2,7 +2,7 @@
 
 from typing import Optional as _Optional
 
-from pydantic import BaseModel as _BaseModel, Field as _Field
+from pydantic import BaseModel as _BaseModel, ConfigDict as _ConfigDict, Field as _Field
 
 
 class TreeNode(_BaseModel):
@@ -13,6 +13,12 @@ class TreeNode(_BaseModel):
       children (list[TreeNode]):
       parent (_Optional[TreeNode]):
     """
+
+    model_config = _ConfigDict(
+        ser_json_bytes="base64",
+        val_json_bytes="base64",
+        ser_json_inf_nan="strings",
+    )
 
     name: "str" = _Field(...)
 

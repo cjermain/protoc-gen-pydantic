@@ -8,9 +8,9 @@ from typing import Optional as _Optional
 
 from pydantic import BaseModel as _BaseModel, ConfigDict as _ConfigDict, Field as _Field
 
-from .enums_pydantic import Enum
+from ._proto_types import ProtoInt64, ProtoTimestamp, ProtoUInt64
 
-import datetime
+from .enums_pydantic import Enum
 
 
 class Foo_NestedEnum(str, _Enum):
@@ -49,6 +49,12 @@ class Foo_NestedMessage(_BaseModel):
         Field leading comment.
     """
 
+    model_config = _ConfigDict(
+        ser_json_bytes="base64",
+        val_json_bytes="base64",
+        ser_json_inf_nan="strings",
+    )
+
     # Message trailing comment.
     # Message trailing comment.
 
@@ -78,15 +84,15 @@ class Foo(_BaseModel):
 
     Attributes:
       int32 (int):
-      int64 (int):
+      int64 (ProtoInt64):
       uint32 (int):
-      uint64 (int):
+      uint64 (ProtoUInt64):
       fixed32 (int):
-      fixed64 (int):
+      fixed64 (ProtoUInt64):
       sint32 (int):
-      sint64 (int):
+      sint64 (ProtoInt64):
       sfixed32 (int):
-      sfixed64 (int):
+      sfixed64 (ProtoInt64):
       bool_ (bool):
       float_ (float):
       double (float):
@@ -96,17 +102,17 @@ class Foo(_BaseModel):
       nestedEnum (Foo_NestedEnum):
       message (Message):
       nestedMessage (Foo_NestedMessage):
-      wktTimestamp (datetime.datetime):
+      wktTimestamp (ProtoTimestamp):
       int32Optional (_Optional[int]):
-      int64Optional (_Optional[int]):
+      int64Optional (_Optional[ProtoInt64]):
       uint32Optional (_Optional[int]):
-      uint64Optional (_Optional[int]):
+      uint64Optional (_Optional[ProtoUInt64]):
       fixed32Optional (_Optional[int]):
-      fixed64Optional (_Optional[int]):
+      fixed64Optional (_Optional[ProtoUInt64]):
       sint32Optional (_Optional[int]):
-      sint64Optional (_Optional[int]):
+      sint64Optional (_Optional[ProtoInt64]):
       sfixed32Optional (_Optional[int]):
-      sfixed64Optional (_Optional[int]):
+      sfixed64Optional (_Optional[ProtoInt64]):
       boolOptional (_Optional[bool]):
       floatOptional (_Optional[float]):
       doubleOptional (_Optional[float]):
@@ -116,17 +122,17 @@ class Foo(_BaseModel):
       nestedEnumOptional (_Optional[Foo_NestedEnum]):
       messageOptional (_Optional[Message]):
       nestedMessageOptional (_Optional[Foo_NestedMessage]):
-      wktTimestampOptional (_Optional[datetime.datetime]):
+      wktTimestampOptional (_Optional[ProtoTimestamp]):
       int32Repeated (list[int]):
-      int64Repeated (list[int]):
+      int64Repeated (list[ProtoInt64]):
       uint32Repeated (list[int]):
-      uint64Repeated (list[int]):
+      uint64Repeated (list[ProtoUInt64]):
       fixed32Repeated (list[int]):
-      fixed64Repeated (list[int]):
+      fixed64Repeated (list[ProtoUInt64]):
       sint32Repeated (list[int]):
-      sint64Repeated (list[int]):
+      sint64Repeated (list[ProtoInt64]):
       sfixed32Repeated (list[int]):
-      sfixed64Repeated (list[int]):
+      sfixed64Repeated (list[ProtoInt64]):
       boolRepeated (list[bool]):
       floatRepeated (list[float]):
       doubleRepeated (list[float]):
@@ -136,31 +142,31 @@ class Foo(_BaseModel):
       nestedEnumRepeated (list[Foo_NestedEnum]):
       messageRepeated (list[Message]):
       nestedMessageRepeated (list[Foo_NestedMessage]):
-      wktTimestampRepeated (list[datetime.datetime]):
+      wktTimestampRepeated (list[ProtoTimestamp]):
       int32MapKey (dict[int, str]):
-      int64MapKey (dict[int, str]):
+      int64MapKey (dict[ProtoInt64, str]):
       uint32MapKey (dict[int, str]):
-      uint64MapKey (dict[int, str]):
+      uint64MapKey (dict[ProtoUInt64, str]):
       fixed32MapKey (dict[int, str]):
-      fixed64MapKey (dict[int, str]):
+      fixed64MapKey (dict[ProtoUInt64, str]):
       sint32MapKey (dict[int, str]):
-      sint64MapKey (dict[int, str]):
+      sint64MapKey (dict[ProtoInt64, str]):
       sfixed32MapKey (dict[int, str]):
-      sfixed64MapKey (dict[int, str]):
+      sfixed64MapKey (dict[ProtoInt64, str]):
       boolMapKey (dict[bool, str]):
       stringMapKey (dict[str, str]):
         map<float, string> float_map_key = 76;
         map<double, string> double_map_key = 77;
       int32MapValue (dict[str, int]):
-      int64MapValue (dict[str, int]):
+      int64MapValue (dict[str, ProtoInt64]):
       uint32MapValue (dict[str, int]):
-      uint64MapValue (dict[str, int]):
+      uint64MapValue (dict[str, ProtoUInt64]):
       fixed32MapValue (dict[str, int]):
-      fixed64MapValue (dict[str, int]):
+      fixed64MapValue (dict[str, ProtoUInt64]):
       sint32MapValue (dict[str, int]):
-      sint64MapValue (dict[str, int]):
+      sint64MapValue (dict[str, ProtoInt64]):
       sfixed32MapValue (dict[str, int]):
-      sfixed64MapValue (dict[str, int]):
+      sfixed64MapValue (dict[str, ProtoInt64]):
       boolMapValue (dict[str, bool]):
       floatMapValue (dict[str, float]):
       doubleMapValue (dict[str, float]):
@@ -170,32 +176,37 @@ class Foo(_BaseModel):
       nestedEnumMapValue (dict[str, Foo_NestedEnum]):
       messageMapValue (dict[str, Message]):
       nestedMessageMapValue (dict[str, Foo_NestedMessage]):
-      wktTimestampMapValue (dict[str, datetime.datetime]):
+      wktTimestampMapValue (dict[str, ProtoTimestamp]):
       a (_Optional[int]):
       b (_Optional[str]):
     """
 
-    model_config = _ConfigDict(populate_by_name=True)
+    model_config = _ConfigDict(
+        populate_by_name=True,
+        ser_json_bytes="base64",
+        val_json_bytes="base64",
+        ser_json_inf_nan="strings",
+    )
 
     int32: "int" = _Field(...)
 
-    int64: "int" = _Field(...)
+    int64: "ProtoInt64" = _Field(...)
 
     uint32: "int" = _Field(...)
 
-    uint64: "int" = _Field(...)
+    uint64: "ProtoUInt64" = _Field(...)
 
     fixed32: "int" = _Field(...)
 
-    fixed64: "int" = _Field(...)
+    fixed64: "ProtoUInt64" = _Field(...)
 
     sint32: "int" = _Field(...)
 
-    sint64: "int" = _Field(...)
+    sint64: "ProtoInt64" = _Field(...)
 
     sfixed32: "int" = _Field(...)
 
-    sfixed64: "int" = _Field(...)
+    sfixed64: "ProtoInt64" = _Field(...)
 
     bool_: "bool" = _Field(..., alias="bool")
 
@@ -215,27 +226,27 @@ class Foo(_BaseModel):
 
     nestedMessage: "Foo_NestedMessage" = _Field(...)
 
-    wktTimestamp: "datetime.datetime" = _Field(...)
+    wktTimestamp: "ProtoTimestamp" = _Field(...)
 
     int32Optional: "_Optional[int]" = _Field(None)
 
-    int64Optional: "_Optional[int]" = _Field(None)
+    int64Optional: "_Optional[ProtoInt64]" = _Field(None)
 
     uint32Optional: "_Optional[int]" = _Field(None)
 
-    uint64Optional: "_Optional[int]" = _Field(None)
+    uint64Optional: "_Optional[ProtoUInt64]" = _Field(None)
 
     fixed32Optional: "_Optional[int]" = _Field(None)
 
-    fixed64Optional: "_Optional[int]" = _Field(None)
+    fixed64Optional: "_Optional[ProtoUInt64]" = _Field(None)
 
     sint32Optional: "_Optional[int]" = _Field(None)
 
-    sint64Optional: "_Optional[int]" = _Field(None)
+    sint64Optional: "_Optional[ProtoInt64]" = _Field(None)
 
     sfixed32Optional: "_Optional[int]" = _Field(None)
 
-    sfixed64Optional: "_Optional[int]" = _Field(None)
+    sfixed64Optional: "_Optional[ProtoInt64]" = _Field(None)
 
     boolOptional: "_Optional[bool]" = _Field(None)
 
@@ -255,27 +266,27 @@ class Foo(_BaseModel):
 
     nestedMessageOptional: "_Optional[Foo_NestedMessage]" = _Field(None)
 
-    wktTimestampOptional: "_Optional[datetime.datetime]" = _Field(None)
+    wktTimestampOptional: "_Optional[ProtoTimestamp]" = _Field(None)
 
     int32Repeated: "list[int]" = _Field(...)
 
-    int64Repeated: "list[int]" = _Field(...)
+    int64Repeated: "list[ProtoInt64]" = _Field(...)
 
     uint32Repeated: "list[int]" = _Field(...)
 
-    uint64Repeated: "list[int]" = _Field(...)
+    uint64Repeated: "list[ProtoUInt64]" = _Field(...)
 
     fixed32Repeated: "list[int]" = _Field(...)
 
-    fixed64Repeated: "list[int]" = _Field(...)
+    fixed64Repeated: "list[ProtoUInt64]" = _Field(...)
 
     sint32Repeated: "list[int]" = _Field(...)
 
-    sint64Repeated: "list[int]" = _Field(...)
+    sint64Repeated: "list[ProtoInt64]" = _Field(...)
 
     sfixed32Repeated: "list[int]" = _Field(...)
 
-    sfixed64Repeated: "list[int]" = _Field(...)
+    sfixed64Repeated: "list[ProtoInt64]" = _Field(...)
 
     boolRepeated: "list[bool]" = _Field(...)
 
@@ -295,27 +306,27 @@ class Foo(_BaseModel):
 
     nestedMessageRepeated: "list[Foo_NestedMessage]" = _Field(...)
 
-    wktTimestampRepeated: "list[datetime.datetime]" = _Field(...)
+    wktTimestampRepeated: "list[ProtoTimestamp]" = _Field(...)
 
     int32MapKey: "dict[int, str]" = _Field(...)
 
-    int64MapKey: "dict[int, str]" = _Field(...)
+    int64MapKey: "dict[ProtoInt64, str]" = _Field(...)
 
     uint32MapKey: "dict[int, str]" = _Field(...)
 
-    uint64MapKey: "dict[int, str]" = _Field(...)
+    uint64MapKey: "dict[ProtoUInt64, str]" = _Field(...)
 
     fixed32MapKey: "dict[int, str]" = _Field(...)
 
-    fixed64MapKey: "dict[int, str]" = _Field(...)
+    fixed64MapKey: "dict[ProtoUInt64, str]" = _Field(...)
 
     sint32MapKey: "dict[int, str]" = _Field(...)
 
-    sint64MapKey: "dict[int, str]" = _Field(...)
+    sint64MapKey: "dict[ProtoInt64, str]" = _Field(...)
 
     sfixed32MapKey: "dict[int, str]" = _Field(...)
 
-    sfixed64MapKey: "dict[int, str]" = _Field(...)
+    sfixed64MapKey: "dict[ProtoInt64, str]" = _Field(...)
 
     boolMapKey: "dict[bool, str]" = _Field(...)
 
@@ -336,23 +347,23 @@ map<double, string> double_map_key = 77;
 
     int32MapValue: "dict[str, int]" = _Field(...)
 
-    int64MapValue: "dict[str, int]" = _Field(...)
+    int64MapValue: "dict[str, ProtoInt64]" = _Field(...)
 
     uint32MapValue: "dict[str, int]" = _Field(...)
 
-    uint64MapValue: "dict[str, int]" = _Field(...)
+    uint64MapValue: "dict[str, ProtoUInt64]" = _Field(...)
 
     fixed32MapValue: "dict[str, int]" = _Field(...)
 
-    fixed64MapValue: "dict[str, int]" = _Field(...)
+    fixed64MapValue: "dict[str, ProtoUInt64]" = _Field(...)
 
     sint32MapValue: "dict[str, int]" = _Field(...)
 
-    sint64MapValue: "dict[str, int]" = _Field(...)
+    sint64MapValue: "dict[str, ProtoInt64]" = _Field(...)
 
     sfixed32MapValue: "dict[str, int]" = _Field(...)
 
-    sfixed64MapValue: "dict[str, int]" = _Field(...)
+    sfixed64MapValue: "dict[str, ProtoInt64]" = _Field(...)
 
     boolMapValue: "dict[str, bool]" = _Field(...)
 
@@ -372,7 +383,7 @@ map<double, string> double_map_key = 77;
 
     nestedMessageMapValue: "dict[str, Foo_NestedMessage]" = _Field(...)
 
-    wktTimestampMapValue: "dict[str, datetime.datetime]" = _Field(...)
+    wktTimestampMapValue: "dict[str, ProtoTimestamp]" = _Field(...)
 
     a: "_Optional[int]" = _Field(
         None,
@@ -400,6 +411,12 @@ class Message(_BaseModel):
         Field leading comment.
         Field leading comment.
     """
+
+    model_config = _ConfigDict(
+        ser_json_bytes="base64",
+        val_json_bytes="base64",
+        ser_json_inf_nan="strings",
+    )
 
     # Message trailing comment.
     # Message trailing comment.
@@ -430,5 +447,11 @@ class Empty(_BaseModel):
 
     Attributes:
     """
+
+    model_config = _ConfigDict(
+        ser_json_bytes="base64",
+        val_json_bytes="base64",
+        ser_json_inf_nan="strings",
+    )
 
     pass

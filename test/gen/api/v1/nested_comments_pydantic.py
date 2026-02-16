@@ -2,7 +2,7 @@
 
 from enum import Enum as _Enum
 
-from pydantic import BaseModel as _BaseModel, Field as _Field
+from pydantic import BaseModel as _BaseModel, ConfigDict as _ConfigDict, Field as _Field
 
 
 class Outer_OuterEnum(str, _Enum):
@@ -34,6 +34,12 @@ class Outer_Inner_Deepest(_BaseModel):
         Deepest field comment.
     """
 
+    model_config = _ConfigDict(
+        ser_json_bytes="base64",
+        val_json_bytes="base64",
+        ser_json_inf_nan="strings",
+    )
+
     # Deepest field comment.
     deepestField: "str" = _Field(
         ...,
@@ -51,6 +57,12 @@ class Outer_Inner(_BaseModel):
         Inner field comment.
     """
 
+    model_config = _ConfigDict(
+        ser_json_bytes="base64",
+        val_json_bytes="base64",
+        ser_json_inf_nan="strings",
+    )
+
     # Inner field comment.
     innerField: "str" = _Field(
         ...,
@@ -67,6 +79,12 @@ class Outer(_BaseModel):
       outerField (str):
         Outer field comment.
     """
+
+    model_config = _ConfigDict(
+        ser_json_bytes="base64",
+        val_json_bytes="base64",
+        ser_json_inf_nan="strings",
+    )
 
     # Outer field comment.
     outerField: "str" = _Field(

@@ -2,17 +2,17 @@
 
 from typing import Any as _Any
 
-from pydantic import BaseModel as _BaseModel, Field as _Field
+from pydantic import BaseModel as _BaseModel, ConfigDict as _ConfigDict, Field as _Field
 
-import datetime
+from ._proto_types import ProtoDuration, ProtoInt64, ProtoTimestamp, ProtoUInt64
 
 
 class WellKnownTypes(_BaseModel):
     """
 
     Attributes:
-      wkt_timestamp (datetime.datetime):
-      wkt_duration (datetime.timedelta):
+      wkt_timestamp (ProtoTimestamp):
+      wkt_duration (ProtoDuration):
       wkt_struct (dict[str, _Any]):
       wkt_value (_Any):
       wkt_list_value (list[_Any]):
@@ -20,9 +20,9 @@ class WellKnownTypes(_BaseModel):
       wkt_field_mask (list[str]):
       wkt_bool (bool):
       wkt_int32 (int):
-      wkt_int64 (int):
+      wkt_int64 (ProtoInt64):
       wkt_uint32 (int):
-      wkt_uint64 (int):
+      wkt_uint64 (ProtoUInt64):
       wkt_float (float):
       wkt_double (float):
       wkt_string (str):
@@ -30,9 +30,15 @@ class WellKnownTypes(_BaseModel):
       wkt_empty (None):
     """
 
-    wkt_timestamp: "datetime.datetime" = _Field(...)
+    model_config = _ConfigDict(
+        ser_json_bytes="base64",
+        val_json_bytes="base64",
+        ser_json_inf_nan="strings",
+    )
 
-    wkt_duration: "datetime.timedelta" = _Field(...)
+    wkt_timestamp: "ProtoTimestamp" = _Field(...)
+
+    wkt_duration: "ProtoDuration" = _Field(...)
 
     wkt_struct: "dict[str, _Any]" = _Field(...)
 
@@ -48,11 +54,11 @@ class WellKnownTypes(_BaseModel):
 
     wkt_int32: "int" = _Field(...)
 
-    wkt_int64: "int" = _Field(...)
+    wkt_int64: "ProtoInt64" = _Field(...)
 
     wkt_uint32: "int" = _Field(...)
 
-    wkt_uint64: "int" = _Field(...)
+    wkt_uint64: "ProtoUInt64" = _Field(...)
 
     wkt_float: "float" = _Field(...)
 

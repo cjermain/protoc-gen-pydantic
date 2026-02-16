@@ -4,7 +4,7 @@ build:
 
 # Generate Python models from test protos
 generate: build
-    rm -rf test/gen test/gen_options
+    rm -rf test/gen test/gen_options test/gen_pb2
     buf generate
 
 # Run Python tests
@@ -33,9 +33,9 @@ fix-python:
 
 # Verify generated files match committed versions
 check-generated: generate
-    git diff --exit-code test/gen/ test/gen_options/
+    git diff --exit-code test/gen/ test/gen_options/ test/gen_pb2/
 
 # Remove build artifacts and generated files
 clean:
     rm -f protoc-gen-pydantic
-    rm -rf test/gen test/gen_options
+    rm -rf test/gen test/gen_options test/gen_pb2

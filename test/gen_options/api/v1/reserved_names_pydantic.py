@@ -13,7 +13,12 @@ class ReservedFieldNames(_BaseModel):
       model_dump_ (str):
     """
 
-    model_config = _ConfigDict(populate_by_name=True)
+    model_config = _ConfigDict(
+        populate_by_name=True,
+        ser_json_bytes="base64",
+        val_json_bytes="base64",
+        ser_json_inf_nan="strings",
+    )
 
     model_config_: "str" = _Field(..., alias="model_config")
 

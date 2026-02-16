@@ -17,7 +17,12 @@ class CrossRefMessage(_BaseModel):
       foo_list (list[Foo]):
     """
 
-    model_config = _ConfigDict(populate_by_name=True)
+    model_config = _ConfigDict(
+        populate_by_name=True,
+        ser_json_bytes="base64",
+        val_json_bytes="base64",
+        ser_json_inf_nan="strings",
+    )
 
     id_: "str" = _Field(..., alias="id")
 

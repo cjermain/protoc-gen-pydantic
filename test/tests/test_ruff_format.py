@@ -6,6 +6,8 @@ import pytest
 GENERATED_FILES = sorted(
     list(Path("gen").rglob("*_pydantic.py"))
     + list(Path("gen_options").rglob("*_pydantic.py"))
+    + list(Path("gen").rglob("_proto_types.py"))
+    + list(Path("gen_options").rglob("_proto_types.py"))
 )
 
 

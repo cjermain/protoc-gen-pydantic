@@ -24,5 +24,7 @@ plugins:
       - disable_field_description=true
       - use_none_union_syntax_instead_of_optional=true
     out: test/gen_options
+  - protoc_builtin: python
+    out: test/gen_pb2
 inputs:
   - directory: test/proto
