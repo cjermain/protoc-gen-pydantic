@@ -12,6 +12,30 @@ from ._proto_types import ProtoInt64, ProtoTimestamp, ProtoUInt64
 from .enums_pydantic import Enum
 
 
+class _ProtoModel(_BaseModel):
+    """Base class for generated Pydantic models with ProtoJSON helpers."""
+
+    def to_proto_dict(self, **kwargs) -> dict:
+        """Serialize to a dict using ProtoJSON conventions.
+
+        Omits fields with default (zero) values and uses original proto
+        field names (camelCase aliases).
+        """
+        kwargs.setdefault("exclude_defaults", True)
+        kwargs.setdefault("by_alias", True)
+        return super().model_dump(**kwargs)
+
+    def to_proto_json(self, **kwargs) -> str:
+        """Serialize to a JSON string using ProtoJSON conventions.
+
+        Omits fields with default (zero) values and uses original proto
+        field names (camelCase aliases).
+        """
+        kwargs.setdefault("exclude_defaults", True)
+        kwargs.setdefault("by_alias", True)
+        return super().model_dump_json(**kwargs)
+
+
 class Foo_NestedEnum(int, _Enum):
     """
     Enum leading comment.
@@ -34,7 +58,7 @@ class Foo_NestedEnum(int, _Enum):
     # Enum value right comment 2.
 
 
-class Foo_NestedMessage(_BaseModel):
+class Foo_NestedMessage(_ProtoModel):
     """
     Message leading comment.
     Message leading comment.
@@ -59,16 +83,16 @@ class Foo_NestedMessage(_BaseModel):
 
     # Field leading comment.
     # Field leading comment.
-    first_name: "str" = _Field(...)
+    first_name: "str" = _Field("")
     # Field right comment.
 
     # Field leading comment.
     # Field leading comment.
-    last_name: "str" = _Field(...)
+    last_name: "str" = _Field("")
     # Field right comment.
 
 
-class Foo(_BaseModel):
+class Foo(_ProtoModel):
     """
 
     Attributes:
@@ -87,11 +111,11 @@ class Foo(_BaseModel):
       double (float):
       string (str):
       bytes_ (bytes):
-      enum (Enum):
-      nested_enum (Foo_NestedEnum):
-      message (Message):
-      nested_message (Foo_NestedMessage):
-      wkt_timestamp (ProtoTimestamp):
+      enum (Enum | None):
+      nested_enum (Foo_NestedEnum | None):
+      message (Message | None):
+      nested_message (Foo_NestedMessage | None):
+      wkt_timestamp (ProtoTimestamp | None):
       int32_optional (int | None):
       int64_optional (ProtoInt64 | None):
       uint32_optional (int | None):
@@ -177,45 +201,54 @@ class Foo(_BaseModel):
         ser_json_inf_nan="strings",
     )
 
-    int32: "int" = _Field(...)
+    int32: "int" = _Field(0)
 
-    int64: "ProtoInt64" = _Field(...)
+    int64: "ProtoInt64" = _Field(0)
 
-    uint32: "int" = _Field(...)
+    uint32: "int" = _Field(0)
 
-    uint64: "ProtoUInt64" = _Field(...)
+    uint64: "ProtoUInt64" = _Field(0)
 
-    fixed32: "int" = _Field(...)
+    fixed32: "int" = _Field(0)
 
-    fixed64: "ProtoUInt64" = _Field(...)
+    fixed64: "ProtoUInt64" = _Field(0)
 
-    sint32: "int" = _Field(...)
+    sint32: "int" = _Field(0)
 
-    sint64: "ProtoInt64" = _Field(...)
+    sint64: "ProtoInt64" = _Field(0)
 
-    sfixed32: "int" = _Field(...)
+    sfixed32: "int" = _Field(0)
 
-    sfixed64: "ProtoInt64" = _Field(...)
+    sfixed64: "ProtoInt64" = _Field(0)
 
-    bool_: "bool" = _Field(..., alias="bool")
+    bool_: "bool" = _Field(
+        False,
+        alias="bool",
+    )
 
-    float_: "float" = _Field(..., alias="float")
+    float_: "float" = _Field(
+        0.0,
+        alias="float",
+    )
 
-    double: "float" = _Field(...)
+    double: "float" = _Field(0.0)
 
-    string: "str" = _Field(...)
+    string: "str" = _Field("")
 
-    bytes_: "bytes" = _Field(..., alias="bytes")
+    bytes_: "bytes" = _Field(
+        b"",
+        alias="bytes",
+    )
 
-    enum: "Enum" = _Field(...)
+    enum: "Enum | None" = _Field(None)
 
-    nested_enum: "Foo_NestedEnum" = _Field(...)
+    nested_enum: "Foo_NestedEnum | None" = _Field(None)
 
-    message: "Message" = _Field(...)
+    message: "Message | None" = _Field(None)
 
-    nested_message: "Foo_NestedMessage" = _Field(...)
+    nested_message: "Foo_NestedMessage | None" = _Field(None)
 
-    wkt_timestamp: "ProtoTimestamp" = _Field(...)
+    wkt_timestamp: "ProtoTimestamp | None" = _Field(None)
 
     int32_optional: "int | None" = _Field(None)
 
@@ -257,71 +290,135 @@ class Foo(_BaseModel):
 
     wkt_timestamp_optional: "ProtoTimestamp | None" = _Field(None)
 
-    int32_repeated: "list[int]" = _Field(...)
+    int32_repeated: "list[int]" = _Field(
+        default_factory=list,
+    )
 
-    int64_repeated: "list[ProtoInt64]" = _Field(...)
+    int64_repeated: "list[ProtoInt64]" = _Field(
+        default_factory=list,
+    )
 
-    uint32_repeated: "list[int]" = _Field(...)
+    uint32_repeated: "list[int]" = _Field(
+        default_factory=list,
+    )
 
-    uint64_repeated: "list[ProtoUInt64]" = _Field(...)
+    uint64_repeated: "list[ProtoUInt64]" = _Field(
+        default_factory=list,
+    )
 
-    fixed32_repeated: "list[int]" = _Field(...)
+    fixed32_repeated: "list[int]" = _Field(
+        default_factory=list,
+    )
 
-    fixed64_repeated: "list[ProtoUInt64]" = _Field(...)
+    fixed64_repeated: "list[ProtoUInt64]" = _Field(
+        default_factory=list,
+    )
 
-    sint32_repeated: "list[int]" = _Field(...)
+    sint32_repeated: "list[int]" = _Field(
+        default_factory=list,
+    )
 
-    sint64_repeated: "list[ProtoInt64]" = _Field(...)
+    sint64_repeated: "list[ProtoInt64]" = _Field(
+        default_factory=list,
+    )
 
-    sfixed32_repeated: "list[int]" = _Field(...)
+    sfixed32_repeated: "list[int]" = _Field(
+        default_factory=list,
+    )
 
-    sfixed64_repeated: "list[ProtoInt64]" = _Field(...)
+    sfixed64_repeated: "list[ProtoInt64]" = _Field(
+        default_factory=list,
+    )
 
-    bool_repeated: "list[bool]" = _Field(...)
+    bool_repeated: "list[bool]" = _Field(
+        default_factory=list,
+    )
 
-    float_repeated: "list[float]" = _Field(...)
+    float_repeated: "list[float]" = _Field(
+        default_factory=list,
+    )
 
-    double_repeated: "list[float]" = _Field(...)
+    double_repeated: "list[float]" = _Field(
+        default_factory=list,
+    )
 
-    string_repeated: "list[str]" = _Field(...)
+    string_repeated: "list[str]" = _Field(
+        default_factory=list,
+    )
 
-    bytes_repeated: "list[bytes]" = _Field(...)
+    bytes_repeated: "list[bytes]" = _Field(
+        default_factory=list,
+    )
 
-    enum_repeated: "list[Enum]" = _Field(...)
+    enum_repeated: "list[Enum]" = _Field(
+        default_factory=list,
+    )
 
-    nested_enum_repeated: "list[Foo_NestedEnum]" = _Field(...)
+    nested_enum_repeated: "list[Foo_NestedEnum]" = _Field(
+        default_factory=list,
+    )
 
-    message_repeated: "list[Message]" = _Field(...)
+    message_repeated: "list[Message]" = _Field(
+        default_factory=list,
+    )
 
-    nested_message_repeated: "list[Foo_NestedMessage]" = _Field(...)
+    nested_message_repeated: "list[Foo_NestedMessage]" = _Field(
+        default_factory=list,
+    )
 
-    wkt_timestamp_repeated: "list[ProtoTimestamp]" = _Field(...)
+    wkt_timestamp_repeated: "list[ProtoTimestamp]" = _Field(
+        default_factory=list,
+    )
 
-    int32_map_key: "dict[int, str]" = _Field(...)
+    int32_map_key: "dict[int, str]" = _Field(
+        default_factory=dict,
+    )
 
-    int64_map_key: "dict[ProtoInt64, str]" = _Field(...)
+    int64_map_key: "dict[ProtoInt64, str]" = _Field(
+        default_factory=dict,
+    )
 
-    uint32_map_key: "dict[int, str]" = _Field(...)
+    uint32_map_key: "dict[int, str]" = _Field(
+        default_factory=dict,
+    )
 
-    uint64_map_key: "dict[ProtoUInt64, str]" = _Field(...)
+    uint64_map_key: "dict[ProtoUInt64, str]" = _Field(
+        default_factory=dict,
+    )
 
-    fixed32_map_key: "dict[int, str]" = _Field(...)
+    fixed32_map_key: "dict[int, str]" = _Field(
+        default_factory=dict,
+    )
 
-    fixed64_map_key: "dict[ProtoUInt64, str]" = _Field(...)
+    fixed64_map_key: "dict[ProtoUInt64, str]" = _Field(
+        default_factory=dict,
+    )
 
-    sint32_map_key: "dict[int, str]" = _Field(...)
+    sint32_map_key: "dict[int, str]" = _Field(
+        default_factory=dict,
+    )
 
-    sint64_map_key: "dict[ProtoInt64, str]" = _Field(...)
+    sint64_map_key: "dict[ProtoInt64, str]" = _Field(
+        default_factory=dict,
+    )
 
-    sfixed32_map_key: "dict[int, str]" = _Field(...)
+    sfixed32_map_key: "dict[int, str]" = _Field(
+        default_factory=dict,
+    )
 
-    sfixed64_map_key: "dict[ProtoInt64, str]" = _Field(...)
+    sfixed64_map_key: "dict[ProtoInt64, str]" = _Field(
+        default_factory=dict,
+    )
 
-    bool_map_key: "dict[bool, str]" = _Field(...)
+    bool_map_key: "dict[bool, str]" = _Field(
+        default_factory=dict,
+    )
 
     # map<float, string> float_map_key = 76;
     # map<double, string> double_map_key = 77;
-    string_map_key: "dict[str, str]" = _Field(...)
+    string_map_key: "dict[str, str]" = _Field(
+        default_factory=dict,
+    )
     # map<bytes, string> bytes_map_key = 79;
     # map<Enum, string> enum_map_key = 80;
     # map<NestedEnum, string> nested_enum_map_key = 81;
@@ -329,52 +426,92 @@ class Foo(_BaseModel):
     # map<NestedMessage, string> nested_message_map_key = 83;
     # map<google.protobuf.Timestamp, string> wkt_timestamp_map_key = 84;
 
-    int32_map_value: "dict[str, int]" = _Field(...)
+    int32_map_value: "dict[str, int]" = _Field(
+        default_factory=dict,
+    )
 
-    int64_map_value: "dict[str, ProtoInt64]" = _Field(...)
+    int64_map_value: "dict[str, ProtoInt64]" = _Field(
+        default_factory=dict,
+    )
 
-    uint32_map_value: "dict[str, int]" = _Field(...)
+    uint32_map_value: "dict[str, int]" = _Field(
+        default_factory=dict,
+    )
 
-    uint64_map_value: "dict[str, ProtoUInt64]" = _Field(...)
+    uint64_map_value: "dict[str, ProtoUInt64]" = _Field(
+        default_factory=dict,
+    )
 
-    fixed32_map_value: "dict[str, int]" = _Field(...)
+    fixed32_map_value: "dict[str, int]" = _Field(
+        default_factory=dict,
+    )
 
-    fixed64_map_value: "dict[str, ProtoUInt64]" = _Field(...)
+    fixed64_map_value: "dict[str, ProtoUInt64]" = _Field(
+        default_factory=dict,
+    )
 
-    sint32_map_value: "dict[str, int]" = _Field(...)
+    sint32_map_value: "dict[str, int]" = _Field(
+        default_factory=dict,
+    )
 
-    sint64_map_value: "dict[str, ProtoInt64]" = _Field(...)
+    sint64_map_value: "dict[str, ProtoInt64]" = _Field(
+        default_factory=dict,
+    )
 
-    sfixed32_map_value: "dict[str, int]" = _Field(...)
+    sfixed32_map_value: "dict[str, int]" = _Field(
+        default_factory=dict,
+    )
 
-    sfixed64_map_value: "dict[str, ProtoInt64]" = _Field(...)
+    sfixed64_map_value: "dict[str, ProtoInt64]" = _Field(
+        default_factory=dict,
+    )
 
-    bool_map_value: "dict[str, bool]" = _Field(...)
+    bool_map_value: "dict[str, bool]" = _Field(
+        default_factory=dict,
+    )
 
-    float_map_value: "dict[str, float]" = _Field(...)
+    float_map_value: "dict[str, float]" = _Field(
+        default_factory=dict,
+    )
 
-    double_map_value: "dict[str, float]" = _Field(...)
+    double_map_value: "dict[str, float]" = _Field(
+        default_factory=dict,
+    )
 
-    string_map_value: "dict[str, str]" = _Field(...)
+    string_map_value: "dict[str, str]" = _Field(
+        default_factory=dict,
+    )
 
-    bytes_map_value: "dict[str, bytes]" = _Field(...)
+    bytes_map_value: "dict[str, bytes]" = _Field(
+        default_factory=dict,
+    )
 
-    enum_map_value: "dict[str, Enum]" = _Field(...)
+    enum_map_value: "dict[str, Enum]" = _Field(
+        default_factory=dict,
+    )
 
-    nested_enum_map_value: "dict[str, Foo_NestedEnum]" = _Field(...)
+    nested_enum_map_value: "dict[str, Foo_NestedEnum]" = _Field(
+        default_factory=dict,
+    )
 
-    message_map_value: "dict[str, Message]" = _Field(...)
+    message_map_value: "dict[str, Message]" = _Field(
+        default_factory=dict,
+    )
 
-    nested_message_map_value: "dict[str, Foo_NestedMessage]" = _Field(...)
+    nested_message_map_value: "dict[str, Foo_NestedMessage]" = _Field(
+        default_factory=dict,
+    )
 
-    wkt_timestamp_map_value: "dict[str, ProtoTimestamp]" = _Field(...)
+    wkt_timestamp_map_value: "dict[str, ProtoTimestamp]" = _Field(
+        default_factory=dict,
+    )
 
     a: "int | None" = _Field(None)
 
     b: "str | None" = _Field(None)
 
 
-class Message(_BaseModel):
+class Message(_ProtoModel):
     """
     Message leading comment.
     Message leading comment.
@@ -399,16 +536,16 @@ class Message(_BaseModel):
 
     # Field leading comment.
     # Field leading comment.
-    first_name: "str" = _Field(...)
+    first_name: "str" = _Field("")
     # Field right comment.
 
     # Field leading comment.
     # Field leading comment.
-    last_name: "str" = _Field(...)
+    last_name: "str" = _Field("")
     # Field right comment.
 
 
-class Empty(_BaseModel):
+class Empty(_ProtoModel):
     """
 
     Attributes:

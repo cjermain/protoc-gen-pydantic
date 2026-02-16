@@ -5,6 +5,30 @@ from enum import Enum as _Enum
 from pydantic import BaseModel as _BaseModel, ConfigDict as _ConfigDict, Field as _Field
 
 
+class _ProtoModel(_BaseModel):
+    """Base class for generated Pydantic models with ProtoJSON helpers."""
+
+    def to_proto_dict(self, **kwargs) -> dict:
+        """Serialize to a dict using ProtoJSON conventions.
+
+        Omits fields with default (zero) values and uses original proto
+        field names (camelCase aliases).
+        """
+        kwargs.setdefault("exclude_defaults", True)
+        kwargs.setdefault("by_alias", True)
+        return super().model_dump(**kwargs)
+
+    def to_proto_json(self, **kwargs) -> str:
+        """Serialize to a JSON string using ProtoJSON conventions.
+
+        Omits fields with default (zero) values and uses original proto
+        field names (camelCase aliases).
+        """
+        kwargs.setdefault("exclude_defaults", True)
+        kwargs.setdefault("by_alias", True)
+        return super().model_dump_json(**kwargs)
+
+
 class Outer_OuterEnum(str, _Enum):
     """
     Outer enum comment.
@@ -25,7 +49,7 @@ class Outer_Inner_InnerEnum(str, _Enum):
     A = "A"  # 1
 
 
-class Outer_Inner_Deepest(_BaseModel):
+class Outer_Inner_Deepest(_ProtoModel):
     """
     Deepest message comment.
 
@@ -42,13 +66,13 @@ class Outer_Inner_Deepest(_BaseModel):
 
     # Deepest field comment.
     deepestField: "str" = _Field(
-        ...,
+        "",
         description="""Deepest field comment.
 """,
     )
 
 
-class Outer_Inner(_BaseModel):
+class Outer_Inner(_ProtoModel):
     """
     Inner message comment.
 
@@ -65,13 +89,13 @@ class Outer_Inner(_BaseModel):
 
     # Inner field comment.
     innerField: "str" = _Field(
-        ...,
+        "",
         description="""Inner field comment.
 """,
     )
 
 
-class Outer(_BaseModel):
+class Outer(_ProtoModel):
     """
     Outer message comment.
 
@@ -88,7 +112,7 @@ class Outer(_BaseModel):
 
     # Outer field comment.
     outerField: "str" = _Field(
-        ...,
+        "",
         description="""Outer field comment.
 """,
     )

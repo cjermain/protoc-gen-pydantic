@@ -8,12 +8,36 @@ from api.v1.types_pydantic import Message
 from api.v1.types_pydantic import Foo
 
 
-class CrossRefMessage(_BaseModel):
+class _ProtoModel(_BaseModel):
+    """Base class for generated Pydantic models with ProtoJSON helpers."""
+
+    def to_proto_dict(self, **kwargs) -> dict:
+        """Serialize to a dict using ProtoJSON conventions.
+
+        Omits fields with default (zero) values and uses original proto
+        field names (camelCase aliases).
+        """
+        kwargs.setdefault("exclude_defaults", True)
+        kwargs.setdefault("by_alias", True)
+        return super().model_dump(**kwargs)
+
+    def to_proto_json(self, **kwargs) -> str:
+        """Serialize to a JSON string using ProtoJSON conventions.
+
+        Omits fields with default (zero) values and uses original proto
+        field names (camelCase aliases).
+        """
+        kwargs.setdefault("exclude_defaults", True)
+        kwargs.setdefault("by_alias", True)
+        return super().model_dump_json(**kwargs)
+
+
+class CrossRefMessage(_ProtoModel):
     """
 
     Attributes:
       id_ (str):
-      referenced_message (Message):
+      referenced_message (Message | None):
       foo_list (list[Foo]):
     """
 
@@ -24,8 +48,13 @@ class CrossRefMessage(_BaseModel):
         ser_json_inf_nan="strings",
     )
 
-    id_: "str" = _Field(..., alias="id")
+    id_: "str" = _Field(
+        "",
+        alias="id",
+    )
 
-    referenced_message: "Message" = _Field(...)
+    referenced_message: "Message | None" = _Field(None)
 
-    foo_list: "list[Foo]" = _Field(...)
+    foo_list: "list[Foo]" = _Field(
+        default_factory=list,
+    )
