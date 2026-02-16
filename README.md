@@ -1,6 +1,6 @@
 # protoc-gen-pydantic
 
-`protoc-gen-pydantic` is a `protoc` plugin that automatically generates [Pydantic v2](https://docs.pydantic.dev/) model definitions from `.proto` files. This tool helps developers seamlessly integrate protobuf-defined models with Pydantic, a powerful data validation and settings management library for Python.
+`protoc-gen-pydantic` is a `protoc` plugin that generates [Pydantic v2](https://docs.pydantic.dev/) model definitions from `.proto` files.
 
 > Forked from [ornew/protoc-gen-pydantic](https://github.com/ornew/protoc-gen-pydantic) by [Arata Furukawa](https://github.com/ornew), which provided the initial plugin structure and plugin options. This fork adds well-known type mappings, Python builtin/keyword alias handling, cross-package references, enum value options, ProtoJSON-compatible output, conditional imports, and a test suite.
 
@@ -84,7 +84,7 @@ message User {
 }
 ```
 
-Running `protoc` will generate a Pydantic model like this:
+The generated Pydantic model will look like this:
 
 ```python
 from pydantic import BaseModel as _BaseModel, Field as _Field
@@ -162,6 +162,14 @@ class Status(str, _Enum):
 ```
 
 ### `use_integers_for_enums`
+
+```proto
+enum Status {
+  STATUS_UNSPECIFIED = 0;
+  STATUS_OK = 1;
+  STATUS_ERROR = 2;
+}
+```
 
 If `use_integers_for_enums` is `false` (default):
 

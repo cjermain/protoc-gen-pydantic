@@ -51,6 +51,10 @@ just clean              # Remove build artifacts and generated files
 ├── buf.gen.yaml                     # Buf code generation config
 ├── .goreleaser.yaml                 # Release automation
 ├── .pre-commit-config.yaml          # Pre-commit hook config
+├── .github/
+│   ├── workflows/ci.yml             # CI: lint, check-generated, test
+│   ├── workflows/release.yml        # Release via goreleaser on tag push
+│   └── dependabot.yml               # Dependency update automation
 └── test/
     ├── pyproject.toml               # Python project config (uv + pydantic)
     ├── proto/                       # Proto source files

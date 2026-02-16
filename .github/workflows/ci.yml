@@ -30,7 +30,7 @@ jobs:
       - name: Lint Python
         run: just lint-python
 
-  generate:
+  check-generated:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
