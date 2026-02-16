@@ -2,7 +2,7 @@
 
 `protoc-gen-pydantic` is a `protoc` plugin that automatically generates [Pydantic v2](https://docs.pydantic.dev/) model definitions from `.proto` files. This tool helps developers seamlessly integrate protobuf-defined models with Pydantic, a powerful data validation and settings management library for Python.
 
-> Forked from [ornew/protoc-gen-pydantic](https://github.com/ornew/protoc-gen-pydantic), originally created by [Arata Furukawa](https://github.com/ornew).
+> Forked from [ornew/protoc-gen-pydantic](https://github.com/ornew/protoc-gen-pydantic) by [Arata Furukawa](https://github.com/ornew), which provided the initial plugin structure and plugin options. This fork adds well-known type mappings, Python builtin/keyword alias handling, cross-package references, enum value options, ProtoJSON-compatible output, conditional imports, and a test suite.
 
 ## Features
 
@@ -87,9 +87,6 @@ message User {
 Running `protoc` will generate a Pydantic model like this:
 
 ```python
-from enum import Enum as _Enum
-from typing import Optional as _Optional
-
 from pydantic import BaseModel as _BaseModel, Field as _Field
 
 class User(_BaseModel):
@@ -99,7 +96,7 @@ class User(_BaseModel):
     name: str = _Field(...)
     age: int = _Field(...)
     emails: list[str] = _Field(...)
-    is_active: bool = _Field(...)
+    isActive: bool = _Field(...)
 ```
 
 ## Options
@@ -113,6 +110,28 @@ Passed via `opt:` in buf.gen.yaml or `--pydantic_opt=` with protoc:
 | `use_integers_for_enums` | `false` | Use integers for enum values instead of enum names. |
 | `disable_field_description` | `false` | Disable generating the field description. |
 | `use_none_union_syntax_instead_of_optional` | `false` | Use `T \| None` instead of `Optional[T]`. |
+
+### `preserving_proto_field_name`
+
+```proto
+message User {
+  bool is_active = 1;
+}
+```
+
+If `preserving_proto_field_name` is `false` (default):
+
+```python
+class User(_BaseModel):
+    isActive: bool = _Field(...)
+```
+
+If `preserving_proto_field_name` is `true`:
+
+```python
+class User(_BaseModel):
+    is_active: bool = _Field(...)
+```
 
 ### `auto_trim_enum_prefix`
 
@@ -189,8 +208,19 @@ class User(_BaseModel):
 
 ### `use_none_union_syntax_instead_of_optional`
 
-If `use_none_union_syntax_instead_of_optional` is `true`: `T | None`
-If `use_none_union_syntax_instead_of_optional` is `false`: `Optional[T]`
+If `use_none_union_syntax_instead_of_optional` is `false` (default):
+
+```python
+class User(_BaseModel):
+    name: _Optional[str] = _Field(...)
+```
+
+If `use_none_union_syntax_instead_of_optional` is `true`:
+
+```python
+class User(_BaseModel):
+    name: str | None = _Field(...)
+```
 
 ## Development
 
@@ -219,7 +249,3 @@ Contributions are welcome! Please open an issue or submit a pull request with yo
 ## License
 
 This project is licensed under the Apache License 2.0. See [LICENSE](LICENSE) for more details.
-
-## Acknowledgments
-
-This project was originally created by [Arata Furukawa](https://github.com/ornew) ([ornew/protoc-gen-pydantic](https://github.com/ornew/protoc-gen-pydantic)).
