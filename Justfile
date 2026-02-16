@@ -1,3 +1,5 @@
+set shell := ["bash", "-euo", "pipefail", "-c"]
+
 # Check required tools and install pre-commit hooks
 init:
     #!/usr/bin/env bash
@@ -20,6 +22,7 @@ init:
     cd test && uv sync
     pre-commit install
     echo "Ready to go."
+
 
 # Build the protoc-gen-pydantic binary
 build:
