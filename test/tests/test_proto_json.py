@@ -101,3 +101,31 @@ def test_to_proto_dict_override_by_alias():
     result = foo.to_proto_dict(by_alias=False)
     assert "bool_" in result
     assert "bool" not in result
+
+
+def test_from_proto_dict():
+    """from_proto_dict deserializes a dict into a model."""
+    m = Message.from_proto_dict({"first_name": "John", "last_name": "Doe"})
+    assert m.first_name == "John"
+    assert m.last_name == "Doe"
+
+
+def test_from_proto_json():
+    """from_proto_json deserializes a JSON string into a model."""
+    m = Message.from_proto_json('{"first_name": "John", "last_name": "Doe"}')
+    assert m.first_name == "John"
+    assert m.last_name == "Doe"
+
+
+def test_from_proto_dict_roundtrip():
+    """to_proto_dict → from_proto_dict roundtrip preserves data."""
+    original = Message(first_name="John", last_name="Doe")
+    restored = Message.from_proto_dict(original.to_proto_dict())
+    assert restored == original
+
+
+def test_from_proto_json_roundtrip():
+    """to_proto_json → from_proto_json roundtrip preserves data."""
+    original = Message(first_name="John", last_name="Doe")
+    restored = Message.from_proto_json(original.to_proto_json())
+    assert restored == original

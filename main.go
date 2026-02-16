@@ -160,6 +160,16 @@ class _ProtoModel(_BaseModel):
         kwargs.setdefault("exclude_defaults", True)
         kwargs.setdefault("by_alias", True)
         return super().model_dump_json(**kwargs)
+
+    @classmethod
+    def from_proto_dict(cls, data: dict, **kwargs):
+        """Deserialize from a dict using ProtoJSON conventions."""
+        return cls.model_validate(data, **kwargs)
+
+    @classmethod
+    def from_proto_json(cls, json_str: str, **kwargs):
+        """Deserialize from a JSON string using ProtoJSON conventions."""
+        return cls.model_validate_json(json_str, **kwargs)
 {{- end }}
 {{- if $hasEnumOptions }}
 
