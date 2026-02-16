@@ -38,8 +38,8 @@ class CrossRefMessage(_ProtoModel):
 
     Attributes:
       id_ (str):
-      referencedMessage (_Optional[Message]):
-      fooList (list[Foo]):
+      referenced_message (_Optional[Message]):
+      foo_list (list[Foo]):
     """
 
     model_config = _ConfigDict(
@@ -54,8 +54,8 @@ class CrossRefMessage(_ProtoModel):
         alias="id",
     )
 
-    referencedMessage: "_Optional[Message]" = _Field(None)
+    referenced_message: "_Optional[Message]" = _Field(None)
 
-    fooList: "list[Foo]" = _Field(
+    foo_list: "list[Foo]" = _Field(
         default_factory=list,
     )

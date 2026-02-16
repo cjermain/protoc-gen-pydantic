@@ -54,7 +54,7 @@ class Outer_Inner_Deepest(_ProtoModel):
     Deepest message comment.
 
     Attributes:
-      deepest_field (str):
+      deepestField (str):
         Deepest field comment.
     """
 
@@ -65,7 +65,7 @@ class Outer_Inner_Deepest(_ProtoModel):
     )
 
     # Deepest field comment.
-    deepest_field: "str" = _Field("")
+    deepestField: "str" = _Field("")
 
 
 class Outer_Inner(_ProtoModel):
@@ -73,7 +73,7 @@ class Outer_Inner(_ProtoModel):
     Inner message comment.
 
     Attributes:
-      inner_field (str):
+      innerField (str):
         Inner field comment.
     """
 
@@ -84,7 +84,7 @@ class Outer_Inner(_ProtoModel):
     )
 
     # Inner field comment.
-    inner_field: "str" = _Field("")
+    innerField: "str" = _Field("")
 
 
 class Outer(_ProtoModel):
@@ -92,7 +92,7 @@ class Outer(_ProtoModel):
     Outer message comment.
 
     Attributes:
-      outer_field (str):
+      outerField (str):
         Outer field comment.
     """
 
@@ -103,4 +103,4 @@ class Outer(_ProtoModel):
     )
 
     # Outer field comment.
-    outer_field: "str" = _Field("")
+    outerField: "str" = _Field("")

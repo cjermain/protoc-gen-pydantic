@@ -36,7 +36,7 @@ func init() {
 
 func main() {
 	var flags flag.FlagSet
-	preservingProtoFieldName := flags.Bool("preserving_proto_field_name", false, "")
+	preservingProtoFieldName := flags.Bool("preserving_proto_field_name", true, "")
 	autoTrimEnumPrefix := flags.Bool("auto_trim_enum_prefix", true, "")
 	useIntegersForEnums := flags.Bool("use_integers_for_enums", false, "")
 	disableFieldDescription := flags.Bool("disable_field_description", false, "")

@@ -44,20 +44,20 @@ def test_protobuf_json_parseable_by_pydantic_message():
     proto_msg = ProtoMessage()
     proto_msg.first_name = "John"
     proto_msg.last_name = "Doe"
-    json_str = MessageToJson(proto_msg)
+    json_str = MessageToJson(proto_msg, preserving_proto_field_name=True)
     pydantic_msg = PydanticMessage.model_validate_json(json_str)
-    assert pydantic_msg.firstName == "John"
-    assert pydantic_msg.lastName == "Doe"
+    assert pydantic_msg.first_name == "John"
+    assert pydantic_msg.last_name == "Doe"
 
 
 def test_protobuf_timestamp_format_parseable_by_pydantic():
     """Protobuf's RFC 3339 timestamp format is accepted by Pydantic."""
     proto_wkt = ProtoWKT()
     proto_wkt.wkt_timestamp.CopyFrom(Timestamp(seconds=1705314600))
-    json_str = MessageToJson(proto_wkt)
+    json_str = MessageToJson(proto_wkt, preserving_proto_field_name=True)
     # Extract the timestamp value protobuf produced
     data = json.loads(json_str)
-    ts_str = data["wktTimestamp"]
+    ts_str = data["wkt_timestamp"]
     assert "2024" in ts_str
     # Verify our Pydantic type can parse this format
     from api.v1._proto_types import ProtoTimestamp
@@ -73,9 +73,9 @@ def test_protobuf_duration_format_parseable_by_pydantic():
     """Protobuf's duration string format is accepted by Pydantic."""
     proto_wkt = ProtoWKT()
     proto_wkt.wkt_duration.CopyFrom(Duration(seconds=3, nanos=500000000))
-    json_str = MessageToJson(proto_wkt)
+    json_str = MessageToJson(proto_wkt, preserving_proto_field_name=True)
     data = json.loads(json_str)
-    dur_str = data["wktDuration"]
+    dur_str = data["wkt_duration"]
     from api.v1._proto_types import ProtoDuration
     from pydantic import TypeAdapter
 
@@ -88,10 +88,10 @@ def test_protobuf_int64_wrapper_format_parseable_by_pydantic():
     """Protobuf's string-encoded int64 wrapper is accepted by Pydantic."""
     proto_wkt = ProtoWKT()
     proto_wkt.wkt_int64.CopyFrom(wrappers_pb2.Int64Value(value=9007199254740993))
-    json_str = MessageToJson(proto_wkt)
+    json_str = MessageToJson(proto_wkt, preserving_proto_field_name=True)
     data = json.loads(json_str)
     # protobuf serializes int64 wrappers as strings
-    assert data["wktInt64"] == "9007199254740993"
+    assert data["wkt_int64"] == "9007199254740993"
     from api.v1._proto_types import ProtoInt64
     from pydantic import TypeAdapter
 
@@ -105,7 +105,7 @@ def test_protobuf_int64_wrapper_format_parseable_by_pydantic():
 
 def test_pydantic_json_dict_parseable_by_protobuf():
     """Proto-compatible dict from Pydantic can be parsed by protobuf."""
-    pydantic_msg = PydanticMessage(firstName="John", lastName="Doe")
+    pydantic_msg = PydanticMessage(first_name="John", last_name="Doe")
     data = pydantic_msg.model_dump(mode="json")
     json_str = json.dumps(data)
     proto_msg = Parse(json_str, ProtoMessage())
@@ -115,7 +115,7 @@ def test_pydantic_json_dict_parseable_by_protobuf():
 
 def test_pydantic_timestamp_json_parseable_by_protobuf():
     """Pydantic RFC 3339 timestamp can be parsed by protobuf."""
-    data = {"wktTimestamp": "2024-01-15T10:30:00Z"}
+    data = {"wkt_timestamp": "2024-01-15T10:30:00Z"}
     json_str = json.dumps(data)
     proto_wkt = Parse(json_str, ProtoWKT())
     assert proto_wkt.wkt_timestamp.seconds == 1705314600
@@ -123,7 +123,7 @@ def test_pydantic_timestamp_json_parseable_by_protobuf():
 
 def test_pydantic_duration_json_parseable_by_protobuf():
     """Pydantic duration string can be parsed by protobuf."""
-    data = {"wktDuration": "3.5s"}
+    data = {"wkt_duration": "3.5s"}
     json_str = json.dumps(data)
     proto_wkt = Parse(json_str, ProtoWKT())
     assert proto_wkt.wkt_duration.seconds == 3
@@ -132,7 +132,7 @@ def test_pydantic_duration_json_parseable_by_protobuf():
 
 def test_pydantic_int64_wrapper_json_parseable_by_protobuf():
     """Pydantic int64 wrapper string values can be parsed by protobuf."""
-    data = {"wktInt64": "9007199254740993", "wktUint64": "9007199254740993"}
+    data = {"wkt_int64": "9007199254740993", "wkt_uint64": "9007199254740993"}
     json_str = json.dumps(data)
     proto_wkt = Parse(json_str, ProtoWKT())
     assert proto_wkt.wkt_int64.value == 9007199254740993
@@ -144,11 +144,11 @@ def test_pydantic_int64_wrapper_json_parseable_by_protobuf():
 
 def test_message_pydantic_to_protobuf_roundtrip():
     """Pydantic → JSON → protobuf → JSON → Pydantic roundtrip."""
-    pydantic_msg = PydanticMessage(firstName="John", lastName="Doe")
+    pydantic_msg = PydanticMessage(first_name="John", last_name="Doe")
     json_str = pydantic_msg.model_dump_json()
     proto_msg = Parse(json_str, ProtoMessage())
     assert proto_msg.first_name == "John"
-    json_str2 = MessageToJson(proto_msg)
+    json_str2 = MessageToJson(proto_msg, preserving_proto_field_name=True)
     pydantic_msg2 = PydanticMessage.model_validate_json(json_str2)
-    assert pydantic_msg2.firstName == "John"
-    assert pydantic_msg2.lastName == "Doe"
+    assert pydantic_msg2.first_name == "John"
+    assert pydantic_msg2.last_name == "Doe"

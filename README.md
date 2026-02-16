@@ -100,7 +100,7 @@ class User(_BaseModel):
     name: str = _Field(...)
     age: int = _Field(...)
     emails: list[str] = _Field(...)
-    isActive: bool = _Field(...)
+    is_active: bool = _Field(...)
 ```
 
 ## Options
@@ -109,7 +109,7 @@ Passed via `opt:` in buf.gen.yaml or `--pydantic_opt=` with protoc:
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `preserving_proto_field_name` | `false` | Keep snake_case proto field names instead of camelCase |
+| `preserving_proto_field_name` | `true` | Keep snake_case proto field names instead of camelCase |
 | `auto_trim_enum_prefix` | `true` | Remove enum type name prefix from value names |
 | `use_integers_for_enums` | `false` | Use integer values for enums instead of string names |
 | `disable_field_description` | `false` | Omit `description=` from generated fields |
@@ -123,18 +123,18 @@ message User {
 }
 ```
 
-If `preserving_proto_field_name` is `false` (default):
-
-```python
-class User(_BaseModel):
-    isActive: bool = _Field(...)
-```
-
-If `preserving_proto_field_name` is `true`:
+If `preserving_proto_field_name` is `true` (default):
 
 ```python
 class User(_BaseModel):
     is_active: bool = _Field(...)
+```
+
+If `preserving_proto_field_name` is `false`:
+
+```python
+class User(_BaseModel):
+    isActive: bool = _Field(...)
 ```
 
 ### `auto_trim_enum_prefix`

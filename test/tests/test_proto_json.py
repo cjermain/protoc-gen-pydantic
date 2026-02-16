@@ -19,18 +19,18 @@ def test_to_proto_dict_omits_defaults():
 
 def test_to_proto_json_includes_non_defaults():
     """to_proto_json includes fields with non-default values."""
-    m = Message(firstName="John")
+    m = Message(first_name="John")
     result = json.loads(m.to_proto_json())
-    assert result == {"firstName": "John"}
+    assert result == {"first_name": "John"}
 
 
 def test_to_proto_dict_includes_non_defaults():
-    m = Message(firstName="John", lastName="Doe")
-    assert m.to_proto_dict() == {"firstName": "John", "lastName": "Doe"}
+    m = Message(first_name="John", last_name="Doe")
+    assert m.to_proto_dict() == {"first_name": "John", "last_name": "Doe"}
 
 
 def test_to_proto_json_uses_alias():
-    """to_proto_json uses camelCase aliases for fields with reserved names."""
+    """to_proto_json uses aliases for fields with reserved names."""
     foo = Foo(bool_=True, float_=1.5, bytes_=b"hello")
     result = json.loads(foo.to_proto_json())
     # Aliased fields should use the original proto name
@@ -67,17 +67,17 @@ def test_to_proto_json_scalars():
 
 def test_to_proto_json_nested_message():
     """Nested messages are serialized when set."""
-    msg = Message(firstName="John", lastName="Doe")
+    msg = Message(first_name="John", last_name="Doe")
     foo = Foo(message=msg)
     result = json.loads(foo.to_proto_json())
-    assert result["message"] == {"firstName": "John", "lastName": "Doe"}
+    assert result["message"] == {"first_name": "John", "last_name": "Doe"}
 
 
 def test_to_proto_json_repeated():
     """Non-empty repeated fields are included."""
-    foo = Foo(int32Repeated=[1, 2, 3])
+    foo = Foo(int32_repeated=[1, 2, 3])
     result = json.loads(foo.to_proto_json())
-    assert result["int32Repeated"] == [1, 2, 3]
+    assert result["int32_repeated"] == [1, 2, 3]
 
 
 def test_to_proto_json_enum():
@@ -91,8 +91,8 @@ def test_to_proto_json_override_exclude_defaults():
     """Callers can override exclude_defaults=False to include all fields."""
     m = Message()
     result = json.loads(m.to_proto_json(exclude_defaults=False))
-    assert "firstName" in result
-    assert result["firstName"] == ""
+    assert "first_name" in result
+    assert result["first_name"] == ""
 
 
 def test_to_proto_dict_override_by_alias():

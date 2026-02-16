@@ -15,7 +15,7 @@ plugins:
       - .
     opt:
       - paths=source_relative
-      - preserving_proto_field_name=true
+      - preserving_proto_field_name=false
       - auto_trim_enum_prefix=false
       - use_integers_for_enums=true
       - disable_field_description=true
