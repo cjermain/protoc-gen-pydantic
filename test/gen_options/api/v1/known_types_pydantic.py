@@ -7,27 +7,51 @@ from pydantic import BaseModel as _BaseModel, ConfigDict as _ConfigDict, Field a
 from ._proto_types import ProtoDuration, ProtoInt64, ProtoTimestamp, ProtoUInt64
 
 
-class WellKnownTypes(_BaseModel):
+class _ProtoModel(_BaseModel):
+    """Base class for generated Pydantic models with ProtoJSON helpers."""
+
+    def to_proto_dict(self, **kwargs) -> dict:
+        """Serialize to a dict using ProtoJSON conventions.
+
+        Omits fields with default (zero) values and uses original proto
+        field names (camelCase aliases).
+        """
+        kwargs.setdefault("exclude_defaults", True)
+        kwargs.setdefault("by_alias", True)
+        return super().model_dump(**kwargs)
+
+    def to_proto_json(self, **kwargs) -> str:
+        """Serialize to a JSON string using ProtoJSON conventions.
+
+        Omits fields with default (zero) values and uses original proto
+        field names (camelCase aliases).
+        """
+        kwargs.setdefault("exclude_defaults", True)
+        kwargs.setdefault("by_alias", True)
+        return super().model_dump_json(**kwargs)
+
+
+class WellKnownTypes(_ProtoModel):
     """
 
     Attributes:
-      wkt_timestamp (ProtoTimestamp):
-      wkt_duration (ProtoDuration):
-      wkt_struct (dict[str, _Any]):
-      wkt_value (_Any):
-      wkt_list_value (list[_Any]):
-      wkt_any (_Any):
-      wkt_field_mask (list[str]):
-      wkt_bool (bool):
-      wkt_int32 (int):
-      wkt_int64 (ProtoInt64):
-      wkt_uint32 (int):
-      wkt_uint64 (ProtoUInt64):
-      wkt_float (float):
-      wkt_double (float):
-      wkt_string (str):
-      wkt_bytes (bytes):
-      wkt_empty (None):
+      wkt_timestamp (ProtoTimestamp | None):
+      wkt_duration (ProtoDuration | None):
+      wkt_struct (dict[str, _Any] | None):
+      wkt_value (_Any | None):
+      wkt_list_value (list[_Any] | None):
+      wkt_any (_Any | None):
+      wkt_field_mask (list[str] | None):
+      wkt_bool (bool | None):
+      wkt_int32 (int | None):
+      wkt_int64 (ProtoInt64 | None):
+      wkt_uint32 (int | None):
+      wkt_uint64 (ProtoUInt64 | None):
+      wkt_float (float | None):
+      wkt_double (float | None):
+      wkt_string (str | None):
+      wkt_bytes (bytes | None):
+      wkt_empty (None | None):
     """
 
     model_config = _ConfigDict(
@@ -36,36 +60,36 @@ class WellKnownTypes(_BaseModel):
         ser_json_inf_nan="strings",
     )
 
-    wkt_timestamp: "ProtoTimestamp" = _Field(...)
+    wkt_timestamp: "ProtoTimestamp | None" = _Field(None)
 
-    wkt_duration: "ProtoDuration" = _Field(...)
+    wkt_duration: "ProtoDuration | None" = _Field(None)
 
-    wkt_struct: "dict[str, _Any]" = _Field(...)
+    wkt_struct: "dict[str, _Any] | None" = _Field(None)
 
-    wkt_value: "_Any" = _Field(...)
+    wkt_value: "_Any | None" = _Field(None)
 
-    wkt_list_value: "list[_Any]" = _Field(...)
+    wkt_list_value: "list[_Any] | None" = _Field(None)
 
-    wkt_any: "_Any" = _Field(...)
+    wkt_any: "_Any | None" = _Field(None)
 
-    wkt_field_mask: "list[str]" = _Field(...)
+    wkt_field_mask: "list[str] | None" = _Field(None)
 
-    wkt_bool: "bool" = _Field(...)
+    wkt_bool: "bool | None" = _Field(None)
 
-    wkt_int32: "int" = _Field(...)
+    wkt_int32: "int | None" = _Field(None)
 
-    wkt_int64: "ProtoInt64" = _Field(...)
+    wkt_int64: "ProtoInt64 | None" = _Field(None)
 
-    wkt_uint32: "int" = _Field(...)
+    wkt_uint32: "int | None" = _Field(None)
 
-    wkt_uint64: "ProtoUInt64" = _Field(...)
+    wkt_uint64: "ProtoUInt64 | None" = _Field(None)
 
-    wkt_float: "float" = _Field(...)
+    wkt_float: "float | None" = _Field(None)
 
-    wkt_double: "float" = _Field(...)
+    wkt_double: "float | None" = _Field(None)
 
-    wkt_string: "str" = _Field(...)
+    wkt_string: "str | None" = _Field(None)
 
-    wkt_bytes: "bytes" = _Field(...)
+    wkt_bytes: "bytes | None" = _Field(None)
 
-    wkt_empty: "None" = _Field(...)
+    wkt_empty: "None | None" = _Field(None)

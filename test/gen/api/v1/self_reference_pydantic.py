@@ -5,7 +5,31 @@ from typing import Optional as _Optional
 from pydantic import BaseModel as _BaseModel, ConfigDict as _ConfigDict, Field as _Field
 
 
-class TreeNode(_BaseModel):
+class _ProtoModel(_BaseModel):
+    """Base class for generated Pydantic models with ProtoJSON helpers."""
+
+    def to_proto_dict(self, **kwargs) -> dict:
+        """Serialize to a dict using ProtoJSON conventions.
+
+        Omits fields with default (zero) values and uses original proto
+        field names (camelCase aliases).
+        """
+        kwargs.setdefault("exclude_defaults", True)
+        kwargs.setdefault("by_alias", True)
+        return super().model_dump(**kwargs)
+
+    def to_proto_json(self, **kwargs) -> str:
+        """Serialize to a JSON string using ProtoJSON conventions.
+
+        Omits fields with default (zero) values and uses original proto
+        field names (camelCase aliases).
+        """
+        kwargs.setdefault("exclude_defaults", True)
+        kwargs.setdefault("by_alias", True)
+        return super().model_dump_json(**kwargs)
+
+
+class TreeNode(_ProtoModel):
     """
 
     Attributes:
@@ -20,8 +44,10 @@ class TreeNode(_BaseModel):
         ser_json_inf_nan="strings",
     )
 
-    name: "str" = _Field(...)
+    name: "str" = _Field("")
 
-    children: "list[TreeNode]" = _Field(...)
+    children: "list[TreeNode]" = _Field(
+        default_factory=list,
+    )
 
     parent: "_Optional[TreeNode]" = _Field(None)

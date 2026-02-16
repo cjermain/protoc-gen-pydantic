@@ -1,5 +1,4 @@
 import pytest
-from pydantic import ValidationError
 
 from api.v1.enums_pydantic import Enum
 from api.v1.types_pydantic import Empty, Foo, Foo_NestedEnum, Foo_NestedMessage, Message
@@ -17,9 +16,11 @@ def test_message_valid():
     assert m.lastName == "Doe"
 
 
-def test_message_missing_field():
-    with pytest.raises(ValidationError):
-        Message(firstName="John")
+def test_message_zero_value_defaults():
+    """Proto3 messages can be constructed with no arguments; fields take zero values."""
+    m = Message()
+    assert m.firstName == ""
+    assert m.lastName == ""
 
 
 def test_message_field_descriptions():
@@ -31,9 +32,11 @@ def test_nested_message_valid():
     assert m.firstName == "Jane"
 
 
-def test_nested_message_missing_field():
-    with pytest.raises(ValidationError):
-        Foo_NestedMessage(lastName="Doe")
+def test_nested_message_zero_value_defaults():
+    """Nested messages also support proto3 zero-value defaults."""
+    m = Foo_NestedMessage()
+    assert m.firstName == ""
+    assert m.lastName == ""
 
 
 def test_foo_required_scalars(foo):
@@ -223,9 +226,25 @@ def test_foo_oneof_set_b(foo_kwargs):
     assert foo.b == "test"
 
 
-def test_foo_missing_required_raises():
-    with pytest.raises(ValidationError):
-        Foo(int32=1)
+def test_foo_zero_value_defaults():
+    """Foo() with no arguments should succeed with proto3 zero values."""
+    foo = Foo()
+    assert foo.int32 == 0
+    assert foo.int64 == 0
+    assert foo.uint32 == 0
+    assert foo.string == ""
+    assert foo.bytes_ == b""
+    assert foo.bool_ is False
+    assert foo.float_ == 0.0
+    assert foo.double == 0.0
+    assert foo.enum is None
+    assert foo.message is None
+    assert foo.nestedMessage is None
+    assert foo.wktTimestamp is None
+    assert foo.int32Repeated == []
+    assert foo.int32MapKey == {}
+    assert foo.a is None
+    assert foo.b is None
 
 
 def test_foo_json_roundtrip(foo):

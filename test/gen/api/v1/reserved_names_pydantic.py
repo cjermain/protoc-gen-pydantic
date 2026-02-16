@@ -4,7 +4,31 @@
 from pydantic import BaseModel as _BaseModel, ConfigDict as _ConfigDict, Field as _Field
 
 
-class ReservedFieldNames(_BaseModel):
+class _ProtoModel(_BaseModel):
+    """Base class for generated Pydantic models with ProtoJSON helpers."""
+
+    def to_proto_dict(self, **kwargs) -> dict:
+        """Serialize to a dict using ProtoJSON conventions.
+
+        Omits fields with default (zero) values and uses original proto
+        field names (camelCase aliases).
+        """
+        kwargs.setdefault("exclude_defaults", True)
+        kwargs.setdefault("by_alias", True)
+        return super().model_dump(**kwargs)
+
+    def to_proto_json(self, **kwargs) -> str:
+        """Serialize to a JSON string using ProtoJSON conventions.
+
+        Omits fields with default (zero) values and uses original proto
+        field names (camelCase aliases).
+        """
+        kwargs.setdefault("exclude_defaults", True)
+        kwargs.setdefault("by_alias", True)
+        return super().model_dump_json(**kwargs)
+
+
+class ReservedFieldNames(_ProtoModel):
     """
 
     Attributes:
@@ -19,8 +43,8 @@ class ReservedFieldNames(_BaseModel):
         ser_json_inf_nan="strings",
     )
 
-    modelConfig: "str" = _Field(...)
+    modelConfig: "str" = _Field("")
 
-    modelFields: "str" = _Field(...)
+    modelFields: "str" = _Field("")
 
-    modelDump: "str" = _Field(...)
+    modelDump: "str" = _Field("")

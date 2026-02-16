@@ -135,6 +135,32 @@ from ._proto_types import {{ .RuntimeImportLine }}
 
 {{ . }}
 {{- end }}
+{{- if .StdImports._BaseModel }}
+
+
+class _ProtoModel(_BaseModel):
+    """Base class for generated Pydantic models with ProtoJSON helpers."""
+
+    def to_proto_dict(self, **kwargs) -> dict:
+        """Serialize to a dict using ProtoJSON conventions.
+
+        Omits fields with default (zero) values and uses original proto
+        field names (camelCase aliases).
+        """
+        kwargs.setdefault("exclude_defaults", True)
+        kwargs.setdefault("by_alias", True)
+        return super().model_dump(**kwargs)
+
+    def to_proto_json(self, **kwargs) -> str:
+        """Serialize to a JSON string using ProtoJSON conventions.
+
+        Omits fields with default (zero) values and uses original proto
+        field names (camelCase aliases).
+        """
+        kwargs.setdefault("exclude_defaults", True)
+        kwargs.setdefault("by_alias", True)
+        return super().model_dump_json(**kwargs)
+{{- end }}
 {{- if $hasEnumOptions }}
 
 
@@ -243,7 +269,7 @@ class {{ .Name }}({{ if .HasOptions }}_ProtoEnum{{ else }}{{ if $config.UseInteg
 {{- range .Messages }}
 
 
-class {{ .Name }}(_BaseModel):
+class {{ .Name }}(_ProtoModel):
     """
     {{- range .LeadingComments }}
     {{ . }}
@@ -278,7 +304,7 @@ class {{ .Name }}(_BaseModel):
     {{- end }}
     {{- if and (not $config.DisableFieldDescription) (or (ne (len .LeadingComments) 0) (ne .OneOf nil)) }}
     {{ .Name }}: "{{ .Type }}" = _Field(
-        {{ if or .Optional (ne .OneOf nil) }}None{{ else }}...{{ end }},
+        {{ .Default }},
         description="""{{- range .LeadingComments -}}{{ . }}
 {{ end }}{{ if ne .OneOf nil }}
 Only one of the fields can be specified with: {{ .OneOf.FieldNames }} (oneof {{ .OneOf.Name }}){{ end }}""",
@@ -286,8 +312,15 @@ Only one of the fields can be specified with: {{ .OneOf.FieldNames }} (oneof {{ 
         alias="{{ .Alias }}",
     {{- end }}
     )
+    {{- else if or .Alias .IsDefaultFactory }}
+    {{ .Name }}: "{{ .Type }}" = _Field(
+        {{ .Default }},
+    {{- if .Alias }}
+        alias="{{ .Alias }}",
+    {{- end }}
+    )
     {{- else }}
-    {{ .Name }}: "{{ .Type }}" = _Field({{ if or .Optional (ne .OneOf nil) }}None{{ else }}...{{ end }}{{ if .Alias }}, alias="{{ .Alias }}"{{ end }})
+    {{ .Name }}: "{{ .Type }}" = _Field({{ .Default }})
     {{- end }}
     {{- range .TrailingComments }}
     # {{ . }}
@@ -518,9 +551,14 @@ type Field struct {
 	Alias            string // non-empty when Name was renamed to avoid shadowing Python builtins
 	Type             string
 	Optional         bool
+	Default          string // proto3 zero-value default (e.g. "0", "False", "None", "default_factory=list")
 	OneOf            *OneOf
 	LeadingComments  []string
 	TrailingComments []string
+}
+
+func (f Field) IsDefaultFactory() bool {
+	return strings.HasPrefix(f.Default, "default_factory=")
 }
 
 type OneOf struct {
@@ -850,8 +888,8 @@ func (e *generator) processMessage(
 			Alias:    alias,
 			Type:     typ,
 			Optional: field.HasOptionalKeyword(),
+			Default:  e.resolveDefault(field),
 			OneOf:    oneOf,
-			// Description: resolveFieldDescription(field),
 		}
 		f.LeadingComments, f.TrailingComments = extractComments(sourceCodeInfo, fieldPath)
 		def.Fields = append(def.Fields, f)
@@ -961,11 +999,11 @@ func (e *generator) resolveBaseType(referer string, field protoreflect.FieldDesc
 	}
 
 	if field.IsMap() {
-		key, err := e.resolveType(referer, field.MapKey())
+		key, err := e.resolveBaseType(referer, field.MapKey())
 		if err != nil {
 			return "", err
 		}
-		val, err := e.resolveType(referer, field.MapValue())
+		val, err := e.resolveBaseType(referer, field.MapValue())
 		if err != nil {
 			return "", err
 		}
@@ -979,6 +1017,14 @@ func (e *generator) resolveBaseType(referer string, field protoreflect.FieldDesc
 	return typeName, nil
 }
 
+func (e *generator) wrapOptional(typ string) string {
+	if e.config.UseNoneUnionSyntaxInsteadOfOptional {
+		return fmt.Sprintf("%s | None", typ)
+	}
+	e.addStdImport("_Optional")
+	return fmt.Sprintf("_Optional[%s]", typ)
+}
+
 func (e *generator) resolveType(referer string, field protoreflect.FieldDescriptor) (string, error) {
 	typ, err := e.resolveBaseType(referer, field)
 	if err != nil {
@@ -990,14 +1036,58 @@ func (e *generator) resolveType(referer string, field protoreflect.FieldDescript
 	}
 
 	if field.HasOptionalKeyword() || field.ContainingOneof() != nil {
-		if e.config.UseNoneUnionSyntaxInsteadOfOptional {
-			return fmt.Sprintf("%s | None", typ), nil
-		}
-		e.addStdImport("_Optional")
-		return fmt.Sprintf("_Optional[%s]", typ), nil
+		return e.wrapOptional(typ), nil
+	}
+
+	// Proto3 message, enum, and WKT fields default to None,
+	// so wrap them in Optional to match proto3 semantics.
+	if !field.IsMap() && (field.Kind() == protoreflect.MessageKind || field.Kind() == protoreflect.EnumKind) {
+		return e.wrapOptional(typ), nil
 	}
 
 	return typ, nil
+}
+
+// resolveDefault returns the default value expression for a proto3 field.
+func (e *generator) resolveDefault(field protoreflect.FieldDescriptor) string {
+	// Optional keyword and oneof fields default to None.
+	if field.HasOptionalKeyword() || field.ContainingOneof() != nil {
+		return "None"
+	}
+
+	// Repeated fields use default_factory.
+	if field.IsList() {
+		return "default_factory=list"
+	}
+
+	// Map fields use default_factory.
+	if field.IsMap() {
+		return "default_factory=dict"
+	}
+
+	// Message/enum fields default to None (wrapped in Optional by resolveType).
+	if field.Kind() == protoreflect.MessageKind || field.Kind() == protoreflect.EnumKind {
+		return "None"
+	}
+
+	// Scalar defaults.
+	switch field.Kind() {
+	case protoreflect.BoolKind:
+		return "False"
+	case protoreflect.Int32Kind, protoreflect.Uint32Kind, protoreflect.Fixed32Kind,
+		protoreflect.Sint32Kind, protoreflect.Sfixed32Kind,
+		protoreflect.Int64Kind, protoreflect.Sint64Kind, protoreflect.Sfixed64Kind,
+		protoreflect.Uint64Kind, protoreflect.Fixed64Kind:
+		return "0"
+	case protoreflect.DoubleKind, protoreflect.FloatKind:
+		return "0.0"
+	case protoreflect.StringKind:
+		return `""`
+	case protoreflect.BytesKind:
+		return `b""`
+	default:
+		return "None"
+	}
 }
 
 func equalPath(a, b []int32) bool {

@@ -5,6 +5,30 @@ from enum import Enum as _Enum
 from pydantic import BaseModel as _BaseModel, ConfigDict as _ConfigDict, Field as _Field
 
 
+class _ProtoModel(_BaseModel):
+    """Base class for generated Pydantic models with ProtoJSON helpers."""
+
+    def to_proto_dict(self, **kwargs) -> dict:
+        """Serialize to a dict using ProtoJSON conventions.
+
+        Omits fields with default (zero) values and uses original proto
+        field names (camelCase aliases).
+        """
+        kwargs.setdefault("exclude_defaults", True)
+        kwargs.setdefault("by_alias", True)
+        return super().model_dump(**kwargs)
+
+    def to_proto_json(self, **kwargs) -> str:
+        """Serialize to a JSON string using ProtoJSON conventions.
+
+        Omits fields with default (zero) values and uses original proto
+        field names (camelCase aliases).
+        """
+        kwargs.setdefault("exclude_defaults", True)
+        kwargs.setdefault("by_alias", True)
+        return super().model_dump_json(**kwargs)
+
+
 class Outer_OuterEnum(int, _Enum):
     """
     Outer enum comment.
@@ -25,7 +49,7 @@ class Outer_Inner_InnerEnum(int, _Enum):
     INNER_ENUM_A = 1  # INNER_ENUM_A
 
 
-class Outer_Inner_Deepest(_BaseModel):
+class Outer_Inner_Deepest(_ProtoModel):
     """
     Deepest message comment.
 
@@ -41,10 +65,10 @@ class Outer_Inner_Deepest(_BaseModel):
     )
 
     # Deepest field comment.
-    deepest_field: "str" = _Field(...)
+    deepest_field: "str" = _Field("")
 
 
-class Outer_Inner(_BaseModel):
+class Outer_Inner(_ProtoModel):
     """
     Inner message comment.
 
@@ -60,10 +84,10 @@ class Outer_Inner(_BaseModel):
     )
 
     # Inner field comment.
-    inner_field: "str" = _Field(...)
+    inner_field: "str" = _Field("")
 
 
-class Outer(_BaseModel):
+class Outer(_ProtoModel):
     """
     Outer message comment.
 
@@ -79,4 +103,4 @@ class Outer(_BaseModel):
     )
 
     # Outer field comment.
-    outer_field: "str" = _Field(...)
+    outer_field: "str" = _Field("")
