@@ -1,10 +1,7 @@
-# python generated files
-__pycache__/
-*.py[oc]
+# venv
+.venv
+
+# build artifacts
 build/
 dist/
 wheels/
-*.egg-info
-
-# venv
-.venv

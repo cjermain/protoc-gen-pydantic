@@ -1,29 +1,39 @@
 # protoc-gen-pydantic
 
-`protoc-gen-pydantic` is a `protoc` plugin that automatically generates [Pydantic](https://docs.pydantic.dev/) model definitions from `.proto` files. This tool is designed to help developers seamlessly integrate protobuf-defined models with Pydantic, a powerful data validation and settings management library for Python.
+`protoc-gen-pydantic` is a `protoc` plugin that generates [Pydantic v2](https://docs.pydantic.dev/) model definitions from `.proto` files.
+
+> Forked from [ornew/protoc-gen-pydantic](https://github.com/ornew/protoc-gen-pydantic) by [Arata Furukawa](https://github.com/ornew), which provided the initial plugin structure and plugin options. This fork adds well-known type mappings, Python builtin/keyword alias handling, cross-package references, enum value options, ProtoJSON-compatible output, conditional imports, and a test suite.
 
 ## Features
 
-- Supports all standard `proto3` field types.
-- Handles nested messages and enums.
-- Generates Pydantic models with type annotations and field descriptions.
-- Supports `oneof`, `optional`, `repeated`, and `map` fields.
-- Retains comments from `.proto` files as docstrings in the generated models.
+- Supports all standard `proto3` field types
+- Handles nested messages and enums
+- Generates Pydantic models with type annotations and field descriptions
+- Supports `oneof`, `optional`, `repeated`, and `map` fields
+- Retains comments from `.proto` files as docstrings in the generated models
+- Maps well-known types to native Python types (e.g. `Timestamp` → `datetime`, `Struct` → `dict[str, Any]`)
+- Handles Python builtin/keyword shadowing with PEP 8 trailing underscore aliases
+- Resolves cross-package message references
+- Preserves enum value options (built-in `deprecated`/`debug_redact` and custom extensions) as accessible metadata on enum members
 
 ## Installation
 
-You can download the binaries from GitHub [Releases](https://github.com/ornew/protoc-gen-pydantic/releases).
+You can download the binaries from GitHub [Releases](https://github.com/cjermain/protoc-gen-pydantic/releases).
+
+### Install with Go
+
+```sh
+go install github.com/cjermain/protoc-gen-pydantic@latest
+```
 
 ### Build from Source
-
-You first need to have Go installed. If you don't have Go installed, you can download it from the Go downloads page.
 
 Clone the repository and build the plugin:
 
 ```sh
-git clone https://github.com/ornew/protoc-gen-pydantic
+git clone https://github.com/cjermain/protoc-gen-pydantic
 cd protoc-gen-pydantic
-go build -o protoc-gen-pydantic main.go
+go build -o protoc-gen-pydantic .
 ```
 
 ## Usage
@@ -31,11 +41,12 @@ go build -o protoc-gen-pydantic main.go
 To generate Pydantic model definitions, use `protoc` with your `.proto` files specifying `--pydantic_out`:
 
 ```sh
-protoc --plugin=protoc-gen-pydantic=./protoc-gen-pydantic \
-       --pydantic_out=./gen \
-       --proto_path=./proto_files \
-       ./api/example.proto
+protoc --pydantic_out=./gen \
+       --proto_path=./proto \
+       ./proto/example.proto
 ```
+
+If the binary is not on your `PATH`, specify it explicitly with `--plugin=protoc-gen-pydantic=./protoc-gen-pydantic`.
 
 If you use [buf](https://buf.build/):
 
@@ -48,11 +59,10 @@ plugins:
       - paths=source_relative
     out: gen
 inputs:
-  - directory: api
+  - directory: proto
 ```
 
 ```sh
-buf config init
 buf generate
 ```
 
@@ -74,12 +84,9 @@ message User {
 }
 ```
 
-Running `protoc` will generate a Pydantic model like this:
+The generated Pydantic model will look like this:
 
 ```python
-from enum import Enum as _Enum
-from typing import Optional as _Optional
-
 from pydantic import BaseModel as _BaseModel, Field as _Field
 
 class User(_BaseModel):
@@ -89,18 +96,42 @@ class User(_BaseModel):
     name: str = _Field(...)
     age: int = _Field(...)
     emails: list[str] = _Field(...)
-    is_active: bool = _Field(...)
+    isActive: bool = _Field(...)
 ```
 
 ## Options
 
-| option | description |
-|--------|-------------|
-| `preserving_proto_field_name` | Use the proto field naming for the output field name. If `false`, it will be in caml-case according to `protojson` rules. Defaults to `false`. |
-| `auto_trim_enum_prefix` | Automatically remove prefixes from enum fields. Defaults to `true` |
-| `use_integers_for_enums` | Use integers for enum values instead of enum names. Defaults to `false`. |
-| `disable_field_description` | Disable generating the field description. Defaults to `false`. |
-| `use_none_union_syntax_instead_of_optional` | Use `T | None` instead of `Optional[T]`. |
+Passed via `opt:` in buf.gen.yaml or `--pydantic_opt=` with protoc:
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `preserving_proto_field_name` | `false` | Keep snake_case proto field names instead of camelCase |
+| `auto_trim_enum_prefix` | `true` | Remove enum type name prefix from value names |
+| `use_integers_for_enums` | `false` | Use integer values for enums instead of string names |
+| `disable_field_description` | `false` | Omit `description=` from generated fields |
+| `use_none_union_syntax_instead_of_optional` | `false` | Use `T \| None` instead of `Optional[T]` |
+
+### `preserving_proto_field_name`
+
+```proto
+message User {
+  bool is_active = 1;
+}
+```
+
+If `preserving_proto_field_name` is `false` (default):
+
+```python
+class User(_BaseModel):
+    isActive: bool = _Field(...)
+```
+
+If `preserving_proto_field_name` is `true`:
+
+```python
+class User(_BaseModel):
+    is_active: bool = _Field(...)
+```
 
 ### `auto_trim_enum_prefix`
 
@@ -112,15 +143,6 @@ enum Status {
 }
 ```
 
-If `auto_trim_enum_prefix` is `false`:
-
-```python
-class Status(str, _Enum):
-    STATUS_UNSPECIFIED = "UNSPECIFIED"
-    STATUS_OK = "OK"
-    STATUS_ERROR = "ERROR"
-```
-
 If `auto_trim_enum_prefix` is `true` (default):
 
 ```python
@@ -130,9 +152,26 @@ class Status(str, _Enum):
     ERROR = "ERROR"
 ```
 
+If `auto_trim_enum_prefix` is `false`:
+
+```python
+class Status(str, _Enum):
+    STATUS_UNSPECIFIED = "UNSPECIFIED"
+    STATUS_OK = "OK"
+    STATUS_ERROR = "ERROR"
+```
+
 ### `use_integers_for_enums`
 
-If `use_integers_for_enums` is `false`:
+```proto
+enum Status {
+  STATUS_UNSPECIFIED = 0;
+  STATUS_OK = 1;
+  STATUS_ERROR = 2;
+}
+```
+
+If `use_integers_for_enums` is `false` (default):
 
 ```python
 class Status(str, _Enum):
@@ -152,8 +191,6 @@ class Status(int, _Enum):
 
 ### `disable_field_description`
 
-If `disable_field_description` is `true`:
-
 ```proto
 message User {
     // User name
@@ -161,13 +198,15 @@ message User {
 }
 ```
 
+If `disable_field_description` is `false` (default):
+
 ```python
 class User(_BaseModel):
     # User name
     name: str = _Field(..., description="User name")
 ```
 
-If `disable_field_description` is `false`:
+If `disable_field_description` is `true`:
 
 ```python
 class User(_BaseModel):
@@ -177,8 +216,39 @@ class User(_BaseModel):
 
 ### `use_none_union_syntax_instead_of_optional`
 
-If `use_none_union_syntax_instead_of_optional` is `true`: `Optional[T]`
-If `use_none_union_syntax_instead_of_optional` is `false`: `T | None`
+If `use_none_union_syntax_instead_of_optional` is `false` (default):
+
+```python
+class User(_BaseModel):
+    name: _Optional[str] = _Field(...)
+```
+
+If `use_none_union_syntax_instead_of_optional` is `true`:
+
+```python
+class User(_BaseModel):
+    name: str | None = _Field(...)
+```
+
+## Development
+
+This project uses [just](https://github.com/casey/just) as a command runner. After cloning, run:
+
+```sh
+just init
+```
+
+This checks that all required tools are installed (`go`, `buf`, `protoc`, `uv`, `golangci-lint`), syncs the Python virtual environment, and installs pre-commit hooks.
+
+Other useful commands:
+
+```sh
+just dev    # Full rebuild + generate + test cycle
+just lint   # Run all linters (Go + Python)
+just test   # Run Python tests only
+```
+
+Run `just --list` to see all available recipes.
 
 ## Contributing
 
@@ -186,11 +256,4 @@ Contributions are welcome! Please open an issue or submit a pull request with yo
 
 ## License
 
-This project is licensed under the Apache License 2.0. See LICENSE for more details.
-
-## Contact
-
-If you have any questions, feel free to reach out to the author:
-
-- Name: Arata Furukawa
-- Email: old.river.new@gmail.com
+This project is licensed under the Apache License 2.0. See [LICENSE](LICENSE) for more details.

@@ -1,0 +1,21 @@
+repos:
+  - repo: https://github.com/golangci/golangci-lint
+    rev: v2.9.0
+    hooks:
+      - id: golangci-lint
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.1
+    hooks:
+      - id: ruff
+        args: [--fix]
+        files: ^test/tests/
+      - id: ruff-format
+        files: ^test/tests/
+  - repo: local
+    hooks:
+      - id: check-generated-files
+        name: check generated files are up-to-date
+        entry: just check-generated
+        language: system
+        files: '(\.go|\.proto)$'
+        pass_filenames: false

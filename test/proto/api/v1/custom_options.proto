@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package test.api.v1;
+
+import "google/protobuf/descriptor.proto";
+
+option go_package = "github.com/cjermain/protoc-gen-pydantic/test/api";
+
+extend google.protobuf.EnumValueOptions {
+  optional string display_name = 51234;
+  optional int32 priority = 51235;
+  optional bool is_default = 51236;
+}
+
+// Currency enum with custom options.
+enum Currency {
+  CURRENCY_UNSPECIFIED = 0;
+  CURRENCY_USD = 1 [(display_name) = "US Dollar", (priority) = 1, (is_default) = true];
+  CURRENCY_EUR = 2 [(display_name) = "Euro", (priority) = 2];
+  CURRENCY_GBP = 3 [(display_name) = "British Pound"];
+}
+
+// Color enum without custom options (regression test).
+enum Color {
+  COLOR_UNSPECIFIED = 0;
+  COLOR_RED = 1;
+  COLOR_GREEN = 2;
+  COLOR_BLUE = 3;
+}

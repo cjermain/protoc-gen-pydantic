@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package test.api.v1;
+
+option go_package = "github.com/cjermain/protoc-gen-pydantic/test/api";
+
+// Enum detatched leading comment.
+// Enum detatched leading comment.
+
+// Enum leading comment.
+// Enum leading comment.
+enum Enum {
+  // Enum trailing comment.
+  // Enum trailing comment.
+
+  // Enum value leading comment 0.
+  // Enum value leading comment 0.
+  ENUM_UNSPECIFIED = 0; // Enum value right comment 0.
+  // Enum value trailing comment 0.
+  // Enum value trailing comment 0.
+
+  // Enum value detatched leading comment 1.
+  // Enum value detatched leading comment 1.
+
+  // Enum value leading comment 1.
+  // Enum value leading comment 1.
+  ENUM_ACTIVE = 1;
+  // Enum value trailing comment 1.
+  // Enum value trailing comment 1.
+
+  // Enum value detatched leading comment 2.
+  // Enum value detatched leading comment 2.
+
+  // Enum value leading comment 2.
+  // Enum value leading comment 2.
+  ENUM_INACTIVE = 2; // Enum value right comment 2.
+  // Enum value trailing comment 2.
+  // Enum value trailing comment 2.
+}

@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package test.api.v1;
+
+option go_package = "github.com/cjermain/protoc-gen-pydantic/test/api";
+
+message TreeNode {
+  string name = 1;
+  repeated TreeNode children = 2;
+  optional TreeNode parent = 3;
+}

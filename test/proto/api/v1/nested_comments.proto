@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+package test.api.v1;
+
+option go_package = "github.com/cjermain/protoc-gen-pydantic/test/api";
+
+// Outer message comment.
+message Outer {
+  // Outer field comment.
+  string outer_field = 1;
+
+  // Inner message comment.
+  message Inner {
+    // Inner field comment.
+    string inner_field = 1;
+
+    // Deepest message comment.
+    message Deepest {
+      // Deepest field comment.
+      string deepest_field = 1;
+    }
+
+    // Inner enum comment.
+    enum InnerEnum {
+      INNER_ENUM_UNSPECIFIED = 0;
+      INNER_ENUM_A = 1;
+    }
+  }
+
+  // Outer enum comment.
+  enum OuterEnum {
+    OUTER_ENUM_UNSPECIFIED = 0;
+    OUTER_ENUM_X = 1;
+  }
+}
