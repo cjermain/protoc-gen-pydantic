@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package test.foo.bar.v1;
+
+import "api/v1/custom_options.proto";
+
+option go_package = "github.com/cjermain/protoc-gen-pydantic/test/foo/bar/v1";
+
+// Language enum using custom options defined in another package.
+enum Language {
+  LANGUAGE_UNSPECIFIED = 0;
+  LANGUAGE_PYTHON = 1 [(test.api.v1.display_name) = "Python"];
+  LANGUAGE_GOLANG = 2 [(test.api.v1.display_name) = "Golang"];
+  LANGUAGE_RUST = 3 [(test.api.v1.display_name) = "Rust", (test.api.v1.priority) = 1];
+}

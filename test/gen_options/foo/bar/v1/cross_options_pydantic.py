@@ -29,27 +29,37 @@ class _ProtoEnum(int, _Enum):
         return self._options_
 
 
-class Status(_ProtoEnum):
+class Language(_ProtoEnum):
     """
-    Status enum with value options.
+    Language enum using custom options defined in another package.
     """
 
-    STATUS_UNSPECIFIED = (
+    LANGUAGE_UNSPECIFIED = (
         0,
         _EnumValueOptions(number=0),
-    )  # STATUS_UNSPECIFIED
+    )  # LANGUAGE_UNSPECIFIED
 
-    STATUS_ACTIVE = (
+    LANGUAGE_PYTHON = (
         1,
-        _EnumValueOptions(number=1),
-    )  # STATUS_ACTIVE
+        _EnumValueOptions(
+            number=1,
+            display_name="Python",
+        ),
+    )  # LANGUAGE_PYTHON
 
-    STATUS_INACTIVE = (
+    LANGUAGE_GOLANG = (
         2,
-        _EnumValueOptions(number=2),
-    )  # STATUS_INACTIVE
+        _EnumValueOptions(
+            number=2,
+            display_name="Golang",
+        ),
+    )  # LANGUAGE_GOLANG
 
-    STATUS_ARCHIVED = (
+    LANGUAGE_RUST = (
         3,
-        _EnumValueOptions(number=3, deprecated=True),
-    )  # STATUS_ARCHIVED
+        _EnumValueOptions(
+            number=3,
+            display_name="Rust",
+            priority=1,
+        ),
+    )  # LANGUAGE_RUST
