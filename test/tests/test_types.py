@@ -11,32 +11,32 @@ def test_empty_model():
 
 
 def test_message_valid():
-    m = Message(firstName="John", lastName="Doe")
-    assert m.firstName == "John"
-    assert m.lastName == "Doe"
+    m = Message(first_name="John", last_name="Doe")
+    assert m.first_name == "John"
+    assert m.last_name == "Doe"
 
 
 def test_message_zero_value_defaults():
     """Proto3 messages can be constructed with no arguments; fields take zero values."""
     m = Message()
-    assert m.firstName == ""
-    assert m.lastName == ""
+    assert m.first_name == ""
+    assert m.last_name == ""
 
 
 def test_message_field_descriptions():
-    assert Message.model_fields["firstName"].description is not None
+    assert Message.model_fields["first_name"].description is not None
 
 
 def test_nested_message_valid():
-    m = Foo_NestedMessage(firstName="Jane", lastName="Doe")
-    assert m.firstName == "Jane"
+    m = Foo_NestedMessage(first_name="Jane", last_name="Doe")
+    assert m.first_name == "Jane"
 
 
 def test_nested_message_zero_value_defaults():
     """Nested messages also support proto3 zero-value defaults."""
     m = Foo_NestedMessage()
-    assert m.firstName == ""
-    assert m.lastName == ""
+    assert m.first_name == ""
+    assert m.last_name == ""
 
 
 def test_foo_required_scalars(foo):
@@ -49,9 +49,9 @@ def test_foo_required_scalars(foo):
     assert foo.float_ == 1.5
     assert foo.double == 2.5
     assert foo.enum == Enum.ACTIVE
-    assert foo.nestedEnum == Foo_NestedEnum.ACTIVE
-    assert foo.message.firstName == "John"
-    assert foo.nestedMessage.firstName == "Jane"
+    assert foo.nested_enum == Foo_NestedEnum.ACTIVE
+    assert foo.message.first_name == "John"
+    assert foo.nested_message.first_name == "Jane"
 
 
 def test_foo_alias_construction_by_alias(timestamp, message, nested_message):
@@ -70,64 +70,64 @@ def test_foo_alias_construction_by_alias(timestamp, message, nested_message):
         double=2.5,
         string="hello",
         enum=Enum.ACTIVE,
-        nestedEnum=Foo_NestedEnum.ACTIVE,
+        nested_enum=Foo_NestedEnum.ACTIVE,
         message=message,
-        nestedMessage=nested_message,
-        wktTimestamp=timestamp,
+        nested_message=nested_message,
+        wkt_timestamp=timestamp,
         # Use alias names (original proto names) instead of Python attr names
         **{"bool": True, "float": 1.5, "bytes": b"world"},
-        int32Repeated=[],
-        int64Repeated=[],
-        uint32Repeated=[],
-        uint64Repeated=[],
-        fixed32Repeated=[],
-        fixed64Repeated=[],
-        sint32Repeated=[],
-        sint64Repeated=[],
-        sfixed32Repeated=[],
-        sfixed64Repeated=[],
-        boolRepeated=[],
-        floatRepeated=[],
-        doubleRepeated=[],
-        stringRepeated=[],
-        bytesRepeated=[],
-        enumRepeated=[],
-        nestedEnumRepeated=[],
-        messageRepeated=[],
-        nestedMessageRepeated=[],
-        wktTimestampRepeated=[],
-        int32MapKey={},
-        int64MapKey={},
-        uint32MapKey={},
-        uint64MapKey={},
-        fixed32MapKey={},
-        fixed64MapKey={},
-        sint32MapKey={},
-        sint64MapKey={},
-        sfixed32MapKey={},
-        sfixed64MapKey={},
-        boolMapKey={},
-        stringMapKey={},
-        int32MapValue={},
-        int64MapValue={},
-        uint32MapValue={},
-        uint64MapValue={},
-        fixed32MapValue={},
-        fixed64MapValue={},
-        sint32MapValue={},
-        sint64MapValue={},
-        sfixed32MapValue={},
-        sfixed64MapValue={},
-        boolMapValue={},
-        floatMapValue={},
-        doubleMapValue={},
-        stringMapValue={},
-        bytesMapValue={},
-        enumMapValue={},
-        nestedEnumMapValue={},
-        messageMapValue={},
-        nestedMessageMapValue={},
-        wktTimestampMapValue={},
+        int32_repeated=[],
+        int64_repeated=[],
+        uint32_repeated=[],
+        uint64_repeated=[],
+        fixed32_repeated=[],
+        fixed64_repeated=[],
+        sint32_repeated=[],
+        sint64_repeated=[],
+        sfixed32_repeated=[],
+        sfixed64_repeated=[],
+        bool_repeated=[],
+        float_repeated=[],
+        double_repeated=[],
+        string_repeated=[],
+        bytes_repeated=[],
+        enum_repeated=[],
+        nested_enum_repeated=[],
+        message_repeated=[],
+        nested_message_repeated=[],
+        wkt_timestamp_repeated=[],
+        int32_map_key={},
+        int64_map_key={},
+        uint32_map_key={},
+        uint64_map_key={},
+        fixed32_map_key={},
+        fixed64_map_key={},
+        sint32_map_key={},
+        sint64_map_key={},
+        sfixed32_map_key={},
+        sfixed64_map_key={},
+        bool_map_key={},
+        string_map_key={},
+        int32_map_value={},
+        int64_map_value={},
+        uint32_map_value={},
+        uint64_map_value={},
+        fixed32_map_value={},
+        fixed64_map_value={},
+        sint32_map_value={},
+        sint64_map_value={},
+        sfixed32_map_value={},
+        sfixed64_map_value={},
+        bool_map_value={},
+        float_map_value={},
+        double_map_value={},
+        string_map_value={},
+        bytes_map_value={},
+        enum_map_value={},
+        nested_enum_map_value={},
+        message_map_value={},
+        nested_message_map_value={},
+        wkt_timestamp_map_value={},
     )
     assert foo.bool_ is True
     assert foo.float_ == 1.5
@@ -146,26 +146,26 @@ def test_foo_alias_in_dict_output(foo):
 
 
 OPTIONAL_FIELDS = [
-    "int32Optional",
-    "int64Optional",
-    "uint32Optional",
-    "uint64Optional",
-    "fixed32Optional",
-    "fixed64Optional",
-    "sint32Optional",
-    "sint64Optional",
-    "sfixed32Optional",
-    "sfixed64Optional",
-    "boolOptional",
-    "floatOptional",
-    "doubleOptional",
-    "stringOptional",
-    "bytesOptional",
-    "enumOptional",
-    "nestedEnumOptional",
-    "messageOptional",
-    "nestedMessageOptional",
-    "wktTimestampOptional",
+    "int32_optional",
+    "int64_optional",
+    "uint32_optional",
+    "uint64_optional",
+    "fixed32_optional",
+    "fixed64_optional",
+    "sint32_optional",
+    "sint64_optional",
+    "sfixed32_optional",
+    "sfixed64_optional",
+    "bool_optional",
+    "float_optional",
+    "double_optional",
+    "string_optional",
+    "bytes_optional",
+    "enum_optional",
+    "nested_enum_optional",
+    "message_optional",
+    "nested_message_optional",
+    "wkt_timestamp_optional",
 ]
 
 
@@ -175,38 +175,38 @@ def test_foo_optional_defaults_none(foo, field):
 
 
 def test_foo_optional_set(foo_kwargs, message):
-    foo_kwargs["int32Optional"] = 42
-    foo_kwargs["stringOptional"] = "opt"
-    foo_kwargs["enumOptional"] = Enum.INACTIVE
-    foo_kwargs["messageOptional"] = message
+    foo_kwargs["int32_optional"] = 42
+    foo_kwargs["string_optional"] = "opt"
+    foo_kwargs["enum_optional"] = Enum.INACTIVE
+    foo_kwargs["message_optional"] = message
     foo = Foo(**foo_kwargs)
-    assert foo.int32Optional == 42
-    assert foo.stringOptional == "opt"
-    assert foo.enumOptional == Enum.INACTIVE
-    assert foo.messageOptional.firstName == "John"
+    assert foo.int32_optional == 42
+    assert foo.string_optional == "opt"
+    assert foo.enum_optional == Enum.INACTIVE
+    assert foo.message_optional.first_name == "John"
 
 
 def test_foo_repeated_fields(foo):
-    assert foo.int32Repeated == [1, 2]
-    assert foo.stringRepeated == ["a"]
-    assert foo.boolRepeated == [True, False]
-    assert foo.messageRepeated[0].firstName == "John"
-    assert foo.nestedMessageRepeated[0].firstName == "Jane"
+    assert foo.int32_repeated == [1, 2]
+    assert foo.string_repeated == ["a"]
+    assert foo.bool_repeated == [True, False]
+    assert foo.message_repeated[0].first_name == "John"
+    assert foo.nested_message_repeated[0].first_name == "Jane"
 
 
 def test_foo_map_key_types(foo):
-    assert foo.int32MapKey[1] == "a"
-    assert foo.stringMapKey["key"] == "val"
-    assert foo.boolMapKey[True] == "k"
+    assert foo.int32_map_key[1] == "a"
+    assert foo.string_map_key["key"] == "val"
+    assert foo.bool_map_key[True] == "k"
 
 
 def test_foo_map_value_types(foo):
-    assert foo.int32MapValue["a"] == 1
-    assert foo.boolMapValue["a"] is True
-    assert foo.floatMapValue["a"] == 1.0
-    assert foo.enumMapValue["a"] == Enum.ACTIVE
-    assert foo.messageMapValue["a"].firstName == "John"
-    assert foo.bytesMapValue["a"] == b"c"
+    assert foo.int32_map_value["a"] == 1
+    assert foo.bool_map_value["a"] is True
+    assert foo.float_map_value["a"] == 1.0
+    assert foo.enum_map_value["a"] == Enum.ACTIVE
+    assert foo.message_map_value["a"].first_name == "John"
+    assert foo.bytes_map_value["a"] == b"c"
 
 
 def test_foo_oneof_default_none(foo):
@@ -239,10 +239,10 @@ def test_foo_zero_value_defaults():
     assert foo.double == 0.0
     assert foo.enum is None
     assert foo.message is None
-    assert foo.nestedMessage is None
-    assert foo.wktTimestamp is None
-    assert foo.int32Repeated == []
-    assert foo.int32MapKey == {}
+    assert foo.nested_message is None
+    assert foo.wkt_timestamp is None
+    assert foo.int32_repeated == []
+    assert foo.int32_map_key == {}
     assert foo.a is None
     assert foo.b is None
 
@@ -253,18 +253,18 @@ def test_foo_json_roundtrip(foo):
     assert foo2.int32 == foo.int32
     assert foo2.string == foo.string
     assert foo2.enum == foo.enum
-    assert foo2.wktTimestamp == foo.wktTimestamp
+    assert foo2.wkt_timestamp == foo.wkt_timestamp
 
 
 def test_foo_dict_roundtrip(foo):
     d = foo.model_dump()
     foo2 = Foo.model_validate(d)
-    assert foo2.message.firstName == "John"
-    assert foo2.nestedMessage.firstName == "Jane"
+    assert foo2.message.first_name == "John"
+    assert foo2.nested_message.first_name == "Jane"
 
 
 def test_message_json_roundtrip(message):
     json_str = message.model_dump_json()
     m2 = Message.model_validate_json(json_str)
-    assert m2.firstName == message.firstName
-    assert m2.lastName == message.lastName
+    assert m2.first_name == message.first_name
+    assert m2.last_name == message.last_name

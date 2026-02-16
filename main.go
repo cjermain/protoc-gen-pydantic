@@ -36,7 +36,7 @@ func init() {
 
 func main() {
 	var flags flag.FlagSet
-	preservingProtoFieldName := flags.Bool("preserving_proto_field_name", false, "")
+	preservingProtoFieldName := flags.Bool("preserving_proto_field_name", true, "")
 	autoTrimEnumPrefix := flags.Bool("auto_trim_enum_prefix", true, "")
 	useIntegersForEnums := flags.Bool("use_integers_for_enums", false, "")
 	disableFieldDescription := flags.Bool("disable_field_description", false, "")
@@ -160,6 +160,16 @@ class _ProtoModel(_BaseModel):
         kwargs.setdefault("exclude_defaults", True)
         kwargs.setdefault("by_alias", True)
         return super().model_dump_json(**kwargs)
+
+    @classmethod
+    def from_proto_dict(cls, data: dict, **kwargs):
+        """Deserialize from a dict using ProtoJSON conventions."""
+        return cls.model_validate(data, **kwargs)
+
+    @classmethod
+    def from_proto_json(cls, json_str: str, **kwargs):
+        """Deserialize from a JSON string using ProtoJSON conventions."""
+        return cls.model_validate_json(json_str, **kwargs)
 {{- end }}
 {{- if $hasEnumOptions }}
 

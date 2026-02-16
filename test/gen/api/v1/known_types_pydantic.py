@@ -30,28 +30,38 @@ class _ProtoModel(_BaseModel):
         kwargs.setdefault("by_alias", True)
         return super().model_dump_json(**kwargs)
 
+    @classmethod
+    def from_proto_dict(cls, data: dict, **kwargs):
+        """Deserialize from a dict using ProtoJSON conventions."""
+        return cls.model_validate(data, **kwargs)
+
+    @classmethod
+    def from_proto_json(cls, json_str: str, **kwargs):
+        """Deserialize from a JSON string using ProtoJSON conventions."""
+        return cls.model_validate_json(json_str, **kwargs)
+
 
 class WellKnownTypes(_ProtoModel):
     """
 
     Attributes:
-      wktTimestamp (_Optional[ProtoTimestamp]):
-      wktDuration (_Optional[ProtoDuration]):
-      wktStruct (_Optional[dict[str, _Any]]):
-      wktValue (_Optional[_Any]):
-      wktListValue (_Optional[list[_Any]]):
-      wktAny (_Optional[_Any]):
-      wktFieldMask (_Optional[list[str]]):
-      wktBool (_Optional[bool]):
-      wktInt32 (_Optional[int]):
-      wktInt64 (_Optional[ProtoInt64]):
-      wktUint32 (_Optional[int]):
-      wktUint64 (_Optional[ProtoUInt64]):
-      wktFloat (_Optional[float]):
-      wktDouble (_Optional[float]):
-      wktString (_Optional[str]):
-      wktBytes (_Optional[bytes]):
-      wktEmpty (_Optional[None]):
+      wkt_timestamp (_Optional[ProtoTimestamp]):
+      wkt_duration (_Optional[ProtoDuration]):
+      wkt_struct (_Optional[dict[str, _Any]]):
+      wkt_value (_Optional[_Any]):
+      wkt_list_value (_Optional[list[_Any]]):
+      wkt_any (_Optional[_Any]):
+      wkt_field_mask (_Optional[list[str]]):
+      wkt_bool (_Optional[bool]):
+      wkt_int32 (_Optional[int]):
+      wkt_int64 (_Optional[ProtoInt64]):
+      wkt_uint32 (_Optional[int]):
+      wkt_uint64 (_Optional[ProtoUInt64]):
+      wkt_float (_Optional[float]):
+      wkt_double (_Optional[float]):
+      wkt_string (_Optional[str]):
+      wkt_bytes (_Optional[bytes]):
+      wkt_empty (_Optional[None]):
     """
 
     model_config = _ConfigDict(
@@ -60,36 +70,36 @@ class WellKnownTypes(_ProtoModel):
         ser_json_inf_nan="strings",
     )
 
-    wktTimestamp: "_Optional[ProtoTimestamp]" = _Field(None)
+    wkt_timestamp: "_Optional[ProtoTimestamp]" = _Field(None)
 
-    wktDuration: "_Optional[ProtoDuration]" = _Field(None)
+    wkt_duration: "_Optional[ProtoDuration]" = _Field(None)
 
-    wktStruct: "_Optional[dict[str, _Any]]" = _Field(None)
+    wkt_struct: "_Optional[dict[str, _Any]]" = _Field(None)
 
-    wktValue: "_Optional[_Any]" = _Field(None)
+    wkt_value: "_Optional[_Any]" = _Field(None)
 
-    wktListValue: "_Optional[list[_Any]]" = _Field(None)
+    wkt_list_value: "_Optional[list[_Any]]" = _Field(None)
 
-    wktAny: "_Optional[_Any]" = _Field(None)
+    wkt_any: "_Optional[_Any]" = _Field(None)
 
-    wktFieldMask: "_Optional[list[str]]" = _Field(None)
+    wkt_field_mask: "_Optional[list[str]]" = _Field(None)
 
-    wktBool: "_Optional[bool]" = _Field(None)
+    wkt_bool: "_Optional[bool]" = _Field(None)
 
-    wktInt32: "_Optional[int]" = _Field(None)
+    wkt_int32: "_Optional[int]" = _Field(None)
 
-    wktInt64: "_Optional[ProtoInt64]" = _Field(None)
+    wkt_int64: "_Optional[ProtoInt64]" = _Field(None)
 
-    wktUint32: "_Optional[int]" = _Field(None)
+    wkt_uint32: "_Optional[int]" = _Field(None)
 
-    wktUint64: "_Optional[ProtoUInt64]" = _Field(None)
+    wkt_uint64: "_Optional[ProtoUInt64]" = _Field(None)
 
-    wktFloat: "_Optional[float]" = _Field(None)
+    wkt_float: "_Optional[float]" = _Field(None)
 
-    wktDouble: "_Optional[float]" = _Field(None)
+    wkt_double: "_Optional[float]" = _Field(None)
 
-    wktString: "_Optional[str]" = _Field(None)
+    wkt_string: "_Optional[str]" = _Field(None)
 
-    wktBytes: "_Optional[bytes]" = _Field(None)
+    wkt_bytes: "_Optional[bytes]" = _Field(None)
 
-    wktEmpty: "_Optional[None]" = _Field(None)
+    wkt_empty: "_Optional[None]" = _Field(None)

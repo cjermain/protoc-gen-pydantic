@@ -31,14 +31,24 @@ class _ProtoModel(_BaseModel):
         kwargs.setdefault("by_alias", True)
         return super().model_dump_json(**kwargs)
 
+    @classmethod
+    def from_proto_dict(cls, data: dict, **kwargs):
+        """Deserialize from a dict using ProtoJSON conventions."""
+        return cls.model_validate(data, **kwargs)
+
+    @classmethod
+    def from_proto_json(cls, json_str: str, **kwargs):
+        """Deserialize from a JSON string using ProtoJSON conventions."""
+        return cls.model_validate_json(json_str, **kwargs)
+
 
 class CrossRefMessage(_ProtoModel):
     """
 
     Attributes:
       id_ (str):
-      referenced_message (Message | None):
-      foo_list (list[Foo]):
+      referencedMessage (Message | None):
+      fooList (list[Foo]):
     """
 
     model_config = _ConfigDict(
@@ -53,8 +63,8 @@ class CrossRefMessage(_ProtoModel):
         alias="id",
     )
 
-    referenced_message: "Message | None" = _Field(None)
+    referencedMessage: "Message | None" = _Field(None)
 
-    foo_list: "list[Foo]" = _Field(
+    fooList: "list[Foo]" = _Field(
         default_factory=list,
     )

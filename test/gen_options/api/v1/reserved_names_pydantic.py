@@ -27,34 +27,34 @@ class _ProtoModel(_BaseModel):
         kwargs.setdefault("by_alias", True)
         return super().model_dump_json(**kwargs)
 
+    @classmethod
+    def from_proto_dict(cls, data: dict, **kwargs):
+        """Deserialize from a dict using ProtoJSON conventions."""
+        return cls.model_validate(data, **kwargs)
+
+    @classmethod
+    def from_proto_json(cls, json_str: str, **kwargs):
+        """Deserialize from a JSON string using ProtoJSON conventions."""
+        return cls.model_validate_json(json_str, **kwargs)
+
 
 class ReservedFieldNames(_ProtoModel):
     """
 
     Attributes:
-      model_config_ (str):
-      model_fields_ (str):
-      model_dump_ (str):
+      modelConfig (str):
+      modelFields (str):
+      modelDump (str):
     """
 
     model_config = _ConfigDict(
-        populate_by_name=True,
         ser_json_bytes="base64",
         val_json_bytes="base64",
         ser_json_inf_nan="strings",
     )
 
-    model_config_: "str" = _Field(
-        "",
-        alias="model_config",
-    )
+    modelConfig: "str" = _Field("")
 
-    model_fields_: "str" = _Field(
-        "",
-        alias="model_fields",
-    )
+    modelFields: "str" = _Field("")
 
-    model_dump_: "str" = _Field(
-        "",
-        alias="model_dump",
-    )
+    modelDump: "str" = _Field("")

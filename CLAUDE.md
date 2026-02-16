@@ -76,7 +76,7 @@ Passed via `opt:` in buf.gen.yaml or `--pydantic_opt=` with protoc:
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `preserving_proto_field_name` | `false` | Use snake_case proto names instead of camelCase |
+| `preserving_proto_field_name` | `true` | Use snake_case proto names instead of camelCase |
 | `auto_trim_enum_prefix` | `true` | Remove enum type prefix from value names |
 | `use_integers_for_enums` | `false` | Use int values instead of string names |
 | `disable_field_description` | `false` | Skip field descriptions from comments |

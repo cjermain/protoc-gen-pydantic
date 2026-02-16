@@ -1,7 +1,7 @@
 """Tests for plugin options using gen_options/ output.
 
 All options are set to non-default values:
-  - preserving_proto_field_name=true
+  - preserving_proto_field_name=false
   - auto_trim_enum_prefix=false
   - use_integers_for_enums=true
   - disable_field_description=true
@@ -67,21 +67,21 @@ def opts_types(opts_enums):
     return mod
 
 
-# --- preserving_proto_field_name=true ---
+# --- preserving_proto_field_name=false ---
 
 
-def test_preserving_proto_field_name_snake_case(opts_types):
-    """Fields use snake_case names when preserving_proto_field_name=true."""
+def test_preserving_proto_field_name_camel_case(opts_types):
+    """Fields use camelCase names when preserving_proto_field_name=false."""
     Message = opts_types.Message
-    assert "first_name" in Message.model_fields
-    assert "last_name" in Message.model_fields
+    assert "firstName" in Message.model_fields
+    assert "lastName" in Message.model_fields
 
 
-def test_preserving_proto_field_name_no_camel_case(opts_types):
-    """camelCase names are not used when preserving_proto_field_name=true."""
+def test_preserving_proto_field_name_no_snake_case(opts_types):
+    """snake_case names are not used when preserving_proto_field_name=false."""
     Message = opts_types.Message
-    assert "firstName" not in Message.model_fields
-    assert "lastName" not in Message.model_fields
+    assert "first_name" not in Message.model_fields
+    assert "last_name" not in Message.model_fields
 
 
 # --- auto_trim_enum_prefix=false ---
@@ -119,8 +119,8 @@ def test_use_integers_for_enums_values_are_ints(opts_types):
 def test_disable_field_description(opts_types):
     """Field descriptions are None when disable_field_description=true."""
     Message = opts_types.Message
-    assert Message.model_fields["first_name"].description is None
-    assert Message.model_fields["last_name"].description is None
+    assert Message.model_fields["firstName"].description is None
+    assert Message.model_fields["lastName"].description is None
 
 
 # --- use_none_union_syntax_instead_of_optional=true ---

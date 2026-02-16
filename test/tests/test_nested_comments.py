@@ -9,19 +9,19 @@ from api.v1.nested_comments_pydantic import (
 
 def test_outer_message_comments():
     assert "Outer message comment." in Outer.__doc__
-    assert "Outer field comment." in Outer.model_fields["outerField"].description
+    assert "Outer field comment." in Outer.model_fields["outer_field"].description
 
 
 def test_inner_message_comments():
     assert "Inner message comment." in Outer_Inner.__doc__
-    assert "Inner field comment." in Outer_Inner.model_fields["innerField"].description
+    assert "Inner field comment." in Outer_Inner.model_fields["inner_field"].description
 
 
 def test_deepest_message_comments():
     assert "Deepest message comment." in Outer_Inner_Deepest.__doc__
     assert (
         "Deepest field comment."
-        in Outer_Inner_Deepest.model_fields["deepestField"].description
+        in Outer_Inner_Deepest.model_fields["deepest_field"].description
     )
 
 

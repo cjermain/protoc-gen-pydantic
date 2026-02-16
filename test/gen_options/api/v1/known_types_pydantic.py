@@ -30,28 +30,38 @@ class _ProtoModel(_BaseModel):
         kwargs.setdefault("by_alias", True)
         return super().model_dump_json(**kwargs)
 
+    @classmethod
+    def from_proto_dict(cls, data: dict, **kwargs):
+        """Deserialize from a dict using ProtoJSON conventions."""
+        return cls.model_validate(data, **kwargs)
+
+    @classmethod
+    def from_proto_json(cls, json_str: str, **kwargs):
+        """Deserialize from a JSON string using ProtoJSON conventions."""
+        return cls.model_validate_json(json_str, **kwargs)
+
 
 class WellKnownTypes(_ProtoModel):
     """
 
     Attributes:
-      wkt_timestamp (ProtoTimestamp | None):
-      wkt_duration (ProtoDuration | None):
-      wkt_struct (dict[str, _Any] | None):
-      wkt_value (_Any | None):
-      wkt_list_value (list[_Any] | None):
-      wkt_any (_Any | None):
-      wkt_field_mask (list[str] | None):
-      wkt_bool (bool | None):
-      wkt_int32 (int | None):
-      wkt_int64 (ProtoInt64 | None):
-      wkt_uint32 (int | None):
-      wkt_uint64 (ProtoUInt64 | None):
-      wkt_float (float | None):
-      wkt_double (float | None):
-      wkt_string (str | None):
-      wkt_bytes (bytes | None):
-      wkt_empty (None | None):
+      wktTimestamp (ProtoTimestamp | None):
+      wktDuration (ProtoDuration | None):
+      wktStruct (dict[str, _Any] | None):
+      wktValue (_Any | None):
+      wktListValue (list[_Any] | None):
+      wktAny (_Any | None):
+      wktFieldMask (list[str] | None):
+      wktBool (bool | None):
+      wktInt32 (int | None):
+      wktInt64 (ProtoInt64 | None):
+      wktUint32 (int | None):
+      wktUint64 (ProtoUInt64 | None):
+      wktFloat (float | None):
+      wktDouble (float | None):
+      wktString (str | None):
+      wktBytes (bytes | None):
+      wktEmpty (None | None):
     """
 
     model_config = _ConfigDict(
@@ -60,36 +70,36 @@ class WellKnownTypes(_ProtoModel):
         ser_json_inf_nan="strings",
     )
 
-    wkt_timestamp: "ProtoTimestamp | None" = _Field(None)
+    wktTimestamp: "ProtoTimestamp | None" = _Field(None)
 
-    wkt_duration: "ProtoDuration | None" = _Field(None)
+    wktDuration: "ProtoDuration | None" = _Field(None)
 
-    wkt_struct: "dict[str, _Any] | None" = _Field(None)
+    wktStruct: "dict[str, _Any] | None" = _Field(None)
 
-    wkt_value: "_Any | None" = _Field(None)
+    wktValue: "_Any | None" = _Field(None)
 
-    wkt_list_value: "list[_Any] | None" = _Field(None)
+    wktListValue: "list[_Any] | None" = _Field(None)
 
-    wkt_any: "_Any | None" = _Field(None)
+    wktAny: "_Any | None" = _Field(None)
 
-    wkt_field_mask: "list[str] | None" = _Field(None)
+    wktFieldMask: "list[str] | None" = _Field(None)
 
-    wkt_bool: "bool | None" = _Field(None)
+    wktBool: "bool | None" = _Field(None)
 
-    wkt_int32: "int | None" = _Field(None)
+    wktInt32: "int | None" = _Field(None)
 
-    wkt_int64: "ProtoInt64 | None" = _Field(None)
+    wktInt64: "ProtoInt64 | None" = _Field(None)
 
-    wkt_uint32: "int | None" = _Field(None)
+    wktUint32: "int | None" = _Field(None)
 
-    wkt_uint64: "ProtoUInt64 | None" = _Field(None)
+    wktUint64: "ProtoUInt64 | None" = _Field(None)
 
-    wkt_float: "float | None" = _Field(None)
+    wktFloat: "float | None" = _Field(None)
 
-    wkt_double: "float | None" = _Field(None)
+    wktDouble: "float | None" = _Field(None)
 
-    wkt_string: "str | None" = _Field(None)
+    wktString: "str | None" = _Field(None)
 
-    wkt_bytes: "bytes | None" = _Field(None)
+    wktBytes: "bytes | None" = _Field(None)
 
-    wkt_empty: "None | None" = _Field(None)
+    wktEmpty: "None | None" = _Field(None)

@@ -28,6 +28,16 @@ class _ProtoModel(_BaseModel):
         kwargs.setdefault("by_alias", True)
         return super().model_dump_json(**kwargs)
 
+    @classmethod
+    def from_proto_dict(cls, data: dict, **kwargs):
+        """Deserialize from a dict using ProtoJSON conventions."""
+        return cls.model_validate(data, **kwargs)
+
+    @classmethod
+    def from_proto_json(cls, json_str: str, **kwargs):
+        """Deserialize from a JSON string using ProtoJSON conventions."""
+        return cls.model_validate_json(json_str, **kwargs)
+
 
 class Outer_OuterEnum(str, _Enum):
     """
@@ -54,7 +64,7 @@ class Outer_Inner_Deepest(_ProtoModel):
     Deepest message comment.
 
     Attributes:
-      deepestField (str):
+      deepest_field (str):
         Deepest field comment.
     """
 
@@ -65,7 +75,7 @@ class Outer_Inner_Deepest(_ProtoModel):
     )
 
     # Deepest field comment.
-    deepestField: "str" = _Field(
+    deepest_field: "str" = _Field(
         "",
         description="""Deepest field comment.
 """,
@@ -77,7 +87,7 @@ class Outer_Inner(_ProtoModel):
     Inner message comment.
 
     Attributes:
-      innerField (str):
+      inner_field (str):
         Inner field comment.
     """
 
@@ -88,7 +98,7 @@ class Outer_Inner(_ProtoModel):
     )
 
     # Inner field comment.
-    innerField: "str" = _Field(
+    inner_field: "str" = _Field(
         "",
         description="""Inner field comment.
 """,
@@ -100,7 +110,7 @@ class Outer(_ProtoModel):
     Outer message comment.
 
     Attributes:
-      outerField (str):
+      outer_field (str):
         Outer field comment.
     """
 
@@ -111,7 +121,7 @@ class Outer(_ProtoModel):
     )
 
     # Outer field comment.
-    outerField: "str" = _Field(
+    outer_field: "str" = _Field(
         "",
         description="""Outer field comment.
 """,
