@@ -124,15 +124,6 @@ enum Status {
 }
 ```
 
-If `auto_trim_enum_prefix` is `false`:
-
-```python
-class Status(str, _Enum):
-    STATUS_UNSPECIFIED = "UNSPECIFIED"
-    STATUS_OK = "OK"
-    STATUS_ERROR = "ERROR"
-```
-
 If `auto_trim_enum_prefix` is `true` (default):
 
 ```python
@@ -142,9 +133,18 @@ class Status(str, _Enum):
     ERROR = "ERROR"
 ```
 
+If `auto_trim_enum_prefix` is `false`:
+
+```python
+class Status(str, _Enum):
+    STATUS_UNSPECIFIED = "UNSPECIFIED"
+    STATUS_OK = "OK"
+    STATUS_ERROR = "ERROR"
+```
+
 ### `use_integers_for_enums`
 
-If `use_integers_for_enums` is `false`:
+If `use_integers_for_enums` is `false` (default):
 
 ```python
 class Status(str, _Enum):
