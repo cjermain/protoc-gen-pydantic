@@ -8,7 +8,7 @@ protoc-gen-pydantic is a `protoc` plugin written in Go that generates Pydantic v
 
 ## Architecture
 
-**Single-file Go plugin** (`main.go`, ~990 lines):
+**Single-file Go plugin** (`main.go`):
 - Reads `CodeGeneratorRequest` from stdin, writes `CodeGeneratorResponse` to stdout
 - Uses Go `text/template` to render Python code
 - Key types: `generator`, `Message`, `Field`, `Enum`, `EnumValue`, `CustomOption`, `OneOf`
