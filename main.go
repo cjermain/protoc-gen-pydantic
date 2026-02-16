@@ -56,6 +56,7 @@ func main() {
 			UseNoneUnionSyntaxInsteadOfOptional: *useNoneUnionSyntaxInsteadOfOptional,
 		})
 		e.resolver = buildEnumValueOptionsResolver(gen)
+		e.customOptionFields = buildCustomOptionFields(gen)
 
 		leafDirs := map[string]bool{}
 		protoTypeDirs := map[string]bool{}
@@ -642,7 +643,6 @@ func (e *generator) reset() {
 	e.relativeImports = nil
 	e.stdImports = map[string]bool{}
 	e.runtimeImports = nil
-	e.customOptionFields = nil
 }
 
 func (e *generator) addRuntimeImport(name string) {
@@ -734,22 +734,6 @@ func (e *generator) processFile(file protoreflect.FileDescriptor, fdp *descripto
 	path := []int32{12}
 	def.LeadingComments, def.TrailingComments = extractComments(sourceCodeInfo, path)
 	e.file = def
-
-	// Collect custom option field definitions from extensions on EnumValueOptions.
-	var optFields []CustomOptionField
-	for i := 0; i < file.Extensions().Len(); i++ {
-		ext := file.Extensions().Get(i)
-		if ext.ContainingMessage().FullName() == "google.protobuf.EnumValueOptions" {
-			optFields = append(optFields, CustomOptionField{
-				Name:       string(ext.Name()),
-				PythonType: protoKindToPythonType(ext.Kind()),
-			})
-		}
-	}
-	sort.Slice(optFields, func(i, j int) bool {
-		return optFields[i].Name < optFields[j].Name
-	})
-	e.customOptionFields = optFields
 
 	for i := range file.Enums().Len() {
 		ed := file.Enums().Get(i)
@@ -1169,6 +1153,32 @@ func buildEnumValueOptionsResolver(gen *protogen.Plugin) *protoregistry.Types {
 		}
 	}
 	return resolver
+}
+
+func buildCustomOptionFields(gen *protogen.Plugin) []CustomOptionField {
+	seen := map[string]bool{}
+	var fields []CustomOptionField
+	for _, f := range gen.Files {
+		exts := f.Desc.Extensions()
+		for i := 0; i < exts.Len(); i++ {
+			ext := exts.Get(i)
+			if ext.ContainingMessage().FullName() == "google.protobuf.EnumValueOptions" {
+				name := string(ext.Name())
+				if seen[name] {
+					continue
+				}
+				seen[name] = true
+				fields = append(fields, CustomOptionField{
+					Name:       name,
+					PythonType: protoKindToPythonType(ext.Kind()),
+				})
+			}
+		}
+	}
+	sort.Slice(fields, func(i, j int) bool {
+		return fields[i].Name < fields[j].Name
+	})
+	return fields
 }
 
 func (e *generator) extractCustomOptions(opts *descriptorpb.EnumValueOptions) map[string]interface{} {
