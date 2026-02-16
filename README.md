@@ -6,15 +6,15 @@
 
 ## Features
 
-- Supports all standard `proto3` field types.
-- Handles nested messages and enums.
-- Generates Pydantic models with type annotations and field descriptions.
-- Supports `oneof`, `optional`, `repeated`, and `map` fields.
-- Retains comments from `.proto` files as docstrings in the generated models.
-- Maps well-known types to native Python types (e.g. `Timestamp` → `datetime`, `Struct` → `dict[str, Any]`).
-- Handles Python builtin/keyword shadowing with PEP 8 trailing underscore aliases.
-- Cross-package message references.
-- Preserves enum value options (built-in `deprecated`/`debug_redact` and custom extensions) as accessible metadata on enum members.
+- Supports all standard `proto3` field types
+- Handles nested messages and enums
+- Generates Pydantic models with type annotations and field descriptions
+- Supports `oneof`, `optional`, `repeated`, and `map` fields
+- Retains comments from `.proto` files as docstrings in the generated models
+- Maps well-known types to native Python types (e.g. `Timestamp` → `datetime`, `Struct` → `dict[str, Any]`)
+- Handles Python builtin/keyword shadowing with PEP 8 trailing underscore aliases
+- Resolves cross-package message references
+- Preserves enum value options (built-in `deprecated`/`debug_redact` and custom extensions) as accessible metadata on enum members
 
 ## Installation
 
@@ -42,8 +42,8 @@ To generate Pydantic model definitions, use `protoc` with your `.proto` files sp
 
 ```sh
 protoc --pydantic_out=./gen \
-       --proto_path=./proto_files \
-       ./api/example.proto
+       --proto_path=./proto \
+       ./proto/example.proto
 ```
 
 If the binary is not on your `PATH`, specify it explicitly with `--plugin=protoc-gen-pydantic=./protoc-gen-pydantic`.
@@ -63,7 +63,6 @@ inputs:
 ```
 
 ```sh
-buf config init
 buf generate
 ```
 
