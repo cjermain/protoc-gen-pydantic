@@ -19,9 +19,17 @@ def test_deprecated(member, expected):
     assert member.options.deprecated is expected
 
 
-def test_debug_redact_defaults_false():
-    for member in Status:
-        assert member.options.debug_redact is False
+@pytest.mark.parametrize(
+    "member,expected",
+    [
+        (Status.UNSPECIFIED, False),
+        (Status.ACTIVE, False),
+        (Status.INACTIVE, False),
+        (Status.ARCHIVED, True),
+    ],
+)
+def test_debug_redact(member, expected):
+    assert member.options.debug_redact is expected
 
 
 @pytest.mark.parametrize(

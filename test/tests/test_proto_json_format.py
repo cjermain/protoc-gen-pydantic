@@ -15,7 +15,8 @@ import pytest
 
 from api.v1.enums_pydantic import Enum
 from api.v1.known_types_pydantic import WellKnownTypes
-from api.v1.types_pydantic import Foo, Foo_NestedEnum, Foo_NestedMessage, Message
+from api.v1.messages_pydantic import Message
+from api.v1.scalars_pydantic import Scalars, Scalars_NestedEnum, Scalars_NestedMessage
 
 _WKT_DEFAULTS = dict(
     wkt_timestamp=datetime.datetime(2024, 1, 1, tzinfo=datetime.timezone.utc),
@@ -68,9 +69,9 @@ def wkt():
 
 
 @pytest.fixture
-def foo_minimal():
-    """A Foo with int64 values that exceed JS safe integer range."""
-    return Foo(
+def scalars_with_int64():
+    """A Scalars with int64 values that exceed JS safe integer range."""
+    return Scalars(
         int32=1,
         int64=9007199254740993,
         uint32=3,
@@ -87,79 +88,24 @@ def foo_minimal():
         string="hello",
         bytes_=b"\x00\x01\xff",
         enum=Enum.ACTIVE,
-        nested_enum=Foo_NestedEnum.ACTIVE,
+        nested_enum=Scalars_NestedEnum.ACTIVE,
         message=Message(first_name="John", last_name="Doe"),
-        nested_message=Foo_NestedMessage(first_name="Jane", last_name="Doe"),
-        wkt_timestamp=datetime.datetime(
-            2024, 1, 15, 10, 30, 0, tzinfo=datetime.timezone.utc
-        ),
-        int32_repeated=[],
-        int64_repeated=[],
-        uint32_repeated=[],
-        uint64_repeated=[],
-        fixed32_repeated=[],
-        fixed64_repeated=[],
-        sint32_repeated=[],
-        sint64_repeated=[],
-        sfixed32_repeated=[],
-        sfixed64_repeated=[],
-        bool_repeated=[],
-        float_repeated=[],
-        double_repeated=[],
-        string_repeated=[],
-        bytes_repeated=[],
-        enum_repeated=[],
-        nested_enum_repeated=[],
-        message_repeated=[],
-        nested_message_repeated=[],
-        wkt_timestamp_repeated=[],
-        int32_map_key={},
-        int64_map_key={},
-        uint32_map_key={},
-        uint64_map_key={},
-        fixed32_map_key={},
-        fixed64_map_key={},
-        sint32_map_key={},
-        sint64_map_key={},
-        sfixed32_map_key={},
-        sfixed64_map_key={},
-        bool_map_key={},
-        string_map_key={},
-        int32_map_value={},
-        int64_map_value={},
-        uint32_map_value={},
-        uint64_map_value={},
-        fixed32_map_value={},
-        fixed64_map_value={},
-        sint32_map_value={},
-        sint64_map_value={},
-        sfixed32_map_value={},
-        sfixed64_map_value={},
-        bool_map_value={},
-        float_map_value={},
-        double_map_value={},
-        string_map_value={},
-        bytes_map_value={},
-        enum_map_value={},
-        nested_enum_map_value={},
-        message_map_value={},
-        nested_message_map_value={},
-        wkt_timestamp_map_value={},
+        nested_message=Scalars_NestedMessage(first_name="Jane", last_name="Doe"),
     )
 
 
-# --- int64 YAML workflow ---
+# --- int64 serialization ---
 
 
-def test_int64_native_python_type(foo_minimal):
+def test_int64_native_python_type(scalars_with_int64):
     """int64 fields are native int in Python."""
-    assert isinstance(foo_minimal.int64, int)
-    assert foo_minimal.int64 == 9007199254740993
+    assert isinstance(scalars_with_int64.int64, int)
+    assert scalars_with_int64.int64 == 9007199254740993
 
 
-def test_int64_json_mode_string(foo_minimal):
+def test_int64_json_mode_string(scalars_with_int64):
     """int64 serializes as string in JSON mode."""
-    data = foo_minimal.model_dump(mode="json")
+    data = scalars_with_int64.model_dump(mode="json")
     assert data["int64"] == "9007199254740993"
     assert data["uint64"] == "9007199254740993"
     assert data["fixed64"] == "9007199254740993"
@@ -167,16 +113,16 @@ def test_int64_json_mode_string(foo_minimal):
     assert data["sfixed64"] == "9007199254740993"
 
 
-def test_int64_python_mode_int(foo_minimal):
+def test_int64_python_mode_int(scalars_with_int64):
     """int64 stays as int in Python mode (model_dump without mode='json')."""
-    data = foo_minimal.model_dump()
+    data = scalars_with_int64.model_dump()
     assert isinstance(data["int64"], int)
     assert data["int64"] == 9007199254740993
 
 
-def test_int32_stays_int_in_json_mode(foo_minimal):
+def test_int32_stays_int_in_json_mode(scalars_with_int64):
     """int32 fields stay as int even in JSON mode."""
-    data = foo_minimal.model_dump(mode="json")
+    data = scalars_with_int64.model_dump(mode="json")
     assert isinstance(data["int32"], int)
     assert data["int32"] == 1
 
@@ -191,7 +137,7 @@ def test_int64_accepts_string_input():
     assert wkt.wkt_uint64 == 9007199254740993
 
 
-# --- Timestamp YAML workflow ---
+# --- Timestamp serialization ---
 
 
 def test_timestamp_native_python_type(wkt):
@@ -230,7 +176,7 @@ def test_timestamp_with_microseconds():
     assert data["wkt_timestamp"] == "2024-01-15T10:30:00.123456Z"
 
 
-# --- Duration YAML workflow ---
+# --- Duration serialization ---
 
 
 def test_duration_native_python_type(wkt):
@@ -266,9 +212,9 @@ def test_duration_accepts_string():
 # --- ConfigDict: bytes and special floats ---
 
 
-def test_bytes_base64(foo_minimal):
+def test_bytes_base64(scalars_with_int64):
     """bytes fields serialize as base64 in JSON mode."""
-    data = foo_minimal.model_dump(mode="json", by_alias=True)
+    data = scalars_with_int64.model_dump(mode="json", by_alias=True)
     expected = base64.urlsafe_b64encode(b"\x00\x01\xff").decode()
     assert data["bytes"] == expected
 

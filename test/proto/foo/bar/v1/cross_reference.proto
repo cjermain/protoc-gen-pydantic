@@ -2,12 +2,13 @@ syntax = "proto3";
 
 package test.foo.bar.v1;
 
-import "api/v1/types.proto";
+import "api/v1/messages.proto";
+import "api/v1/scalars.proto";
 
 option go_package = "github.com/cjermain/protoc-gen-pydantic/test/foo/bar/v1";
 
 message CrossRefMessage {
   string id = 1;
   test.api.v1.Message referenced_message = 2;
-  repeated test.api.v1.Foo foo_list = 3;
+  repeated test.api.v1.Scalars scalars_list = 3;
 }

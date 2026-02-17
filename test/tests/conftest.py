@@ -1,11 +1,13 @@
-import datetime
+import importlib.util
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
 
 from api.v1.enums_pydantic import Enum
-from api.v1.types_pydantic import Foo, Foo_NestedEnum, Foo_NestedMessage, Message
+from api.v1.messages_pydantic import Message
+from api.v1.scalars_pydantic import Scalars, Scalars_NestedEnum, Scalars_NestedMessage
 
 # Directory paths relative to the test root (test/)
 _TEST_ROOT = Path(__file__).resolve().parent.parent
@@ -29,24 +31,21 @@ def pytest_configure(config):
     )
 
 
-@pytest.fixture
-def timestamp():
-    return datetime.datetime(2023, 11, 14, 22, 13, 20, tzinfo=datetime.timezone.utc)
+def _load_module(name, filepath):
+    """Load a module from an arbitrary path under a unique name to avoid conflicts."""
+    full_name = f"gen_options_test.{name}"
+    if full_name in sys.modules:
+        return sys.modules[full_name]
+    spec = importlib.util.spec_from_file_location(full_name, filepath)
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules[full_name] = mod
+    spec.loader.exec_module(mod)
+    return mod
 
 
-@pytest.fixture
-def message():
-    return Message(first_name="John", last_name="Doe")
-
-
-@pytest.fixture
-def nested_message():
-    return Foo_NestedMessage(first_name="Jane", last_name="Doe")
-
-
-@pytest.fixture
-def foo_kwargs(timestamp, message, nested_message):
-    return dict(
+def make_scalars(**overrides):
+    """Create a Scalars instance with non-zero defaults; override as needed."""
+    defaults = dict(
         int32=1,
         int64=2,
         uint32=3,
@@ -63,11 +62,18 @@ def foo_kwargs(timestamp, message, nested_message):
         string="hello",
         bytes_=b"world",
         enum=Enum.ACTIVE,
-        nested_enum=Foo_NestedEnum.ACTIVE,
-        message=message,
-        nested_message=nested_message,
-        wkt_timestamp=timestamp,
-        # repeated
+        nested_enum=Scalars_NestedEnum.ACTIVE,
+        message=Message(first_name="John", last_name="Doe"),
+        nested_message=Scalars_NestedMessage(first_name="Jane", last_name="Doe"),
+    )
+    return Scalars(**{**defaults, **overrides})
+
+
+def make_collections(**overrides):
+    """Create a Collections instance with sample data; override as needed."""
+    from api.v1.collections_pydantic import Collections
+
+    defaults = dict(
         int32_repeated=[1, 2],
         int64_repeated=[3, 4],
         uint32_repeated=[5],
@@ -84,11 +90,11 @@ def foo_kwargs(timestamp, message, nested_message):
         string_repeated=["a"],
         bytes_repeated=[b"b"],
         enum_repeated=[Enum.INACTIVE],
-        nested_enum_repeated=[Foo_NestedEnum.INACTIVE],
-        message_repeated=[message],
-        nested_message_repeated=[nested_message],
-        wkt_timestamp_repeated=[timestamp],
-        # maps – key types
+        nested_enum_repeated=[Scalars_NestedEnum.INACTIVE],
+        message_repeated=[Message(first_name="John", last_name="Doe")],
+        nested_message_repeated=[
+            Scalars_NestedMessage(first_name="Jane", last_name="Doe")
+        ],
         int32_map_key={1: "a"},
         int64_map_key={2: "b"},
         uint32_map_key={3: "c"},
@@ -101,7 +107,6 @@ def foo_kwargs(timestamp, message, nested_message):
         sfixed64_map_key={10: "j"},
         bool_map_key={True: "k"},
         string_map_key={"key": "val"},
-        # maps – value types
         int32_map_value={"a": 1},
         int64_map_value={"a": 2},
         uint32_map_value={"a": 3},
@@ -118,13 +123,20 @@ def foo_kwargs(timestamp, message, nested_message):
         string_map_value={"a": "b"},
         bytes_map_value={"a": b"c"},
         enum_map_value={"a": Enum.ACTIVE},
-        nested_enum_map_value={"a": Foo_NestedEnum.ACTIVE},
-        message_map_value={"a": message},
-        nested_message_map_value={"a": nested_message},
-        wkt_timestamp_map_value={"a": timestamp},
+        nested_enum_map_value={"a": Scalars_NestedEnum.ACTIVE},
+        message_map_value={"a": Message(first_name="John", last_name="Doe")},
+        nested_message_map_value={
+            "a": Scalars_NestedMessage(first_name="Jane", last_name="Doe")
+        },
     )
+    return Collections(**{**defaults, **overrides})
 
 
 @pytest.fixture
-def foo(foo_kwargs):
-    return Foo(**foo_kwargs)
+def message():
+    return Message(first_name="John", last_name="Doe")
+
+
+@pytest.fixture
+def nested_message():
+    return Scalars_NestedMessage(first_name="Jane", last_name="Doe")

@@ -51,5 +51,5 @@ class Status(_ProtoEnum):
 
     ARCHIVED = (
         "ARCHIVED",
-        _EnumValueOptions(number=3, deprecated=True),
+        _EnumValueOptions(number=3, deprecated=True, debug_redact=True),
     )  # 3

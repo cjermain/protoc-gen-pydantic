@@ -4,10 +4,6 @@ from typing import Optional as _Optional
 
 from pydantic import BaseModel as _BaseModel, ConfigDict as _ConfigDict, Field as _Field
 
-from api.v1.messages_pydantic import Message
-
-from api.v1.scalars_pydantic import Scalars
-
 
 class _ProtoModel(_BaseModel):
     """Base class for generated Pydantic models with ProtoJSON helpers."""
@@ -43,29 +39,28 @@ class _ProtoModel(_BaseModel):
         return cls.model_validate_json(json_str, **kwargs)
 
 
-class CrossRefMessage(_ProtoModel):
+class Oneofs(_ProtoModel):
     """
 
     Attributes:
-      id_ (str):
-      referenced_message (_Optional[Message]):
-      scalars_list (list[Scalars]):
+      a (_Optional[int]):
+      b (_Optional[str]):
     """
 
     model_config = _ConfigDict(
-        populate_by_name=True,
         ser_json_bytes="base64",
         val_json_bytes="base64",
         ser_json_inf_nan="strings",
     )
 
-    id_: "str" = _Field(
-        "",
-        alias="id",
+    a: "_Optional[int]" = _Field(
+        None,
+        description="""
+Only one of the fields can be specified with: [a b] (oneof union)""",
     )
 
-    referenced_message: "_Optional[Message]" = _Field(None)
-
-    scalars_list: "list[Scalars]" = _Field(
-        default_factory=list,
+    b: "_Optional[str]" = _Field(
+        None,
+        description="""
+Only one of the fields can be specified with: [a b] (oneof union)""",
     )

@@ -1,0 +1,64 @@
+syntax = "proto3";
+
+package test.api.v1;
+
+import "api/v1/enums.proto";
+import "api/v1/messages.proto";
+import "api/v1/scalars.proto";
+
+option go_package = "github.com/cjermain/protoc-gen-pydantic/test/api";
+
+message Collections {
+  repeated int32 int32_repeated = 1;
+  repeated int64 int64_repeated = 2;
+  repeated uint32 uint32_repeated = 3;
+  repeated uint64 uint64_repeated = 4;
+  repeated fixed32 fixed32_repeated = 5;
+  repeated fixed64 fixed64_repeated = 6;
+  repeated sint32 sint32_repeated = 7;
+  repeated sint64 sint64_repeated = 8;
+  repeated sfixed32 sfixed32_repeated = 9;
+  repeated sfixed64 sfixed64_repeated = 10;
+  repeated bool bool_repeated = 11;
+  repeated float float_repeated = 12;
+  repeated double double_repeated = 13;
+  repeated string string_repeated = 14;
+  repeated bytes bytes_repeated = 15;
+  repeated Enum enum_repeated = 16;
+  repeated Scalars.NestedEnum nested_enum_repeated = 17;
+  repeated Message message_repeated = 18;
+  repeated Scalars.NestedMessage nested_message_repeated = 19;
+
+  map<int32, string> int32_map_key = 21;
+  map<int64, string> int64_map_key = 22;
+  map<uint32, string> uint32_map_key = 23;
+  map<uint64, string> uint64_map_key = 24;
+  map<fixed32, string> fixed32_map_key = 25;
+  map<fixed64, string> fixed64_map_key = 26;
+  map<sint32, string> sint32_map_key = 27;
+  map<sint64, string> sint64_map_key = 28;
+  map<sfixed32, string> sfixed32_map_key = 29;
+  map<sfixed64, string> sfixed64_map_key = 30;
+  map<bool, string> bool_map_key = 31;
+  map<string, string> string_map_key = 32;
+
+  map<string, int32> int32_map_value = 33;
+  map<string, int64> int64_map_value = 34;
+  map<string, uint32> uint32_map_value = 35;
+  map<string, uint64> uint64_map_value = 36;
+  map<string, fixed32> fixed32_map_value = 37;
+  map<string, fixed64> fixed64_map_value = 38;
+  map<string, sint32> sint32_map_value = 39;
+  map<string, sint64> sint64_map_value = 40;
+  map<string, sfixed32> sfixed32_map_value = 41;
+  map<string, sfixed64> sfixed64_map_value = 42;
+  map<string, bool> bool_map_value = 43;
+  map<string, float> float_map_value = 44;
+  map<string, double> double_map_value = 45;
+  map<string, string> string_map_value = 46;
+  map<string, bytes> bytes_map_value = 47;
+  map<string, Enum> enum_map_value = 48;
+  map<string, Scalars.NestedEnum> nested_enum_map_value = 49;
+  map<string, Message> message_map_value = 50;
+  map<string, Scalars.NestedMessage> nested_message_map_value = 51;
+}
