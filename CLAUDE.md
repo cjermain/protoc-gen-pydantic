@@ -119,7 +119,7 @@ Test coverage includes: enums, scalar fields, optional/repeated/map fields, oneo
 ### Adding Tests
 1. Add proto definitions to `test/proto/api/v1/*.proto`
 2. Rebuild and regenerate: `just generate`
-3. Add pytest functions to `test/tests/test_generated_models.py`
+3. Add pytest functions to the matching test file in `test/tests/` (e.g. `test_scalars.py`, `test_collections.py`, `test_enums.py`)
 4. Run: `just test`
 
 ## Code Style

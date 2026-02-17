@@ -3,9 +3,9 @@
 
 from pydantic import BaseModel as _BaseModel, ConfigDict as _ConfigDict, Field as _Field
 
-from api.v1.types_pydantic import Message
+from api.v1.messages_pydantic import Message
 
-from api.v1.types_pydantic import Foo
+from api.v1.scalars_pydantic import Scalars
 
 
 class _ProtoModel(_BaseModel):
@@ -48,7 +48,7 @@ class CrossRefMessage(_ProtoModel):
     Attributes:
       id_ (str):
       referencedMessage (Message | None):
-      fooList (list[Foo]):
+      scalarsList (list[Scalars]):
     """
 
     model_config = _ConfigDict(
@@ -65,6 +65,6 @@ class CrossRefMessage(_ProtoModel):
 
     referencedMessage: "Message | None" = _Field(None)
 
-    fooList: "list[Foo]" = _Field(
+    scalarsList: "list[Scalars]" = _Field(
         default_factory=list,
     )

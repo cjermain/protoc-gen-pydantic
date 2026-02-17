@@ -27,13 +27,13 @@ api.__path__.append(str(Path(_gen_pb2_path) / "api"))
 api.v1.__path__.append(str(Path(_gen_pb2_path) / "api" / "v1"))
 
 from api.v1.known_types_pb2 import WellKnownTypes as ProtoWKT  # noqa: E402
-from api.v1.types_pb2 import Message as ProtoMessage  # noqa: E402
+from api.v1.messages_pb2 import Message as ProtoMessage  # noqa: E402
 from google.protobuf import wrappers_pb2  # noqa: E402
 from google.protobuf.duration_pb2 import Duration  # noqa: E402
 from google.protobuf.json_format import MessageToJson, Parse  # noqa: E402
 from google.protobuf.timestamp_pb2 import Timestamp  # noqa: E402
 
-from api.v1.types_pydantic import Message as PydanticMessage  # noqa: E402
+from api.v1.messages_pydantic import Message as PydanticMessage  # noqa: E402
 
 
 # --- Protobuf → Pydantic (via JSON format strings) ---

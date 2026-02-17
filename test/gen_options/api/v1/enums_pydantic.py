@@ -4,26 +4,10 @@ from enum import Enum as _Enum
 
 
 class Enum(int, _Enum):
-    """
-    Enum leading comment.
-    Enum leading comment.
-    """
+    """ """
 
-    # Enum trailing comment.
-    # Enum trailing comment.
-
-    # Enum value leading comment 0.
-    # Enum value leading comment 0.
     ENUM_UNSPECIFIED = 0  # ENUM_UNSPECIFIED
-    # Enum value right comment 0.
 
-    # Enum value leading comment 1.
-    # Enum value leading comment 1.
     ENUM_ACTIVE = 1  # ENUM_ACTIVE
-    # Enum value trailing comment 1.
-    # Enum value trailing comment 1.
 
-    # Enum value leading comment 2.
-    # Enum value leading comment 2.
     ENUM_INACTIVE = 2  # ENUM_INACTIVE
-    # Enum value right comment 2.

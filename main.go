@@ -203,11 +203,15 @@ class _ProtoEnum({{ if $config.UseIntegersForEnums }}int{{ else }}str{{ end }}, 
 
 
 class {{ .Name }}({{ if .HasOptions }}_ProtoEnum{{ else }}{{ if $config.UseIntegersForEnums }}int{{ else }}str{{ end }}, _Enum{{ end }}):
+    {{- if .LeadingComments }}
     """
     {{- range .LeadingComments }}
     {{ . }}
     {{- end }}
     """
+    {{- else }}
+    """ """
+    {{- end }}
     {{- if .TrailingComments }}
     {{ range .TrailingComments }}
     # {{ . }}

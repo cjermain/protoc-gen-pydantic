@@ -4,8 +4,9 @@ package test.api.v1;
 
 option go_package = "github.com/cjermain/protoc-gen-pydantic/test/api";
 
-enum Enum {
-  ENUM_UNSPECIFIED = 0;
-  ENUM_ACTIVE = 1;
-  ENUM_INACTIVE = 2;
+message Oneofs {
+  oneof union {
+    int32 a = 1;
+    string b = 2;
+  }
 }

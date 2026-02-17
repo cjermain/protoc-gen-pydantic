@@ -1,0 +1,61 @@
+syntax = "proto3";
+
+package test.api.v1;
+
+import "api/v1/enums.proto";
+import "api/v1/messages.proto";
+
+option go_package = "github.com/cjermain/protoc-gen-pydantic/test/api";
+
+message Scalars {
+  int32 int32 = 2;
+  int64 int64 = 3;
+  uint32 uint32 = 4;
+  uint64 uint64 = 5;
+  fixed32 fixed32 = 6;
+  fixed64 fixed64 = 7;
+  sint32 sint32 = 8;
+  sint64 sint64 = 9;
+  sfixed32 sfixed32 = 10;
+  sfixed64 sfixed64 = 11;
+  bool bool = 12;
+  float float = 13;
+  double double = 14;
+  string string = 15;
+  bytes bytes = 16;
+  Enum enum = 17;
+  NestedEnum nested_enum = 18;
+  Message message = 19;
+  NestedMessage nested_message = 20;
+
+  optional int32 int32_optional = 23;
+  optional int64 int64_optional = 24;
+  optional uint32 uint32_optional = 25;
+  optional uint64 uint64_optional = 26;
+  optional fixed32 fixed32_optional = 27;
+  optional fixed64 fixed64_optional = 28;
+  optional sint32 sint32_optional = 29;
+  optional sint64 sint64_optional = 30;
+  optional sfixed32 sfixed32_optional = 31;
+  optional sfixed64 sfixed64_optional = 32;
+  optional bool bool_optional = 33;
+  optional float float_optional = 34;
+  optional double double_optional = 35;
+  optional string string_optional = 36;
+  optional bytes bytes_optional = 37;
+  optional Enum enum_optional = 38;
+  optional NestedEnum nested_enum_optional = 39;
+  optional Message message_optional = 40;
+  optional NestedMessage nested_message_optional = 41;
+
+  message NestedMessage {
+    string first_name = 1;
+    string last_name = 2;
+  }
+
+  enum NestedEnum {
+    NESTED_ENUM_UNSPECIFIED = 0;
+    NESTED_ENUM_ACTIVE = 1;
+    NESTED_ENUM_INACTIVE = 2;
+  }
+}

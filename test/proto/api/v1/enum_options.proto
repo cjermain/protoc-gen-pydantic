@@ -9,5 +9,5 @@ enum Status {
   STATUS_UNSPECIFIED = 0;
   STATUS_ACTIVE = 1;
   STATUS_INACTIVE = 2;
-  STATUS_ARCHIVED = 3 [deprecated = true];
+  STATUS_ARCHIVED = 3 [deprecated = true, debug_redact = true];
 }

@@ -1,0 +1,122 @@
+syntax = "proto3";
+
+package test.api.v1;
+
+option go_package = "github.com/cjermain/protoc-gen-pydantic/test/api";
+
+// First detached leading comment on message.
+// Second detached leading comment on message.
+
+// Third detached leading comment on message.
+// Fourth detached leading comment on message.
+
+// Leading comment on CommentedMessage.
+// CommentedMessage exercises all comment positions.
+message CommentedMessage {
+  // Trailing comment on CommentedMessage.
+  // Documents internal structure.
+
+  // Detached leading comment on first_name.
+  // Provides context for the field.
+
+  // Leading comment on first_name.
+  // The given name of the person.
+  string /* Field inline comment 0 */ first_name /* Field inline comment 1 */ = /* Field inline comment 2 */ 1 /* Field inline comment 3 */ [ /* Field option inline comment 0. */ deprecated = true /* Field option inline comment 1. */ ]; // Right comment on first_name.
+  // Trailing comment on first_name.
+  // Additional trailing context.
+
+  // Detached leading comment on last_name.
+  // Provides context for the field.
+
+  // Leading comment on last_name.
+  // The family name of the person.
+  string last_name /* Field inline comment 1 */ = 2; // Right comment on last_name.
+  // Trailing comment on last_name.
+  // Additional trailing context.
+
+  // Detached leading comment on NestedMessage.
+  // Provides context for the nested type.
+
+  // Leading comment on NestedMessage.
+  // A message nested inside CommentedMessage.
+  message NestedMessage {
+    // Trailing comment on NestedMessage.
+    // Documents internal structure.
+
+    // Detached leading comment on nested first_name.
+    // Provides context for the field.
+
+    // Leading comment on nested first_name.
+    // The given name in the nested message.
+    string /* Field inline comment 0 */ first_name /* Field inline comment 1 */ = /* Field inline comment 2 */ 1 /* Field inline comment 3 */ [ /* Field option inline comment 0. */ deprecated = true /* Field option inline comment 1. */ ]; // Right comment on nested first_name.
+    // Trailing comment on nested first_name.
+    // Additional trailing context.
+
+    // Detached leading comment on nested last_name.
+    // Provides context for the field.
+
+    // Leading comment on nested last_name.
+    // The family name in the nested message.
+    string last_name /* Field inline comment 1 */ = 2; // Right comment on nested last_name.
+    // Trailing comment on nested last_name.
+    // Additional trailing context.
+  }
+
+  // Detached leading comment on NestedEnum.
+  // Provides context for the nested enum.
+
+  // Leading comment on NestedEnum.
+  // An enum nested inside CommentedMessage.
+  enum NestedEnum {
+    // Trailing comment on NestedEnum.
+    // Documents the enum values.
+
+    // Detached leading comment on UNSPECIFIED.
+
+    // Leading comment on UNSPECIFIED value.
+    NESTED_ENUM_UNSPECIFIED = 0; // Right comment on UNSPECIFIED.
+    // Trailing comment on UNSPECIFIED.
+
+    // Detached leading comment on ACTIVE.
+
+    // Leading comment on ACTIVE value.
+    NESTED_ENUM_ACTIVE = 1; // Right comment on ACTIVE.
+    // Trailing comment on ACTIVE.
+
+    // Detached leading comment on INACTIVE.
+
+    // Leading comment on INACTIVE value.
+    NESTED_ENUM_INACTIVE = 2; // Right comment on INACTIVE.
+    // Trailing comment on INACTIVE.
+  }
+}
+
+// Outer message comment.
+message Outer {
+  // Outer field comment.
+  string outer_field = 1;
+
+  // Inner message comment.
+  message Inner {
+    // Inner field comment.
+    string inner_field = 1;
+
+    // Deepest message comment.
+    message Deepest {
+      // Deepest field comment.
+      string deepest_field = 1;
+    }
+
+    // Inner enum comment.
+    enum InnerEnum {
+      INNER_ENUM_UNSPECIFIED = 0;
+      INNER_ENUM_A = 1;
+    }
+  }
+
+  // Outer enum comment.
+  enum OuterEnum {
+    OUTER_ENUM_UNSPECIFIED = 0;
+    OUTER_ENUM_X = 1;
+  }
+}
