@@ -1,0 +1,203 @@
+import pytest
+from pydantic import ValidationError
+
+from api.v1.validate_pydantic import (
+    ValidatedRepeated,
+    ValidatedScalars,
+    ValidatedStrings,
+)
+
+
+# ---------------------------------------------------------------------------
+# ValidatedScalars
+# ---------------------------------------------------------------------------
+
+
+def test_validated_scalars_valid():
+    s = ValidatedScalars(age=1, score=50.0, priority=1, ratio=0.5, rank=5)
+    assert s.age == 1
+    assert s.score == 50.0
+    assert s.priority == 1
+    assert s.ratio == pytest.approx(0.5)
+    assert s.rank == 5
+
+
+def test_validated_scalars_boundary_values():
+    # age: gt=0, le=150  → 1 and 150 are valid
+    s = ValidatedScalars(age=1, score=0.0, priority=1, ratio=0.0, rank=1)
+    assert s.age == 1
+    s = ValidatedScalars(age=150, score=100.0, priority=1, ratio=0.0, rank=10)
+    assert s.age == 150
+
+    # score: ge=0.0, le=100.0
+    s = ValidatedScalars(age=1, score=0.0, priority=1, ratio=0.0, rank=1)
+    assert s.score == 0.0
+    s = ValidatedScalars(age=1, score=100.0, priority=1, ratio=0.0, rank=1)
+    assert s.score == 100.0
+
+    # ratio: ge=0.0, lt=1.0 → 0.0 valid, 1.0 invalid
+    s = ValidatedScalars(age=1, score=0.0, priority=1, ratio=0.0, rank=1)
+    assert s.ratio == 0.0
+
+    # rank: ge=1, le=10
+    s = ValidatedScalars(age=1, score=0.0, priority=1, ratio=0.0, rank=1)
+    assert s.rank == 1
+    s = ValidatedScalars(age=1, score=0.0, priority=1, ratio=0.0, rank=10)
+    assert s.rank == 10
+
+
+def test_validated_scalars_age_gt_zero():
+    with pytest.raises(ValidationError):
+        ValidatedScalars(age=0, score=50.0, priority=1, ratio=0.5, rank=5)
+
+
+def test_validated_scalars_age_exceeds_max():
+    with pytest.raises(ValidationError):
+        ValidatedScalars(age=151, score=50.0, priority=1, ratio=0.5, rank=5)
+
+
+def test_validated_scalars_score_below_min():
+    with pytest.raises(ValidationError):
+        ValidatedScalars(age=1, score=-0.1, priority=1, ratio=0.5, rank=5)
+
+
+def test_validated_scalars_score_exceeds_max():
+    with pytest.raises(ValidationError):
+        ValidatedScalars(age=1, score=100.1, priority=1, ratio=0.5, rank=5)
+
+
+def test_validated_scalars_priority_must_be_positive():
+    with pytest.raises(ValidationError):
+        ValidatedScalars(age=1, score=50.0, priority=0, ratio=0.5, rank=5)
+
+
+def test_validated_scalars_ratio_below_min():
+    with pytest.raises(ValidationError):
+        ValidatedScalars(age=1, score=50.0, priority=1, ratio=-0.1, rank=5)
+
+
+def test_validated_scalars_ratio_at_upper_bound():
+    # lt=1.0 means 1.0 is invalid
+    with pytest.raises(ValidationError):
+        ValidatedScalars(age=1, score=50.0, priority=1, ratio=1.0, rank=5)
+
+
+def test_validated_scalars_rank_below_min():
+    with pytest.raises(ValidationError):
+        ValidatedScalars(age=1, score=50.0, priority=1, ratio=0.5, rank=0)
+
+
+def test_validated_scalars_rank_exceeds_max():
+    with pytest.raises(ValidationError):
+        ValidatedScalars(age=1, score=50.0, priority=1, ratio=0.5, rank=11)
+
+
+# ---------------------------------------------------------------------------
+# ValidatedStrings
+# ---------------------------------------------------------------------------
+
+
+def test_validated_strings_valid():
+    s = ValidatedStrings(name="Alice", code="ABC", bio="Some bio", tag="ok")
+    assert s.name == "Alice"
+    assert s.code == "ABC"
+    assert s.bio == "Some bio"
+    assert s.tag == "ok"
+
+
+def test_validated_strings_name_min_length():
+    # name: min_length=1 → empty string fails
+    with pytest.raises(ValidationError):
+        ValidatedStrings(name="", code="ABC", bio="bio", tag="ok")
+
+
+def test_validated_strings_name_max_length():
+    with pytest.raises(ValidationError):
+        ValidatedStrings(name="a" * 101, code="ABC", bio="bio", tag="ok")
+
+
+def test_validated_strings_name_boundary():
+    # Exactly 1 char (min) and 100 chars (max) are valid
+    ValidatedStrings(name="a", code="ABC", bio="bio", tag="ok")
+    ValidatedStrings(name="a" * 100, code="ABC", bio="bio", tag="ok")
+
+
+def test_validated_strings_code_pattern():
+    # code: pattern="^[A-Z]+$" — lowercase fails
+    with pytest.raises(ValidationError):
+        ValidatedStrings(name="Alice", code="abc", bio="bio", tag="ok")
+
+
+def test_validated_strings_code_pattern_valid():
+    ValidatedStrings(name="Alice", code="HELLO", bio="bio", tag="ok")
+
+
+def test_validated_strings_bio_max_length():
+    with pytest.raises(ValidationError):
+        ValidatedStrings(name="Alice", code="ABC", bio="x" * 501, tag="ok")
+
+
+def test_validated_strings_bio_boundary():
+    # Exactly 500 chars is valid
+    ValidatedStrings(name="Alice", code="ABC", bio="x" * 500, tag="ok")
+
+
+def test_validated_strings_tag_min_length():
+    with pytest.raises(ValidationError):
+        ValidatedStrings(name="Alice", code="ABC", bio="bio", tag="x")
+
+
+def test_validated_strings_tag_boundary():
+    # Exactly 2 chars (min) is valid
+    ValidatedStrings(name="Alice", code="ABC", bio="bio", tag="xy")
+
+
+# ---------------------------------------------------------------------------
+# ValidatedRepeated
+# ---------------------------------------------------------------------------
+
+
+def test_validated_repeated_valid():
+    r = ValidatedRepeated(items=["a", "b"], tags=["x"])
+    assert r.items == ["a", "b"]
+    assert r.tags == ["x"]
+
+
+def test_validated_repeated_items_empty_fails():
+    # items: min_length=1
+    with pytest.raises(ValidationError):
+        ValidatedRepeated(items=[], tags=["x"])
+
+
+def test_validated_repeated_items_too_many():
+    # items: max_length=10
+    with pytest.raises(ValidationError):
+        ValidatedRepeated(items=["x"] * 11, tags=["x"])
+
+
+def test_validated_repeated_items_boundary():
+    # 1 item (min) and 10 items (max) are valid
+    ValidatedRepeated(items=["a"], tags=["x"])
+    ValidatedRepeated(items=["a"] * 10, tags=["x"])
+
+
+def test_validated_repeated_tags_empty_fails():
+    # tags: min_length=1
+    with pytest.raises(ValidationError):
+        ValidatedRepeated(items=["a"], tags=[])
+
+
+# ---------------------------------------------------------------------------
+# JSON roundtrip
+# ---------------------------------------------------------------------------
+
+
+def test_validated_scalars_json_roundtrip():
+    s = ValidatedScalars(age=42, score=75.5, priority=10, ratio=0.25, rank=7)
+    json_str = s.model_dump_json()
+    s2 = ValidatedScalars.model_validate_json(json_str)
+    assert s2.age == s.age
+    assert s2.score == pytest.approx(s.score)
+    assert s2.priority == s.priority
+    assert s2.ratio == pytest.approx(s.ratio)
+    assert s2.rank == s.rank

@@ -108,9 +108,7 @@ class CommentedMessage_NestedMessage(_ProtoModel):
     # The given name in the nested message.
     first_name: "str" = _Field(
         "",
-        description="""Leading comment on nested first_name.
-The given name in the nested message.
-""",
+        description="Leading comment on nested first_name.\nThe given name in the nested message.",
     )
     # Right comment on nested first_name.
 
@@ -118,9 +116,7 @@ The given name in the nested message.
     # The family name in the nested message.
     last_name: "str" = _Field(
         "",
-        description="""Leading comment on nested last_name.
-The family name in the nested message.
-""",
+        description="Leading comment on nested last_name.\nThe family name in the nested message.",
     )
     # Right comment on nested last_name.
 
@@ -152,9 +148,7 @@ class CommentedMessage(_ProtoModel):
     # The given name of the person.
     first_name: "str" = _Field(
         "",
-        description="""Leading comment on first_name.
-The given name of the person.
-""",
+        description="Leading comment on first_name.\nThe given name of the person.",
     )
     # Right comment on first_name.
 
@@ -162,9 +156,7 @@ The given name of the person.
     # The family name of the person.
     last_name: "str" = _Field(
         "",
-        description="""Leading comment on last_name.
-The family name of the person.
-""",
+        description="Leading comment on last_name.\nThe family name of the person.",
     )
     # Right comment on last_name.
 
@@ -187,8 +179,7 @@ class Outer_Inner_Deepest(_ProtoModel):
     # Deepest field comment.
     deepest_field: "str" = _Field(
         "",
-        description="""Deepest field comment.
-""",
+        description="Deepest field comment.",
     )
 
 
@@ -210,8 +201,7 @@ class Outer_Inner(_ProtoModel):
     # Inner field comment.
     inner_field: "str" = _Field(
         "",
-        description="""Inner field comment.
-""",
+        description="Inner field comment.",
     )
 
 
@@ -233,6 +223,5 @@ class Outer(_ProtoModel):
     # Outer field comment.
     outer_field: "str" = _Field(
         "",
-        description="""Outer field comment.
-""",
+        description="Outer field comment.",
     )

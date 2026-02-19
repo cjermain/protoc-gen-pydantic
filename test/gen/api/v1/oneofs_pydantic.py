@@ -55,12 +55,10 @@ class Oneofs(_ProtoModel):
 
     a: "_Optional[int]" = _Field(
         None,
-        description="""
-Only one of the fields can be specified with: [a b] (oneof union)""",
+        description="Only one of the fields can be specified with: [a b] (oneof union)",
     )
 
     b: "_Optional[str]" = _Field(
         None,
-        description="""
-Only one of the fields can be specified with: [a b] (oneof union)""",
+        description="Only one of the fields can be specified with: [a b] (oneof union)",
     )
