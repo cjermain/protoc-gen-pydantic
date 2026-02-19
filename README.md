@@ -19,6 +19,7 @@
 - Handles Python builtin/keyword shadowing with PEP 8 trailing underscore aliases
 - Resolves cross-package message references
 - Preserves enum value options (built-in `deprecated`/`debug_redact` and custom extensions) as accessible metadata on enum members
+- Translates [buf.validate (protovalidate)](https://github.com/bufbuild/protovalidate) field constraints to native Pydantic `Field()` kwargs — numeric bounds, string/list lengths, and regex patterns — with no extra runtime dependency
 
 ## Installation
 
@@ -233,6 +234,53 @@ If `use_none_union_syntax_instead_of_optional` is `true`:
 class User(_BaseModel):
     name: str | None = _Field(...)
 ```
+
+### buf.validate
+
+Field constraints from [buf.validate (protovalidate)](https://github.com/bufbuild/protovalidate)
+are translated to Pydantic `Field()` kwargs automatically — no plugin option
+required. Add the dependency to `buf.yaml` and run `buf dep update`:
+
+```yaml
+# buf.yaml
+version: v2
+modules:
+  - path: .
+deps:
+  - buf.build/bufbuild/protovalidate
+```
+
+| buf.validate rule | `Field()` kwarg |
+|---|---|
+| Numeric `gt` / `gte` / `lt` / `lte` | `gt=` / `ge=` / `lt=` / `le=` |
+| `string.min_len` / `string.max_len` | `min_length=` / `max_length=` |
+| `string.pattern` | `pattern=` |
+| `repeated.min_items` / `repeated.max_items` | `min_length=` / `max_length=` |
+
+```proto
+import "buf/validate/validate.proto";
+
+message CreateUser {
+  string username = 1 [(buf.validate.field).string.min_len = 1, (buf.validate.field).string.max_len = 50];
+  int32 age = 2 [(buf.validate.field).int32.gte = 18, (buf.validate.field).int32.lte = 120];
+}
+```
+
+```python
+class CreateUser(_ProtoModel):
+    username: "str" = _Field(
+        "",
+        min_length=1,
+        max_length=50,
+    )
+    age: "int" = _Field(
+        0,
+        ge=18,
+        le=120,
+    )
+```
+
+Constraints without a direct Pydantic equivalent (`required`, `const`, CEL expressions) are not translated.
 
 ## Development
 

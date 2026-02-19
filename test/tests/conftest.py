@@ -20,7 +20,11 @@ def pytest_configure(config):
     if _GEN_PB2_DIR.exists():
         return
     _GEN_PB2_DIR.mkdir(parents=True, exist_ok=True)
-    proto_files = list(_PROTO_DIR.rglob("*.proto"))
+
+    def _has_bsr_imports(p: Path) -> bool:
+        return 'import "buf/' in p.read_text()
+
+    proto_files = [p for p in _PROTO_DIR.rglob("*.proto") if not _has_bsr_imports(p)]
     subprocess.check_call(
         [
             "protoc",

@@ -57,6 +57,7 @@ func main() {
 		})
 		e.resolver = buildEnumValueOptionsResolver(gen)
 		e.customOptionFields = buildCustomOptionFields(gen)
+		e.fieldConstraintExt = buildFieldConstraintExt(gen)
 
 		leafDirs := map[string]bool{}
 		protoTypeDirs := map[string]bool{}
@@ -317,21 +318,17 @@ class {{ .Name }}(_ProtoModel):
     {{- range .LeadingComments }}
     # {{ . }}
     {{- end }}
-    {{- if and (not $config.DisableFieldDescription) (or (ne (len .LeadingComments) 0) (ne .OneOf nil)) }}
+    {{- if or (and (not $config.DisableFieldDescription) (or (ne (len .LeadingComments) 0) (ne .OneOf nil))) .Alias .IsDefaultFactory .HasConstraints }}
     {{ .Name }}: "{{ .Type }}" = _Field(
         {{ .Default }},
-        description="""{{- range .LeadingComments -}}{{ . }}
-{{ end }}{{ if ne .OneOf nil }}
-Only one of the fields can be specified with: {{ .OneOf.FieldNames }} (oneof {{ .OneOf.Name }}){{ end }}""",
+    {{- if and (not $config.DisableFieldDescription) (or (ne (len .LeadingComments) 0) (ne .OneOf nil)) }}
+        description={{ printf "%q" .Description }},
+    {{- end }}
     {{- if .Alias }}
         alias="{{ .Alias }}",
     {{- end }}
-    )
-    {{- else if or .Alias .IsDefaultFactory }}
-    {{ .Name }}: "{{ .Type }}" = _Field(
-        {{ .Default }},
-    {{- if .Alias }}
-        alias="{{ .Alias }}",
+    {{- range .ConstraintArgs }}
+        {{ . }},
     {{- end }}
     )
     {{- else }}
@@ -568,6 +565,7 @@ type Field struct {
 	Optional         bool
 	Default          string // proto3 zero-value default (e.g. "0", "False", "None", "default_factory=list")
 	OneOf            *OneOf
+	Constraints      *FieldConstraints
 	LeadingComments  []string
 	TrailingComments []string
 }
@@ -576,9 +574,82 @@ func (f Field) IsDefaultFactory() bool {
 	return strings.HasPrefix(f.Default, "default_factory=")
 }
 
+func (f Field) HasConstraints() bool {
+	return f.Constraints != nil && f.Constraints.HasAny()
+}
+
+func (f Field) ConstraintArgs() []string {
+	return f.Constraints.PydanticArgs()
+}
+
+// Description returns the field's description string for use in _Field().
+// Leading comment lines are joined with newlines; the oneof annotation is
+// appended (separated by a newline) when present.
+func (f Field) Description() string {
+	parts := make([]string, 0, len(f.LeadingComments)+1)
+	parts = append(parts, f.LeadingComments...)
+	if f.OneOf != nil {
+		parts = append(parts, fmt.Sprintf(
+			"Only one of the fields can be specified with: %v (oneof %s)",
+			f.OneOf.FieldNames, f.OneOf.Name,
+		))
+	}
+	return strings.Join(parts, "\n")
+}
+
 type OneOf struct {
 	Name       string
 	FieldNames []string
+}
+
+// FieldConstraints holds Tier 1 buf.validate constraints that map
+// directly to Pydantic Field() kwargs.
+type FieldConstraints struct {
+	Gt        *string // exclusive lower bound, Python literal
+	Gte       *string // inclusive lower bound, Python literal
+	Lt        *string // exclusive upper bound, Python literal
+	Lte       *string // inclusive upper bound, Python literal
+	MinLength *int64  // string.min_len or repeated.min_items
+	MaxLength *int64  // string.max_len or repeated.max_items
+	Pattern   *string // string.pattern regex
+}
+
+func (c *FieldConstraints) HasAny() bool {
+	if c == nil {
+		return false
+	}
+	return c.Gt != nil || c.Gte != nil || c.Lt != nil || c.Lte != nil ||
+		c.MinLength != nil || c.MaxLength != nil || c.Pattern != nil
+}
+
+// PydanticArgs returns ["gt=0", "le=150", ...] to inject into _Field().
+func (c *FieldConstraints) PydanticArgs() []string {
+	if c == nil {
+		return nil
+	}
+	var args []string
+	if c.Gt != nil {
+		args = append(args, fmt.Sprintf("gt=%s", *c.Gt))
+	}
+	if c.Gte != nil {
+		args = append(args, fmt.Sprintf("ge=%s", *c.Gte))
+	}
+	if c.Lt != nil {
+		args = append(args, fmt.Sprintf("lt=%s", *c.Lt))
+	}
+	if c.Lte != nil {
+		args = append(args, fmt.Sprintf("le=%s", *c.Lte))
+	}
+	if c.MinLength != nil {
+		args = append(args, fmt.Sprintf("min_length=%d", *c.MinLength))
+	}
+	if c.MaxLength != nil {
+		args = append(args, fmt.Sprintf("max_length=%d", *c.MaxLength))
+	}
+	if c.Pattern != nil {
+		args = append(args, fmt.Sprintf("pattern=%q", *c.Pattern))
+	}
+	return args
 }
 
 type Message struct {
@@ -621,8 +692,9 @@ type generator struct {
 
 	customOptionFields []CustomOptionField
 
-	config   GeneratorConfig
-	resolver *protoregistry.Types
+	config             GeneratorConfig
+	resolver           *protoregistry.Types
+	fieldConstraintExt protoreflect.ExtensionDescriptor
 }
 
 type GeneratorConfig struct {
@@ -890,6 +962,9 @@ func (e *generator) processMessage(
 			OneOf:    oneOf,
 		}
 		f.LeadingComments, f.TrailingComments = extractComments(sourceCodeInfo, fieldPath)
+		if fp := msgProto.GetField()[i]; fp.GetOptions() != nil {
+			f.Constraints = e.extractFieldConstraints(fp.GetOptions(), field)
+		}
 		def.Fields = append(def.Fields, f)
 	}
 
@@ -1185,6 +1260,23 @@ func buildCustomOptionFields(gen *protogen.Plugin) []CustomOptionField {
 	return fields
 }
 
+// buildFieldConstraintExt scans gen.Files for the buf.validate.field extension
+// on google.protobuf.FieldOptions. Returns nil when buf.validate is not imported.
+func buildFieldConstraintExt(gen *protogen.Plugin) protoreflect.ExtensionDescriptor {
+	for _, f := range gen.Files {
+		exts := f.Desc.Extensions()
+		for i := 0; i < exts.Len(); i++ {
+			ext := exts.Get(i)
+			if ext.ContainingMessage().FullName() == "google.protobuf.FieldOptions" &&
+				string(ext.Name()) == "field" &&
+				string(ext.ParentFile().Package()) == "buf.validate" {
+				return ext
+			}
+		}
+	}
+	return nil
+}
+
 func (e *generator) extractCustomOptions(opts *descriptorpb.EnumValueOptions) map[string]interface{} {
 	if opts == nil || e.resolver == nil {
 		return nil
@@ -1209,6 +1301,118 @@ func (e *generator) extractCustomOptions(opts *descriptorpb.EnumValueOptions) ma
 		return nil
 	}
 	return result
+}
+
+func (e *generator) extractFieldConstraints(
+	opts *descriptorpb.FieldOptions,
+	field protoreflect.FieldDescriptor,
+) *FieldConstraints {
+	if opts == nil || e.fieldConstraintExt == nil {
+		return nil
+	}
+	raw, err := proto.Marshal(opts)
+	if err != nil {
+		return nil
+	}
+	extType := dynamicpb.NewExtensionType(e.fieldConstraintExt)
+	resolver := &protoregistry.Types{}
+	_ = resolver.RegisterExtension(extType)
+	resolved := &descriptorpb.FieldOptions{}
+	if err := (proto.UnmarshalOptions{Resolver: resolver}).Unmarshal(raw, resolved); err != nil {
+		return nil
+	}
+
+	var constraintsMsg protoreflect.Message
+	resolved.ProtoReflect().Range(func(fd protoreflect.FieldDescriptor, v protoreflect.Value) bool {
+		if fd.IsExtension() && string(fd.Name()) == "field" {
+			constraintsMsg = v.Message()
+			return false
+		}
+		return true
+	})
+	if constraintsMsg == nil {
+		return nil
+	}
+
+	result := &FieldConstraints{}
+	isFloat := field.Kind() == protoreflect.FloatKind || field.Kind() == protoreflect.DoubleKind
+
+	// The FieldConstraints oneof type field contains a type-specific rules
+	// sub-message. Walk it, then walk the rules fields by name.
+	constraintsMsg.Range(func(fd protoreflect.FieldDescriptor, v protoreflect.Value) bool {
+		if fd.Kind() == protoreflect.MessageKind {
+			v.Message().Range(func(rfd protoreflect.FieldDescriptor, rv protoreflect.Value) bool {
+				extractRuleField(result, rfd, rv, isFloat)
+				return true
+			})
+		}
+		return true
+	})
+
+	if !result.HasAny() {
+		return nil
+	}
+	return result
+}
+
+func extractRuleField(fc *FieldConstraints, fd protoreflect.FieldDescriptor, v protoreflect.Value, isFloat bool) {
+	switch string(fd.Name()) {
+	case "gt":
+		s := formatNumericLiteral(fd, v, isFloat)
+		fc.Gt = &s
+	case "gte":
+		s := formatNumericLiteral(fd, v, isFloat)
+		fc.Gte = &s
+	case "lt":
+		s := formatNumericLiteral(fd, v, isFloat)
+		fc.Lt = &s
+	case "lte":
+		s := formatNumericLiteral(fd, v, isFloat)
+		fc.Lte = &s
+	case "min_len":
+		n := int64(v.Uint())
+		fc.MinLength = &n
+	case "max_len":
+		n := int64(v.Uint())
+		fc.MaxLength = &n
+	case "min_items":
+		n := int64(v.Uint())
+		fc.MinLength = &n
+	case "max_items":
+		n := int64(v.Uint())
+		fc.MaxLength = &n
+	case "pattern":
+		s := v.String()
+		fc.Pattern = &s
+	}
+}
+
+func formatNumericLiteral(fd protoreflect.FieldDescriptor, v protoreflect.Value, isFloat bool) string {
+	switch fd.Kind() {
+	case protoreflect.FloatKind:
+		return formatPythonFloat(float64(float32(v.Float())))
+	case protoreflect.DoubleKind:
+		return formatPythonFloat(v.Float())
+	case protoreflect.Int32Kind, protoreflect.Sint32Kind, protoreflect.Sfixed32Kind,
+		protoreflect.Int64Kind, protoreflect.Sint64Kind, protoreflect.Sfixed64Kind:
+		return fmt.Sprintf("%d", v.Int())
+	case protoreflect.Uint32Kind, protoreflect.Fixed32Kind,
+		protoreflect.Uint64Kind, protoreflect.Fixed64Kind:
+		return fmt.Sprintf("%d", v.Uint())
+	default:
+		if isFloat {
+			return formatPythonFloat(v.Float())
+		}
+		return fmt.Sprintf("%d", v.Int())
+	}
+}
+
+func formatPythonFloat(f float64) string {
+	s := fmt.Sprintf("%g", f)
+	if !strings.Contains(s, ".") && !strings.Contains(s, "e") {
+		s += ".0"
+	}
+	return s
 }
 
 func extensionValueToGo(fd protoreflect.FieldDescriptor, v protoreflect.Value) interface{} {
