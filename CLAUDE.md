@@ -58,7 +58,8 @@ just clean              # Remove build artifacts and generated files
 └── test/
     ├── pyproject.toml               # Python project config (uv + pydantic)
     ├── proto/                       # Proto source files
-    │   ├── buf.yaml                 # Buf module config
+    │   ├── buf.yaml                 # Buf module config (includes buf.validate dep)
+    │   ├── buf.lock                 # Pinned buf dependency commits
     │   ├── api/v1/*.proto           # Proto definitions for testing
     │   └── foo/bar/v1/*.proto       # Cross-package proto definitions
     ├── gen/                         # Generated output, default options (committed)
@@ -82,6 +83,11 @@ Passed via `opt:` in buf.gen.yaml or `--pydantic_opt=` with protoc:
 | `disable_field_description` | `false` | Skip field descriptions from comments |
 | `use_none_union_syntax_instead_of_optional` | `false` | Use `T \| None` instead of `Optional[T]` |
 
+buf.validate field constraints are **not** controlled by a plugin option. They
+are read automatically from the proto descriptor whenever
+`buf/validate/validate.proto` is imported. See the buf.validate section in Key
+Implementation Details below.
+
 ## Key Implementation Details
 
 ### Python Builtin Shadowing
@@ -95,6 +101,17 @@ Protobuf WKTs are mapped to native Python types (not raw `_pb2` classes):
 - `Empty` → `None`, `FieldMask` → `list[str]`, `Any` → `Any`
 
 The `wellKnownTypes` map in main.go defines these mappings.
+
+### buf.validate / protovalidate
+`buf.validate` field constraints are translated to Pydantic `Field()` kwargs
+using the same `dynamicpb` extension-resolution pattern as enum value options;
+see `buildFieldConstraintExt()` and `extractFieldConstraints()` in main.go.
+Numeric `gt`/`ge`/`lt`/`le`, `string.min_len`/`max_len`/`pattern`, and
+`repeated.min_items`/`max_items` are supported; `required`, `const`, CEL, and
+Tier 2 constraints (`email`, `uuid`, `in`/`not_in`, etc.) are not translated.
+`test/proto/buf.yaml` declares the `buf.build/bufbuild/protovalidate` dep;
+`_has_bsr_imports()` in conftest.py excludes BSR protos from the standalone
+`protoc` compilation.
 
 ### Generated Python Conventions
 - Standard library imports are aliased with `_` prefix to avoid conflicts: `_BaseModel`, `_Field`, `_Enum`, `_Optional`, `_Any`
@@ -114,7 +131,7 @@ just test
 cd test && uv run pytest -v -k test_wkt_timestamp
 ```
 
-Test coverage includes: enums, scalar fields, optional/repeated/map fields, oneof, builtin alias handling, well-known types, enum value options (built-in and custom), and JSON/dict roundtrips.
+Test coverage includes: enums, scalar fields, optional/repeated/map fields, oneof, builtin alias handling, well-known types, enum value options (built-in and custom), buf.validate field constraints, and JSON/dict roundtrips.
 
 ### Adding Tests
 1. Add proto definitions to `test/proto/api/v1/*.proto`
