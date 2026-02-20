@@ -39,3 +39,12 @@ message ValidatedRepeated {
   // Tags must have at least 1 element.
   repeated string tags = 2 [(buf.validate.field).repeated.min_items = 1];
 }
+
+// ValidatedMap exercises map field length constraints.
+message ValidatedMap {
+  // Labels must have between 1 and 10 entries.
+  map<string, string> labels = 1 [
+    (buf.validate.field).map.min_pairs = 1,
+    (buf.validate.field).map.max_pairs = 10
+  ];
+}

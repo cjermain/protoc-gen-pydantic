@@ -174,3 +174,26 @@ class ValidatedRepeated(_ProtoModel):
         default_factory=list,
         min_length=1,
     )
+
+
+class ValidatedMap(_ProtoModel):
+    """
+    ValidatedMap exercises map field length constraints.
+
+    Attributes:
+      labels (dict[str, str]):
+        Labels must have between 1 and 10 entries.
+    """
+
+    model_config = _ConfigDict(
+        ser_json_bytes="base64",
+        val_json_bytes="base64",
+        ser_json_inf_nan="strings",
+    )
+
+    # Labels must have between 1 and 10 entries.
+    labels: "dict[str, str]" = _Field(
+        default_factory=dict,
+        min_length=1,
+        max_length=10,
+    )

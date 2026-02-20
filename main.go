@@ -1375,10 +1375,10 @@ func extractRuleField(fc *FieldConstraints, fd protoreflect.FieldDescriptor, v p
 	case "max_len":
 		n := int64(v.Uint())
 		fc.MaxLength = &n
-	case "min_items":
+	case "min_items", "min_pairs":
 		n := int64(v.Uint())
 		fc.MinLength = &n
-	case "max_items":
+	case "max_items", "max_pairs":
 		n := int64(v.Uint())
 		fc.MaxLength = &n
 	case "pattern":

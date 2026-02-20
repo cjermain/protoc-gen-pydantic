@@ -106,8 +106,9 @@ The `wellKnownTypes` map in main.go defines these mappings.
 `buf.validate` field constraints are translated to Pydantic `Field()` kwargs
 using the same `dynamicpb` extension-resolution pattern as enum value options;
 see `buildFieldConstraintExt()` and `extractFieldConstraints()` in main.go.
-Numeric `gt`/`ge`/`lt`/`le`, `string.min_len`/`max_len`/`pattern`, and
-`repeated.min_items`/`max_items` are supported; `required`, `const`, CEL, and
+Numeric `gt`/`ge`/`lt`/`le`, `string.min_len`/`max_len`/`pattern`,
+`repeated.min_items`/`max_items`, and `map.min_pairs`/`max_pairs` are
+supported; `required`, `const`, CEL, and
 Tier 2 constraints (`email`, `uuid`, `in`/`not_in`, etc.) are not translated.
 `test/proto/buf.yaml` declares the `buf.build/bufbuild/protovalidate` dep;
 `_has_bsr_imports()` in conftest.py excludes BSR protos from the standalone

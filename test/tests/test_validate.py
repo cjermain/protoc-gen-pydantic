@@ -2,6 +2,7 @@ import pytest
 from pydantic import ValidationError
 
 from api.v1.validate_pydantic import (
+    ValidatedMap,
     ValidatedRepeated,
     ValidatedScalars,
     ValidatedStrings,
@@ -185,6 +186,31 @@ def test_validated_repeated_tags_empty_fails():
     # tags: min_length=1
     with pytest.raises(ValidationError):
         ValidatedRepeated(items=["a"], tags=[])
+
+
+# ---------------------------------------------------------------------------
+# ValidatedMap
+# ---------------------------------------------------------------------------
+
+
+def test_validated_map_valid():
+    m = ValidatedMap(labels={"k": "v"})
+    assert m.labels == {"k": "v"}
+
+
+def test_validated_map_empty_fails():
+    with pytest.raises(ValidationError):
+        ValidatedMap(labels={})
+
+
+def test_validated_map_too_many():
+    with pytest.raises(ValidationError):
+        ValidatedMap(labels={str(i): str(i) for i in range(11)})
+
+
+def test_validated_map_boundary():
+    ValidatedMap(labels={"a": "1"})
+    ValidatedMap(labels={str(i): str(i) for i in range(10)})
 
 
 # ---------------------------------------------------------------------------

@@ -256,6 +256,7 @@ deps:
 | `string.min_len` / `string.max_len` | `min_length=` / `max_length=` |
 | `string.pattern` | `pattern=` |
 | `repeated.min_items` / `repeated.max_items` | `min_length=` / `max_length=` |
+| `map.min_pairs` / `map.max_pairs` | `min_length=` / `max_length=` |
 
 ```proto
 import "buf/validate/validate.proto";
