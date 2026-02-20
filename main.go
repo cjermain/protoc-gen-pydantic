@@ -628,17 +628,17 @@ func (c *FieldConstraints) PydanticArgs() []string {
 		return nil
 	}
 	var args []string
-	if c.Gt != nil {
-		args = append(args, fmt.Sprintf("gt=%s", *c.Gt))
-	}
 	if c.Gte != nil {
 		args = append(args, fmt.Sprintf("ge=%s", *c.Gte))
 	}
-	if c.Lt != nil {
-		args = append(args, fmt.Sprintf("lt=%s", *c.Lt))
+	if c.Gt != nil {
+		args = append(args, fmt.Sprintf("gt=%s", *c.Gt))
 	}
 	if c.Lte != nil {
 		args = append(args, fmt.Sprintf("le=%s", *c.Lte))
+	}
+	if c.Lt != nil {
+		args = append(args, fmt.Sprintf("lt=%s", *c.Lt))
 	}
 	if c.MinLength != nil {
 		args = append(args, fmt.Sprintf("min_length=%d", *c.MinLength))
