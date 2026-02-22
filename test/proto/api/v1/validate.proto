@@ -18,6 +18,10 @@ message ValidatedScalars {
   float ratio = 4 [(buf.validate.field).float.gte = 0.0, (buf.validate.field).float.lt = 1.0];
   // Rank must be in [1, 10].
   uint32 rank = 5 [(buf.validate.field).uint32.gte = 1, (buf.validate.field).uint32.lte = 10];
+  // Count must be non-zero (covers uint64 / fixed64 literal formatting).
+  optional uint64 count = 6 [(buf.validate.field).uint64.gt = 0];
+  // Offset must be non-negative (covers sint32 / sfixed32 literal formatting).
+  optional sint32 offset = 7 [(buf.validate.field).sint32.gte = 0];
 }
 
 // ValidatedStrings exercises string length and pattern constraints.

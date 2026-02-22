@@ -217,6 +217,45 @@ def test_validated_map_boundary():
 
 
 # ---------------------------------------------------------------------------
+# ValidatedScalars — uint64 and sint32 optional fields (item 11)
+# ---------------------------------------------------------------------------
+
+
+def test_validated_scalars_count_valid():
+    s = ValidatedScalars(age=1, score=0.0, priority=1, ratio=0.0, rank=1, count=1)
+    assert s.count == 1
+
+
+def test_validated_scalars_count_zero_fails():
+    # uint64 gt=0 — zero is rejected
+    with pytest.raises(ValidationError):
+        ValidatedScalars(age=1, score=0.0, priority=1, ratio=0.0, rank=1, count=0)
+
+
+def test_validated_scalars_count_omitted():
+    # optional — can be omitted; None does not trigger the constraint
+    s = ValidatedScalars(age=1, score=0.0, priority=1, ratio=0.0, rank=1)
+    assert s.count is None
+
+
+def test_validated_scalars_offset_valid():
+    s = ValidatedScalars(age=1, score=0.0, priority=1, ratio=0.0, rank=1, offset=0)
+    assert s.offset == 0
+
+
+def test_validated_scalars_offset_negative_fails():
+    # sint32 gte=0 — negative is rejected
+    with pytest.raises(ValidationError):
+        ValidatedScalars(age=1, score=0.0, priority=1, ratio=0.0, rank=1, offset=-1)
+
+
+def test_validated_scalars_offset_omitted():
+    # optional — can be omitted; None does not trigger the constraint
+    s = ValidatedScalars(age=1, score=0.0, priority=1, ratio=0.0, rank=1)
+    assert s.offset is None
+
+
+# ---------------------------------------------------------------------------
 # ValidatedDropped — dropped constraints are not enforced; comments are emitted
 # ---------------------------------------------------------------------------
 

@@ -3,7 +3,7 @@
 
 from pydantic import BaseModel as _BaseModel, ConfigDict as _ConfigDict, Field as _Field
 
-from ._proto_types import ProtoInt64
+from ._proto_types import ProtoInt64, ProtoUInt64
 
 
 class _ProtoModel(_BaseModel):
@@ -55,6 +55,10 @@ class ValidatedScalars(_ProtoModel):
         Ratio must be non-negative and less than 1.
       rank (int):
         Rank must be in [1, 10].
+      count (ProtoUInt64 | None):
+        Count must be non-zero (covers uint64 / fixed64 literal formatting).
+      offset (int | None):
+        Offset must be non-negative (covers sint32 / sfixed32 literal formatting).
     """
 
     model_config = _ConfigDict(
@@ -95,6 +99,18 @@ class ValidatedScalars(_ProtoModel):
         0,
         ge=1,
         le=10,
+    )
+
+    # Count must be non-zero (covers uint64 / fixed64 literal formatting).
+    count: "ProtoUInt64 | None" = _Field(
+        None,
+        gt=0,
+    )
+
+    # Offset must be non-negative (covers sint32 / sfixed32 literal formatting).
+    offset: "int | None" = _Field(
+        None,
+        ge=0,
     )
 
 
