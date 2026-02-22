@@ -48,3 +48,11 @@ message ValidatedMap {
     (buf.validate.field).map.max_pairs = 10
   ];
 }
+
+// ValidatedDropped exercises constraints that are recognised but not translated.
+message ValidatedDropped {
+  // Name is required; the required constraint is not translated.
+  string name = 1 [(buf.validate.field).required = true];
+  // Tag must equal "fixed"; the const constraint is not translated.
+  string tag = 2 [(buf.validate.field).string.const = "fixed"];
+}

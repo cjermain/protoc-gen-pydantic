@@ -209,3 +209,35 @@ class ValidatedMap(_ProtoModel):
         min_length=1,
         max_length=10,
     )
+
+
+class ValidatedDropped(_ProtoModel):
+    """
+    ValidatedDropped exercises constraints that are recognised but not translated.
+
+    Attributes:
+      name (str):
+        Name is required; the required constraint is not translated.
+      tag (str):
+        Tag must equal "fixed"; the const constraint is not translated.
+    """
+
+    model_config = _ConfigDict(
+        ser_json_bytes="base64",
+        val_json_bytes="base64",
+        ser_json_inf_nan="strings",
+    )
+
+    # Name is required; the required constraint is not translated.
+    name: "str" = _Field(
+        "",
+        description="Name is required; the required constraint is not translated.",
+        # buf.validate: required (not translated)
+    )
+
+    # Tag must equal "fixed"; the const constraint is not translated.
+    tag: "str" = _Field(
+        "",
+        description='Tag must equal "fixed"; the const constraint is not translated.',
+        # buf.validate: const (not translated)
+    )

@@ -1,7 +1,10 @@
+from pathlib import Path
+
 import pytest
 from pydantic import ValidationError
 
 from api.v1.validate_pydantic import (
+    ValidatedDropped,
     ValidatedMap,
     ValidatedRepeated,
     ValidatedScalars,
@@ -211,6 +214,33 @@ def test_validated_map_too_many():
 def test_validated_map_boundary():
     ValidatedMap(labels={"a": "1"})
     ValidatedMap(labels={str(i): str(i) for i in range(10)})
+
+
+# ---------------------------------------------------------------------------
+# ValidatedDropped — dropped constraints are not enforced; comments are emitted
+# ---------------------------------------------------------------------------
+
+_GEN_VALIDATE = (
+    Path(__file__).parent.parent / "gen" / "api" / "v1" / "validate_pydantic.py"
+)
+
+
+def test_validated_dropped_required_not_enforced():
+    # required = true is not translated; default empty string is accepted.
+    d = ValidatedDropped()
+    assert d.name == ""
+
+
+def test_validated_dropped_const_not_enforced():
+    # string.const is not translated; any string value is accepted.
+    d = ValidatedDropped(tag="anything")
+    assert d.tag == "anything"
+
+
+def test_validated_dropped_comments_in_generated_file():
+    text = _GEN_VALIDATE.read_text()
+    assert "# buf.validate: required (not translated)" in text
+    assert "# buf.validate: const (not translated)" in text
 
 
 # ---------------------------------------------------------------------------
