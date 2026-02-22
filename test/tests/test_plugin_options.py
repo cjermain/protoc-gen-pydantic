@@ -9,6 +9,7 @@ All options are set to non-default values:
 """
 
 import importlib.machinery
+import importlib.util
 import sys
 from enum import Enum as StdEnum
 from pathlib import Path

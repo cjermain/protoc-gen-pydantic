@@ -14,6 +14,18 @@ _TEST_ROOT = Path(__file__).resolve().parent.parent
 _GEN_PB2_DIR = _TEST_ROOT / "gen_pb2"
 _PROTO_DIR = _TEST_ROOT / "proto"
 
+_GENERATED_FILES = sorted(
+    list(Path("gen").rglob("*_pydantic.py"))
+    + list(Path("gen_options").rglob("*_pydantic.py"))
+    + list(Path("gen").rglob("_proto_types.py"))
+    + list(Path("gen_options").rglob("_proto_types.py"))
+)
+
+
+@pytest.fixture(params=_GENERATED_FILES, ids=str)
+def generated_file(request):
+    return request.param
+
 
 def pytest_configure(config):
     """Generate protobuf Python files on-the-fly before test collection."""
@@ -41,6 +53,8 @@ def _load_module(name, filepath):
     if full_name in sys.modules:
         return sys.modules[full_name]
     spec = importlib.util.spec_from_file_location(full_name, filepath)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"Cannot load module from {filepath}")
     mod = importlib.util.module_from_spec(spec)
     sys.modules[full_name] = mod
     spec.loader.exec_module(mod)
