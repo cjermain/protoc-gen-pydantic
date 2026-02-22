@@ -5,7 +5,7 @@ init:
     #!/usr/bin/env bash
     set -euo pipefail
     missing=()
-    for cmd in go buf protoc uv golangci-lint; do
+    for cmd in go buf protoc uv golangci-lint pre-commit; do
         if ! command -v "$cmd" &>/dev/null; then
             missing+=("$cmd")
         fi
@@ -19,6 +19,7 @@ init:
     echo "protoc:         $(protoc --version | awk '{print $2}')"
     echo "uv:             $(uv --version | awk '{print $2}')"
     echo "golangci-lint:  $(golangci-lint --version | awk '{print $4}')"
+    echo "pre-commit:     $(pre-commit --version | awk '{print $2}')"
     cd test && uv sync
     pre-commit install
     echo "Ready to go."
