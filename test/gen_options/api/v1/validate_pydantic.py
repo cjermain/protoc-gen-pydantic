@@ -280,6 +280,8 @@ class ValidatedDropped(_ProtoModel):
         Name is required; the required constraint is not translated.
       tag (str):
         Tag must equal "fixed"; the const constraint is not translated.
+      score (int):
+        Score must be positive; required is also set but not translated.
     """
 
     model_config = _ConfigDict(
@@ -298,4 +300,11 @@ class ValidatedDropped(_ProtoModel):
     tag: "str" = _Field(
         "",
         # buf.validate: const (not translated)
+    )
+
+    # Score must be positive; required is also set but not translated.
+    score: "int" = _Field(
+        0,
+        gt=0,
+        # buf.validate: required (not translated)
     )

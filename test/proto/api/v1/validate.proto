@@ -77,4 +77,6 @@ message ValidatedDropped {
   string name = 1 [(buf.validate.field).required = true];
   // Tag must equal "fixed"; the const constraint is not translated.
   string tag = 2 [(buf.validate.field).string.const = "fixed"];
+  // Score must be positive; required is also set but not translated.
+  int32 score = 3 [(buf.validate.field).required = true, (buf.validate.field).int32.gt = 0];
 }

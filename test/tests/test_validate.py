@@ -305,6 +305,26 @@ def test_validated_dropped_comments_in_generated_file():
     assert "# buf.validate: const (not translated)" in text
 
 
+def test_validated_dropped_combined_constraint_valid():
+    # score has both gt=0 (translated) and required=true (dropped).
+    # A positive value satisfies the Pydantic constraint.
+    d = ValidatedDropped(score=1)
+    assert d.score == 1
+
+
+def test_validated_dropped_combined_constraint_enforced():
+    # The translatable gt=0 constraint IS enforced even though required is dropped.
+    with pytest.raises(ValidationError):
+        ValidatedDropped(score=0)
+
+
+def test_validated_dropped_combined_comment_in_generated_file():
+    # Both the Pydantic arg and the dropped-constraint comment appear for score.
+    text = _GEN_VALIDATE.read_text()
+    assert "gt=0," in text
+    assert "# buf.validate: required (not translated)" in text
+
+
 # ---------------------------------------------------------------------------
 # ValidatedOneof — comment + oneof + constraint triple combination (item 12)
 # ---------------------------------------------------------------------------
