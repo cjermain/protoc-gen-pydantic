@@ -320,6 +320,108 @@ class ValidatedTimestamp(_ProtoModel):
     )
 
 
+class ValidatedStringLen(_ProtoModel):
+    """
+    ValidatedStringLen exercises the string.len exact-length constraint.
+
+    Attributes:
+      code (str):
+        Code must be exactly 5 characters.
+    """
+
+    model_config = _ConfigDict(
+        ser_json_bytes="base64",
+        val_json_bytes="base64",
+        ser_json_inf_nan="strings",
+    )
+
+    # Code must be exactly 5 characters.
+    code: "str" = _Field(
+        "",
+        min_length=5,
+        max_length=5,
+    )
+
+
+class ValidatedStringAffix(_ProtoModel):
+    """
+    ValidatedStringAffix exercises string.prefix and string.suffix constraints.
+
+    Attributes:
+      url (str):
+        Url must start with "https://".
+      filename (str):
+        Filename must end with ".go".
+      path (str):
+        Path must start with "/home/" and end with ".txt".
+      content (str):
+        Content must match a pattern; prefix is also set (conflict → prefix dropped).
+    """
+
+    model_config = _ConfigDict(
+        ser_json_bytes="base64",
+        val_json_bytes="base64",
+        ser_json_inf_nan="strings",
+    )
+
+    # Url must start with "https://".
+    url: "str" = _Field(
+        "",
+        pattern="^https://",
+    )
+
+    # Filename must end with ".go".
+    filename: "str" = _Field(
+        "",
+        pattern="\\.go$",
+    )
+
+    # Path must start with "/home/" and end with ".txt".
+    path: "str" = _Field(
+        "",
+        pattern="^/home/.*\\.txt$",
+    )
+
+    # Content must match a pattern; prefix is also set (conflict → prefix dropped).
+    content: "str" = _Field(
+        "",
+        pattern="^[a-z]+$",
+        # buf.validate: prefix (not translated)
+    )
+
+
+class ValidatedExamples(_ProtoModel):
+    """
+    ValidatedExamples exercises the field examples annotation.
+
+    Attributes:
+      count (int):
+        Count with integer examples.
+      name (str):
+        Name with string examples.
+    """
+
+    model_config = _ConfigDict(
+        ser_json_bytes="base64",
+        val_json_bytes="base64",
+        ser_json_inf_nan="strings",
+    )
+
+    # Count with integer examples.
+    count: "int" = _Field(
+        0,
+        gt=0,
+        examples=[1, 42],
+    )
+
+    # Name with string examples.
+    name: "str" = _Field(
+        "",
+        min_length=1,
+        examples=["alice", "bob"],
+    )
+
+
 class ValidatedSilentDrop(_ProtoModel):
     """
     ValidatedSilentDrop exercises constraints that were previously silently

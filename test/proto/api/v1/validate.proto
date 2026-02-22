@@ -93,6 +93,46 @@ message ValidatedTimestamp {
   ];
 }
 
+// ValidatedStringLen exercises the string.len exact-length constraint.
+message ValidatedStringLen {
+  // Code must be exactly 5 characters.
+  string code = 1 [(buf.validate.field).string.len = 5];
+}
+
+// ValidatedStringAffix exercises string.prefix and string.suffix constraints.
+message ValidatedStringAffix {
+  // Url must start with "https://".
+  string url = 1 [(buf.validate.field).string.prefix = "https://"];
+  // Filename must end with ".go".
+  string filename = 2 [(buf.validate.field).string.suffix = ".go"];
+  // Path must start with "/home/" and end with ".txt".
+  string path = 3 [
+    (buf.validate.field).string.prefix = "/home/",
+    (buf.validate.field).string.suffix = ".txt"
+  ];
+  // Content must match a pattern; prefix is also set (conflict → prefix dropped).
+  string content = 4 [
+    (buf.validate.field).string.pattern = "^[a-z]+$",
+    (buf.validate.field).string.prefix = "abc"
+  ];
+}
+
+// ValidatedExamples exercises the field examples annotation.
+message ValidatedExamples {
+  // Count with integer examples.
+  int32 count = 1 [
+    (buf.validate.field).int32.gt = 0,
+    (buf.validate.field).int32.example = 1,
+    (buf.validate.field).int32.example = 42
+  ];
+  // Name with string examples.
+  string name = 2 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).string.example = "alice",
+    (buf.validate.field).string.example = "bob"
+  ];
+}
+
 // ValidatedSilentDrop exercises constraints that were previously silently
 // ignored but now emit dropped-constraint comments via the default case in
 // extractRuleField.

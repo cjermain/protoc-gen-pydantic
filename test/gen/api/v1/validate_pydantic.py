@@ -338,6 +338,115 @@ class ValidatedTimestamp(_ProtoModel):
     )
 
 
+class ValidatedStringLen(_ProtoModel):
+    """
+    ValidatedStringLen exercises the string.len exact-length constraint.
+
+    Attributes:
+      code (str):
+        Code must be exactly 5 characters.
+    """
+
+    model_config = _ConfigDict(
+        ser_json_bytes="base64",
+        val_json_bytes="base64",
+        ser_json_inf_nan="strings",
+    )
+
+    # Code must be exactly 5 characters.
+    code: "str" = _Field(
+        "",
+        description="Code must be exactly 5 characters.",
+        min_length=5,
+        max_length=5,
+    )
+
+
+class ValidatedStringAffix(_ProtoModel):
+    """
+    ValidatedStringAffix exercises string.prefix and string.suffix constraints.
+
+    Attributes:
+      url (str):
+        Url must start with "https://".
+      filename (str):
+        Filename must end with ".go".
+      path (str):
+        Path must start with "/home/" and end with ".txt".
+      content (str):
+        Content must match a pattern; prefix is also set (conflict → prefix dropped).
+    """
+
+    model_config = _ConfigDict(
+        ser_json_bytes="base64",
+        val_json_bytes="base64",
+        ser_json_inf_nan="strings",
+    )
+
+    # Url must start with "https://".
+    url: "str" = _Field(
+        "",
+        description='Url must start with "https://".',
+        pattern="^https://",
+    )
+
+    # Filename must end with ".go".
+    filename: "str" = _Field(
+        "",
+        description='Filename must end with ".go".',
+        pattern="\\.go$",
+    )
+
+    # Path must start with "/home/" and end with ".txt".
+    path: "str" = _Field(
+        "",
+        description='Path must start with "/home/" and end with ".txt".',
+        pattern="^/home/.*\\.txt$",
+    )
+
+    # Content must match a pattern; prefix is also set (conflict → prefix dropped).
+    content: "str" = _Field(
+        "",
+        description="Content must match a pattern; prefix is also set (conflict → prefix dropped).",
+        pattern="^[a-z]+$",
+        # buf.validate: prefix (not translated)
+    )
+
+
+class ValidatedExamples(_ProtoModel):
+    """
+    ValidatedExamples exercises the field examples annotation.
+
+    Attributes:
+      count (int):
+        Count with integer examples.
+      name (str):
+        Name with string examples.
+    """
+
+    model_config = _ConfigDict(
+        ser_json_bytes="base64",
+        val_json_bytes="base64",
+        ser_json_inf_nan="strings",
+    )
+
+    # Count with integer examples.
+    count: "int" = _Field(
+        0,
+        description="Count with integer examples.",
+        gt=0,
+        examples=[1, 42],
+    )
+
+    # Name with string examples.
+    name: "str" = _Field(
+        "",
+        description="Name with string examples.",
+        min_length=1,
+        examples=["alice", "bob"],
+    )
+
+
 class ValidatedSilentDrop(_ProtoModel):
     """
     ValidatedSilentDrop exercises constraints that were previously silently

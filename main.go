@@ -632,10 +632,13 @@ type FieldConstraints struct {
 	Gte                *string  // inclusive lower bound, Python literal
 	Lt                 *string  // exclusive upper bound, Python literal
 	Lte                *string  // inclusive upper bound, Python literal
-	MinLength          *int64   // string.min_len or repeated.min_items
-	MaxLength          *int64   // string.max_len or repeated.max_items
-	Pattern            *string  // string.pattern regex
-	DroppedConstraints []string // constraint names not translated (required, const, cel)
+	MinLength          *int64   // string.min_len / string.len / repeated.min_items / map.min_pairs
+	MaxLength          *int64   // string.max_len / string.len / repeated.max_items / map.max_pairs
+	Pattern            *string  // string.pattern regex (may be derived from Prefix/Suffix)
+	Prefix             *string  // string.prefix — intermediate; resolved into Pattern by combinePatternConstraints
+	Suffix             *string  // string.suffix — intermediate; resolved into Pattern by combinePatternConstraints
+	Examples           []string // field examples as Python literals for Field(examples=[...])
+	DroppedConstraints []string // constraint names not translated (required, const, cel, ...)
 }
 
 func (c *FieldConstraints) HasAny() bool {
@@ -644,6 +647,7 @@ func (c *FieldConstraints) HasAny() bool {
 	}
 	return c.Gt != nil || c.Gte != nil || c.Lt != nil || c.Lte != nil ||
 		c.MinLength != nil || c.MaxLength != nil || c.Pattern != nil ||
+		len(c.Examples) > 0 ||
 		len(c.DroppedConstraints) > 0
 }
 
@@ -674,6 +678,9 @@ func (c *FieldConstraints) PydanticArgs() []string {
 	if c.Pattern != nil {
 		args = append(args, fmt.Sprintf("pattern=%s", pyQuote(*c.Pattern)))
 	}
+	if len(c.Examples) > 0 {
+		args = append(args, fmt.Sprintf("examples=[%s]", strings.Join(c.Examples, ", ")))
+	}
 	return args
 }
 
@@ -688,6 +695,42 @@ func (c *FieldConstraints) DroppedConstraintComments() []string {
 		comments[i] = fmt.Sprintf("# buf.validate: %s (not translated)", name)
 	}
 	return comments
+}
+
+// combinePatternConstraints merges Prefix and Suffix into Pattern (or drops
+// them to DroppedConstraints if an explicit Pattern is already set). Must be
+// called after iterating all sub-message rule fields so that all three fields
+// are populated before combining.
+func (c *FieldConstraints) combinePatternConstraints() {
+	if c.Prefix == nil && c.Suffix == nil {
+		return
+	}
+	if c.Pattern != nil {
+		// An explicit pattern is already present; we cannot combine, so drop
+		// prefix/suffix as untranslated comments.
+		if c.Prefix != nil {
+			c.DroppedConstraints = append(c.DroppedConstraints, "prefix")
+			c.Prefix = nil
+		}
+		if c.Suffix != nil {
+			c.DroppedConstraints = append(c.DroppedConstraints, "suffix")
+			c.Suffix = nil
+		}
+		return
+	}
+	// Build a single pattern from whichever of Prefix/Suffix are present.
+	var pat string
+	switch {
+	case c.Prefix != nil && c.Suffix != nil:
+		pat = "^" + regexp.QuoteMeta(*c.Prefix) + ".*" + regexp.QuoteMeta(*c.Suffix) + "$"
+	case c.Prefix != nil:
+		pat = "^" + regexp.QuoteMeta(*c.Prefix)
+	default:
+		pat = regexp.QuoteMeta(*c.Suffix) + "$"
+	}
+	c.Pattern = &pat
+	c.Prefix = nil
+	c.Suffix = nil
 }
 
 type Message struct {
@@ -1394,6 +1437,8 @@ func (e *generator) extractFieldConstraints(
 				extractRuleField(result, rfd, rv, isFloat)
 				return true
 			})
+			// Combine prefix/suffix into pattern after all sub-fields are visited.
+			result.combinePatternConstraints()
 		}
 		return true
 	})
@@ -1436,6 +1481,12 @@ func extractRuleField(fc *FieldConstraints, fd protoreflect.FieldDescriptor, v p
 	case "max_len":
 		n := int64(v.Uint())
 		fc.MaxLength = &n
+	case "len":
+		// Exact-length constraint: translate as min_length=N, max_length=N.
+		n := int64(v.Uint())
+		n2 := n
+		fc.MinLength = &n
+		fc.MaxLength = &n2
 	case "min_items", "min_pairs":
 		n := int64(v.Uint())
 		fc.MinLength = &n
@@ -1445,6 +1496,21 @@ func extractRuleField(fc *FieldConstraints, fd protoreflect.FieldDescriptor, v p
 	case "pattern":
 		s := v.String()
 		fc.Pattern = &s
+	case "prefix":
+		s := v.String()
+		fc.Prefix = &s
+	case "suffix":
+		s := v.String()
+		fc.Suffix = &s
+	case "example":
+		if fd.IsList() {
+			list := v.List()
+			for i := 0; i < list.Len(); i++ {
+				if s := formatExampleItem(fd, list.Get(i)); s != "" {
+					fc.Examples = append(fc.Examples, s)
+				}
+			}
+		}
 	case "const":
 		fc.DroppedConstraints = append(fc.DroppedConstraints, "const")
 	default:
@@ -1477,6 +1543,35 @@ func formatNumericLiteral(fd protoreflect.FieldDescriptor, v protoreflect.Value,
 			return formatPythonFloat(v.Float()), true
 		}
 		return fmt.Sprintf("%d", v.Int()), true
+	}
+}
+
+// formatExampleItem formats a single element from a repeated `example` field
+// as a Python literal. Returns "" for types that cannot be simply expressed
+// (bytes, messages), which the caller should skip.
+func formatExampleItem(fd protoreflect.FieldDescriptor, v protoreflect.Value) string {
+	switch fd.Kind() {
+	case protoreflect.StringKind:
+		return pyQuote(v.String())
+	case protoreflect.BoolKind:
+		if v.Bool() {
+			return "True"
+		}
+		return "False"
+	case protoreflect.FloatKind:
+		return formatPythonFloat(float64(float32(v.Float())))
+	case protoreflect.DoubleKind:
+		return formatPythonFloat(v.Float())
+	case protoreflect.Int32Kind, protoreflect.Sint32Kind, protoreflect.Sfixed32Kind,
+		protoreflect.Int64Kind, protoreflect.Sint64Kind, protoreflect.Sfixed64Kind:
+		return fmt.Sprintf("%d", v.Int())
+	case protoreflect.Uint32Kind, protoreflect.Fixed32Kind,
+		protoreflect.Uint64Kind, protoreflect.Fixed64Kind:
+		return fmt.Sprintf("%d", v.Uint())
+	case protoreflect.EnumKind:
+		return fmt.Sprintf("%d", v.Enum())
+	default:
+		return "" // bytes, messages — skip
 	}
 }
 

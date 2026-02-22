@@ -8,12 +8,15 @@ import datetime
 from api.v1.validate_pydantic import (
     ValidatedDropped,
     ValidatedDuration,
+    ValidatedExamples,
     ValidatedMap,
     ValidatedOneof,
     ValidatedRepeated,
     ValidatedReserved,
     ValidatedScalars,
     ValidatedSilentDrop,
+    ValidatedStringAffix,
+    ValidatedStringLen,
     ValidatedStrings,
     ValidatedTimestamp,
 )
@@ -508,3 +511,108 @@ def test_validated_silent_drop_defaults():
 def test_validated_silent_drop_comments_in_generated_file(constraint):
     text = _GEN_VALIDATE.read_text()
     assert f"# buf.validate: {constraint} (not translated)" in text
+
+
+# ---------------------------------------------------------------------------
+# ValidatedStringLen — string.len → min_length=N, max_length=N (P2)
+# ---------------------------------------------------------------------------
+
+
+def test_validated_string_len_exact_length_valid():
+    m = ValidatedStringLen(code="hello")
+    assert m.code == "hello"
+
+
+def test_validated_string_len_too_short():
+    with pytest.raises(ValidationError):
+        ValidatedStringLen(code="hi")
+
+
+def test_validated_string_len_too_long():
+    with pytest.raises(ValidationError):
+        ValidatedStringLen(code="toolong")
+
+
+def test_validated_string_len_boundary():
+    # Exactly 5 chars is the only valid length.
+    ValidatedStringLen(code="abcde")
+    with pytest.raises(ValidationError):
+        ValidatedStringLen(code="abcd")
+    with pytest.raises(ValidationError):
+        ValidatedStringLen(code="abcdef")
+
+
+# ---------------------------------------------------------------------------
+# ValidatedStringAffix — prefix/suffix → pattern (P2)
+# ---------------------------------------------------------------------------
+
+
+def test_validated_string_affix_prefix_valid():
+    m = ValidatedStringAffix(url="https://example.com")
+    assert m.url == "https://example.com"
+
+
+def test_validated_string_affix_prefix_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedStringAffix(url="http://example.com")
+
+
+def test_validated_string_affix_suffix_valid():
+    m = ValidatedStringAffix(filename="main.go")
+    assert m.filename == "main.go"
+
+
+def test_validated_string_affix_suffix_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedStringAffix(filename="main.py")
+
+
+def test_validated_string_affix_prefix_and_suffix_valid():
+    m = ValidatedStringAffix(path="/home/user/notes.txt")
+    assert m.path == "/home/user/notes.txt"
+
+
+def test_validated_string_affix_prefix_and_suffix_invalid_prefix():
+    with pytest.raises(ValidationError):
+        ValidatedStringAffix(path="/tmp/notes.txt")
+
+
+def test_validated_string_affix_prefix_and_suffix_invalid_suffix():
+    with pytest.raises(ValidationError):
+        ValidatedStringAffix(path="/home/user/notes.py")
+
+
+def test_validated_string_affix_conflict_pattern_wins():
+    # content has both pattern and prefix; pattern is translated, prefix is dropped.
+    # The explicit pattern ^[a-z]+$ is enforced.
+    ValidatedStringAffix(content="abc")
+    with pytest.raises(ValidationError):
+        ValidatedStringAffix(content="ABC")
+
+
+def test_validated_string_affix_conflict_comment_in_generated_file():
+    text = _GEN_VALIDATE.read_text()
+    assert "# buf.validate: prefix (not translated)" in text
+
+
+# ---------------------------------------------------------------------------
+# ValidatedExamples — field examples annotation (P2)
+# ---------------------------------------------------------------------------
+
+
+def test_validated_examples_valid():
+    m = ValidatedExamples(count=5, name="alice")
+    assert m.count == 5
+    assert m.name == "alice"
+
+
+def test_validated_examples_constraint_still_enforced():
+    # examples= does not affect validation; gt=0 is still enforced.
+    with pytest.raises(ValidationError):
+        ValidatedExamples(count=0, name="alice")
+
+
+def test_validated_examples_in_generated_file():
+    text = _GEN_VALIDATE.read_text()
+    assert "examples=[1, 42]" in text
+    assert 'examples=["alice", "bob"]' in text
