@@ -34,7 +34,9 @@ def pytest_configure(config):
     _GEN_PB2_DIR.mkdir(parents=True, exist_ok=True)
 
     def _has_bsr_imports(p: Path) -> bool:
-        return 'import "buf/' in p.read_text()
+        import re
+
+        return bool(re.search(r'^\s*import\s+"buf/', p.read_text(), re.MULTILINE))
 
     proto_files = [p for p in _PROTO_DIR.rglob("*.proto") if not _has_bsr_imports(p)]
     subprocess.check_call(
@@ -45,6 +47,11 @@ def pytest_configure(config):
             *[str(p.relative_to(_PROTO_DIR)) for p in proto_files],
         ],
     )
+
+
+@pytest.fixture(scope="session")
+def load_module():
+    return _load_module
 
 
 def _load_module(name, filepath):

@@ -30,8 +30,23 @@ var (
 	tmpl *template.Template
 )
 
+// pyQuote produces a Python string literal for s. It uses single-quote
+// delimiters when s contains double quotes but no single quotes, to avoid
+// unnecessary backslash escaping (matches ruff's preferred style).
+func pyQuote(s string) string {
+	q := fmt.Sprintf("%q", s)
+	if strings.Contains(s, `"`) && !strings.Contains(s, "'") {
+		inner := q[1 : len(q)-1]
+		inner = strings.ReplaceAll(inner, `\"`, `"`)
+		return "'" + inner + "'"
+	}
+	return q
+}
+
 func init() {
-	tmpl = template.Must(template.New("pydantic").Parse(modelTemplate))
+	tmpl = template.Must(template.New("pydantic").Funcs(template.FuncMap{
+		"pyQuote": pyQuote,
+	}).Parse(modelTemplate))
 }
 
 func main() {
@@ -322,13 +337,16 @@ class {{ .Name }}(_ProtoModel):
     {{ .Name }}: "{{ .Type }}" = _Field(
         {{ .Default }},
     {{- if and (not $config.DisableFieldDescription) (or (ne (len .LeadingComments) 0) (ne .OneOf nil)) }}
-        description={{ printf "%q" .Description }},
+        description={{ pyQuote .Description }},
     {{- end }}
     {{- if .Alias }}
         alias="{{ .Alias }}",
     {{- end }}
     {{- range .ConstraintArgs }}
         {{ . }},
+    {{- end }}
+    {{- range .DroppedConstraintComments }}
+        {{ . }}
     {{- end }}
     )
     {{- else }}
@@ -582,6 +600,10 @@ func (f Field) ConstraintArgs() []string {
 	return f.Constraints.PydanticArgs()
 }
 
+func (f Field) DroppedConstraintComments() []string {
+	return f.Constraints.DroppedConstraintComments()
+}
+
 // Description returns the field's description string for use in _Field().
 // Leading comment lines are joined with newlines; the oneof annotation is
 // appended (separated by a newline) when present.
@@ -603,15 +625,17 @@ type OneOf struct {
 }
 
 // FieldConstraints holds Tier 1 buf.validate constraints that map
-// directly to Pydantic Field() kwargs.
+// directly to Pydantic Field() kwargs, plus names of constraints that
+// are recognised but not translated (emitted as comments instead).
 type FieldConstraints struct {
-	Gt        *string // exclusive lower bound, Python literal
-	Gte       *string // inclusive lower bound, Python literal
-	Lt        *string // exclusive upper bound, Python literal
-	Lte       *string // inclusive upper bound, Python literal
-	MinLength *int64  // string.min_len or repeated.min_items
-	MaxLength *int64  // string.max_len or repeated.max_items
-	Pattern   *string // string.pattern regex
+	Gt                 *string  // exclusive lower bound, Python literal
+	Gte                *string  // inclusive lower bound, Python literal
+	Lt                 *string  // exclusive upper bound, Python literal
+	Lte                *string  // inclusive upper bound, Python literal
+	MinLength          *int64   // string.min_len or repeated.min_items
+	MaxLength          *int64   // string.max_len or repeated.max_items
+	Pattern            *string  // string.pattern regex
+	DroppedConstraints []string // constraint names not translated (required, const, cel)
 }
 
 func (c *FieldConstraints) HasAny() bool {
@@ -619,7 +643,8 @@ func (c *FieldConstraints) HasAny() bool {
 		return false
 	}
 	return c.Gt != nil || c.Gte != nil || c.Lt != nil || c.Lte != nil ||
-		c.MinLength != nil || c.MaxLength != nil || c.Pattern != nil
+		c.MinLength != nil || c.MaxLength != nil || c.Pattern != nil ||
+		len(c.DroppedConstraints) > 0
 }
 
 // PydanticArgs returns ["gt=0", "le=150", ...] to inject into _Field().
@@ -628,17 +653,17 @@ func (c *FieldConstraints) PydanticArgs() []string {
 		return nil
 	}
 	var args []string
-	if c.Gt != nil {
-		args = append(args, fmt.Sprintf("gt=%s", *c.Gt))
-	}
 	if c.Gte != nil {
 		args = append(args, fmt.Sprintf("ge=%s", *c.Gte))
 	}
-	if c.Lt != nil {
-		args = append(args, fmt.Sprintf("lt=%s", *c.Lt))
+	if c.Gt != nil {
+		args = append(args, fmt.Sprintf("gt=%s", *c.Gt))
 	}
 	if c.Lte != nil {
 		args = append(args, fmt.Sprintf("le=%s", *c.Lte))
+	}
+	if c.Lt != nil {
+		args = append(args, fmt.Sprintf("lt=%s", *c.Lt))
 	}
 	if c.MinLength != nil {
 		args = append(args, fmt.Sprintf("min_length=%d", *c.MinLength))
@@ -647,9 +672,22 @@ func (c *FieldConstraints) PydanticArgs() []string {
 		args = append(args, fmt.Sprintf("max_length=%d", *c.MaxLength))
 	}
 	if c.Pattern != nil {
-		args = append(args, fmt.Sprintf("pattern=%q", *c.Pattern))
+		args = append(args, fmt.Sprintf("pattern=%s", pyQuote(*c.Pattern)))
 	}
 	return args
+}
+
+// DroppedConstraintComments returns a Python comment string for each
+// constraint that was recognised but could not be translated.
+func (c *FieldConstraints) DroppedConstraintComments() []string {
+	if c == nil || len(c.DroppedConstraints) == 0 {
+		return nil
+	}
+	comments := make([]string, len(c.DroppedConstraints))
+	for i, name := range c.DroppedConstraints {
+		comments[i] = fmt.Sprintf("# buf.validate: %s (not translated)", name)
+	}
+	return comments
 }
 
 type Message struct {
@@ -1337,10 +1375,18 @@ func (e *generator) extractFieldConstraints(
 	result := &FieldConstraints{}
 	isFloat := field.Kind() == protoreflect.FloatKind || field.Kind() == protoreflect.DoubleKind
 
-	// The FieldConstraints oneof type field contains a type-specific rules
-	// sub-message. Walk it, then walk the rules fields by name.
+	// Walk the top-level FieldConstraints message fields. The type-specific
+	// rules live inside a oneof sub-message; required and cel are top-level.
 	constraintsMsg.Range(func(fd protoreflect.FieldDescriptor, v protoreflect.Value) bool {
-		if fd.Kind() == protoreflect.MessageKind {
+		name := string(fd.Name())
+		switch {
+		case name == "required" && v.Bool():
+			result.DroppedConstraints = append(result.DroppedConstraints, "required")
+		case name == "cel":
+			// cel is a repeated Constraint message; not translated.
+			result.DroppedConstraints = append(result.DroppedConstraints, "cel")
+		case fd.Kind() == protoreflect.MessageKind && !fd.IsList():
+			// Type-specific rules sub-message (int32, string, repeated, map, etc.)
 			v.Message().Range(func(rfd protoreflect.FieldDescriptor, rv protoreflect.Value) bool {
 				extractRuleField(result, rfd, rv, isFloat)
 				return true
@@ -1375,15 +1421,17 @@ func extractRuleField(fc *FieldConstraints, fd protoreflect.FieldDescriptor, v p
 	case "max_len":
 		n := int64(v.Uint())
 		fc.MaxLength = &n
-	case "min_items":
+	case "min_items", "min_pairs":
 		n := int64(v.Uint())
 		fc.MinLength = &n
-	case "max_items":
+	case "max_items", "max_pairs":
 		n := int64(v.Uint())
 		fc.MaxLength = &n
 	case "pattern":
 		s := v.String()
 		fc.Pattern = &s
+	case "const":
+		fc.DroppedConstraints = append(fc.DroppedConstraints, "const")
 	}
 }
 

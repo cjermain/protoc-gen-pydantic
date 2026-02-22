@@ -18,6 +18,10 @@ message ValidatedScalars {
   float ratio = 4 [(buf.validate.field).float.gte = 0.0, (buf.validate.field).float.lt = 1.0];
   // Rank must be in [1, 10].
   uint32 rank = 5 [(buf.validate.field).uint32.gte = 1, (buf.validate.field).uint32.lte = 10];
+  // Count must be non-zero (covers uint64 / fixed64 literal formatting).
+  optional uint64 count = 6 [(buf.validate.field).uint64.gt = 0];
+  // Offset must be non-negative (covers sint32 / sfixed32 literal formatting).
+  optional sint32 offset = 7 [(buf.validate.field).sint32.gte = 0];
 }
 
 // ValidatedStrings exercises string length and pattern constraints.
@@ -38,4 +42,41 @@ message ValidatedRepeated {
   repeated string items = 1 [(buf.validate.field).repeated.min_items = 1, (buf.validate.field).repeated.max_items = 10];
   // Tags must have at least 1 element.
   repeated string tags = 2 [(buf.validate.field).repeated.min_items = 1];
+}
+
+// ValidatedMap exercises map field length constraints.
+message ValidatedMap {
+  // Labels must have between 1 and 10 entries.
+  map<string, string> labels = 1 [
+    (buf.validate.field).map.min_pairs = 1,
+    (buf.validate.field).map.max_pairs = 10
+  ];
+}
+
+// ValidatedReserved exercises a field whose name is a Python reserved word and
+// also carries a buf.validate constraint. The generated field must emit both
+// alias= and the constraint kwargs in a single _Field() call.
+message ValidatedReserved {
+  // Score must be positive.
+  float float = 1 [(buf.validate.field).float.gt = 0.0];
+}
+
+// ValidatedOneof exercises a oneof field that also carries a constraint.
+message ValidatedOneof {
+  oneof value {
+    // Must be positive when set.
+    int32 small = 1 [(buf.validate.field).int32.gt = 0];
+    // Must be positive when set.
+    int64 large = 2 [(buf.validate.field).int64.gt = 0];
+  }
+}
+
+// ValidatedDropped exercises constraints that are recognised but not translated.
+message ValidatedDropped {
+  // Name is required; the required constraint is not translated.
+  string name = 1 [(buf.validate.field).required = true];
+  // Tag must equal "fixed"; the const constraint is not translated.
+  string tag = 2 [(buf.validate.field).string.const = "fixed"];
+  // Score must be positive; required is also set but not translated.
+  int32 score = 3 [(buf.validate.field).required = true, (buf.validate.field).int32.gt = 0];
 }

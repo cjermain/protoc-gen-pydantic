@@ -3,7 +3,7 @@
 
 from pydantic import BaseModel as _BaseModel, ConfigDict as _ConfigDict, Field as _Field
 
-from ._proto_types import ProtoInt64
+from ._proto_types import ProtoInt64, ProtoUInt64
 
 
 class _ProtoModel(_BaseModel):
@@ -55,6 +55,10 @@ class ValidatedScalars(_ProtoModel):
         Ratio must be non-negative and less than 1.
       rank (int):
         Rank must be in [1, 10].
+      count (ProtoUInt64 | None):
+        Count must be non-zero (covers uint64 / fixed64 literal formatting).
+      offset (int | None):
+        Offset must be non-negative (covers sint32 / sfixed32 literal formatting).
     """
 
     model_config = _ConfigDict(
@@ -95,6 +99,18 @@ class ValidatedScalars(_ProtoModel):
         0,
         ge=1,
         le=10,
+    )
+
+    # Count must be non-zero (covers uint64 / fixed64 literal formatting).
+    count: "ProtoUInt64 | None" = _Field(
+        None,
+        gt=0,
+    )
+
+    # Offset must be non-negative (covers sint32 / sfixed32 literal formatting).
+    offset: "int | None" = _Field(
+        None,
+        ge=0,
     )
 
 
@@ -173,4 +189,122 @@ class ValidatedRepeated(_ProtoModel):
     tags: "list[str]" = _Field(
         default_factory=list,
         min_length=1,
+    )
+
+
+class ValidatedMap(_ProtoModel):
+    """
+    ValidatedMap exercises map field length constraints.
+
+    Attributes:
+      labels (dict[str, str]):
+        Labels must have between 1 and 10 entries.
+    """
+
+    model_config = _ConfigDict(
+        ser_json_bytes="base64",
+        val_json_bytes="base64",
+        ser_json_inf_nan="strings",
+    )
+
+    # Labels must have between 1 and 10 entries.
+    labels: "dict[str, str]" = _Field(
+        default_factory=dict,
+        min_length=1,
+        max_length=10,
+    )
+
+
+class ValidatedReserved(_ProtoModel):
+    """
+    ValidatedReserved exercises a field whose name is a Python reserved word and
+    also carries a buf.validate constraint. The generated field must emit both
+    alias= and the constraint kwargs in a single _Field() call.
+
+    Attributes:
+      float_ (float):
+        Score must be positive.
+    """
+
+    model_config = _ConfigDict(
+        populate_by_name=True,
+        ser_json_bytes="base64",
+        val_json_bytes="base64",
+        ser_json_inf_nan="strings",
+    )
+
+    # Score must be positive.
+    float_: "float" = _Field(
+        0.0,
+        alias="float",
+        gt=0.0,
+    )
+
+
+class ValidatedOneof(_ProtoModel):
+    """
+    ValidatedOneof exercises a oneof field that also carries a constraint.
+
+    Attributes:
+      small (int | None):
+        Must be positive when set.
+      large (ProtoInt64 | None):
+        Must be positive when set.
+    """
+
+    model_config = _ConfigDict(
+        ser_json_bytes="base64",
+        val_json_bytes="base64",
+        ser_json_inf_nan="strings",
+    )
+
+    # Must be positive when set.
+    small: "int | None" = _Field(
+        None,
+        gt=0,
+    )
+
+    # Must be positive when set.
+    large: "ProtoInt64 | None" = _Field(
+        None,
+        gt=0,
+    )
+
+
+class ValidatedDropped(_ProtoModel):
+    """
+    ValidatedDropped exercises constraints that are recognised but not translated.
+
+    Attributes:
+      name (str):
+        Name is required; the required constraint is not translated.
+      tag (str):
+        Tag must equal "fixed"; the const constraint is not translated.
+      score (int):
+        Score must be positive; required is also set but not translated.
+    """
+
+    model_config = _ConfigDict(
+        ser_json_bytes="base64",
+        val_json_bytes="base64",
+        ser_json_inf_nan="strings",
+    )
+
+    # Name is required; the required constraint is not translated.
+    name: "str" = _Field(
+        "",
+        # buf.validate: required (not translated)
+    )
+
+    # Tag must equal "fixed"; the const constraint is not translated.
+    tag: "str" = _Field(
+        "",
+        # buf.validate: const (not translated)
+    )
+
+    # Score must be positive; required is also set but not translated.
+    score: "int" = _Field(
+        0,
+        gt=0,
+        # buf.validate: required (not translated)
     )

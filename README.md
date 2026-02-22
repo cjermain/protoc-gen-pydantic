@@ -235,7 +235,7 @@ class User(_BaseModel):
     name: str | None = _Field(...)
 ```
 
-### buf.validate
+## buf.validate
 
 Field constraints from [buf.validate (protovalidate)](https://github.com/bufbuild/protovalidate)
 are translated to Pydantic `Field()` kwargs automatically — no plugin option
@@ -256,6 +256,7 @@ deps:
 | `string.min_len` / `string.max_len` | `min_length=` / `max_length=` |
 | `string.pattern` | `pattern=` |
 | `repeated.min_items` / `repeated.max_items` | `min_length=` / `max_length=` |
+| `map.min_pairs` / `map.max_pairs` | `min_length=` / `max_length=` |
 
 ```proto
 import "buf/validate/validate.proto";
@@ -280,7 +281,7 @@ class CreateUser(_ProtoModel):
     )
 ```
 
-Constraints without a direct Pydantic equivalent (`required`, `const`, CEL expressions) are not translated.
+Constraints without a direct Pydantic equivalent (`required`, `const`, CEL expressions) are emitted as `# buf.validate: X (not translated)` comments in the generated `_Field()` call so they remain visible to developers. Other unsupported constraints (`email`, `uuid`, `in`/`not_in`, etc.) are silently ignored.
 
 ## Development
 

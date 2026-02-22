@@ -1,8 +1,14 @@
+from pathlib import Path
+
 import pytest
 from pydantic import ValidationError
 
 from api.v1.validate_pydantic import (
+    ValidatedDropped,
+    ValidatedMap,
+    ValidatedOneof,
     ValidatedRepeated,
+    ValidatedReserved,
     ValidatedScalars,
     ValidatedStrings,
 )
@@ -188,8 +194,177 @@ def test_validated_repeated_tags_empty_fails():
 
 
 # ---------------------------------------------------------------------------
+# ValidatedMap
+# ---------------------------------------------------------------------------
+
+
+def test_validated_map_valid():
+    m = ValidatedMap(labels={"k": "v"})
+    assert m.labels == {"k": "v"}
+
+
+def test_validated_map_empty_fails():
+    with pytest.raises(ValidationError):
+        ValidatedMap(labels={})
+
+
+def test_validated_map_too_many():
+    with pytest.raises(ValidationError):
+        ValidatedMap(labels={str(i): str(i) for i in range(11)})
+
+
+def test_validated_map_boundary():
+    ValidatedMap(labels={"a": "1"})
+    ValidatedMap(labels={str(i): str(i) for i in range(10)})
+
+
+# ---------------------------------------------------------------------------
+# ValidatedScalars — uint64 and sint32 optional fields (item 11)
+# ---------------------------------------------------------------------------
+
+
+def test_validated_scalars_count_valid():
+    s = ValidatedScalars(age=1, score=0.0, priority=1, ratio=0.0, rank=1, count=1)
+    assert s.count == 1
+
+
+def test_validated_scalars_count_zero_fails():
+    # uint64 gt=0 — zero is rejected
+    with pytest.raises(ValidationError):
+        ValidatedScalars(age=1, score=0.0, priority=1, ratio=0.0, rank=1, count=0)
+
+
+def test_validated_scalars_count_omitted():
+    # optional — can be omitted; None does not trigger the constraint
+    s = ValidatedScalars(age=1, score=0.0, priority=1, ratio=0.0, rank=1)
+    assert s.count is None
+
+
+def test_validated_scalars_offset_valid():
+    s = ValidatedScalars(age=1, score=0.0, priority=1, ratio=0.0, rank=1, offset=0)
+    assert s.offset == 0
+
+
+def test_validated_scalars_offset_negative_fails():
+    # sint32 gte=0 — negative is rejected
+    with pytest.raises(ValidationError):
+        ValidatedScalars(age=1, score=0.0, priority=1, ratio=0.0, rank=1, offset=-1)
+
+
+def test_validated_scalars_offset_omitted():
+    # optional — can be omitted; None does not trigger the constraint
+    s = ValidatedScalars(age=1, score=0.0, priority=1, ratio=0.0, rank=1)
+    assert s.offset is None
+
+
+# ---------------------------------------------------------------------------
+# ValidatedReserved — alias + constraint combination (item 10)
+# ---------------------------------------------------------------------------
+
+
+def test_validated_reserved_alias_and_constraint():
+    r = ValidatedReserved(float_=1.0)
+    assert r.float_ == pytest.approx(1.0)
+
+
+def test_validated_reserved_alias_construction():
+    # alias allows construction with the original proto name
+    r = ValidatedReserved(**{"float": 1.0})
+    assert r.float_ == pytest.approx(1.0)
+
+
+def test_validated_reserved_constraint_enforced():
+    with pytest.raises(ValidationError):
+        ValidatedReserved(float_=0.0)
+
+
+# ---------------------------------------------------------------------------
+# ValidatedDropped — dropped constraints are not enforced; comments are emitted
+# ---------------------------------------------------------------------------
+
+_GEN_VALIDATE = (
+    Path(__file__).parent.parent / "gen" / "api" / "v1" / "validate_pydantic.py"
+)
+
+
+def test_validated_dropped_required_not_enforced():
+    # required = true is not translated; default empty string is accepted.
+    d = ValidatedDropped()
+    assert d.name == ""
+
+
+def test_validated_dropped_const_not_enforced():
+    # string.const is not translated; any string value is accepted.
+    d = ValidatedDropped(tag="anything")
+    assert d.tag == "anything"
+
+
+def test_validated_dropped_comments_in_generated_file():
+    text = _GEN_VALIDATE.read_text()
+    assert "# buf.validate: required (not translated)" in text
+    assert "# buf.validate: const (not translated)" in text
+
+
+def test_validated_dropped_combined_constraint_valid():
+    # score has both gt=0 (translated) and required=true (dropped).
+    # A positive value satisfies the Pydantic constraint.
+    d = ValidatedDropped(score=1)
+    assert d.score == 1
+
+
+def test_validated_dropped_combined_constraint_enforced():
+    # The translatable gt=0 constraint IS enforced even though required is dropped.
+    with pytest.raises(ValidationError):
+        ValidatedDropped(score=0)
+
+
+def test_validated_dropped_combined_comment_in_generated_file():
+    # Both the Pydantic arg and the dropped-constraint comment appear for score.
+    text = _GEN_VALIDATE.read_text()
+    assert "gt=0," in text
+    assert "# buf.validate: required (not translated)" in text
+
+
+# ---------------------------------------------------------------------------
+# ValidatedOneof — comment + oneof + constraint triple combination (item 12)
+# ---------------------------------------------------------------------------
+
+
+def test_validated_oneof_valid_small():
+    v = ValidatedOneof(small=1)
+    assert v.small == 1
+
+
+def test_validated_oneof_valid_large():
+    v = ValidatedOneof(large=1)
+    assert v.large == 1
+
+
+def test_validated_oneof_constraint_enforced():
+    with pytest.raises(ValidationError):
+        ValidatedOneof(small=0)
+
+
+def test_validated_oneof_description_contains_comment_and_oneof():
+    field_info = ValidatedOneof.model_fields["small"]
+    assert "Must be positive when set" in field_info.description
+    assert "oneof" in field_info.description
+
+
+# ---------------------------------------------------------------------------
 # JSON roundtrip
 # ---------------------------------------------------------------------------
+
+
+def test_validated_scalars_priority_string_input_valid():
+    """ProtoJSON sends int64 as a string; constraint must still apply."""
+    s = ValidatedScalars(age=1, score=0.0, priority="5", ratio=0.0, rank=1)
+    assert s.priority == 5
+
+
+def test_validated_scalars_priority_string_input_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedScalars(age=1, score=0.0, priority="0", ratio=0.0, rank=1)
 
 
 def test_validated_scalars_json_roundtrip():
@@ -201,3 +376,45 @@ def test_validated_scalars_json_roundtrip():
     assert s2.priority == s.priority
     assert s2.ratio == pytest.approx(s.ratio)
     assert s2.rank == s.rank
+
+
+# ---------------------------------------------------------------------------
+# gen_options build — constraints are preserved under non-default plugin options
+# ---------------------------------------------------------------------------
+
+_GEN_OPTIONS_VALIDATE = Path(__file__).parent.parent / "gen_options" / "api" / "v1"
+
+
+@pytest.fixture(scope="module")
+def opts_validate(load_module):
+    return load_module(
+        "validate_pydantic", _GEN_OPTIONS_VALIDATE / "validate_pydantic.py"
+    )
+
+
+def test_gen_options_scalars_constraints_enforced(opts_validate):
+    VS = opts_validate.ValidatedScalars
+    VS(age=1, score=0.0, priority=1, ratio=0.0, rank=1)  # valid
+    with pytest.raises(Exception):  # ValidationError
+        VS(age=0, score=0.0, priority=1, ratio=0.0, rank=1)
+
+
+def test_gen_options_strings_constraints_enforced(opts_validate):
+    VS = opts_validate.ValidatedStrings
+    VS(name="a", code="A", bio="", tag="ab")
+    with pytest.raises(Exception):  # ValidationError
+        VS(name="", code="A", bio="", tag="ab")
+
+
+def test_gen_options_repeated_constraints_enforced(opts_validate):
+    VR = opts_validate.ValidatedRepeated
+    VR(items=["x"], tags=["y"])
+    with pytest.raises(Exception):  # ValidationError
+        VR(items=[], tags=["y"])
+
+
+def test_gen_options_map_constraints_enforced(opts_validate):
+    VM = opts_validate.ValidatedMap
+    VM(labels={"k": "v"})
+    with pytest.raises(Exception):  # ValidationError
+        VM(labels={})
