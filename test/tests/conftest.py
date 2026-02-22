@@ -49,6 +49,11 @@ def pytest_configure(config):
     )
 
 
+@pytest.fixture(scope="session")
+def load_module():
+    return _load_module
+
+
 def _load_module(name, filepath):
     """Load a module from an arbitrary path under a unique name to avoid conflicts."""
     full_name = f"gen_options_test.{name}"

@@ -318,3 +318,45 @@ def test_validated_scalars_json_roundtrip():
     assert s2.priority == s.priority
     assert s2.ratio == pytest.approx(s.ratio)
     assert s2.rank == s.rank
+
+
+# ---------------------------------------------------------------------------
+# gen_options build — constraints are preserved under non-default plugin options
+# ---------------------------------------------------------------------------
+
+_GEN_OPTIONS_VALIDATE = Path("gen_options/api/v1")
+
+
+@pytest.fixture(scope="module")
+def opts_validate(load_module):
+    return load_module(
+        "validate_pydantic", _GEN_OPTIONS_VALIDATE / "validate_pydantic.py"
+    )
+
+
+def test_gen_options_scalars_constraints_enforced(opts_validate):
+    VS = opts_validate.ValidatedScalars
+    VS(age=1, score=0.0, priority=1, ratio=0.0, rank=1)  # valid
+    with pytest.raises(Exception):  # ValidationError
+        VS(age=0, score=0.0, priority=1, ratio=0.0, rank=1)
+
+
+def test_gen_options_strings_constraints_enforced(opts_validate):
+    VS = opts_validate.ValidatedStrings
+    VS(name="a", code="A", bio="", tag="ab")
+    with pytest.raises(Exception):  # ValidationError
+        VS(name="", code="A", bio="", tag="ab")
+
+
+def test_gen_options_repeated_constraints_enforced(opts_validate):
+    VR = opts_validate.ValidatedRepeated
+    VR(items=["x"], tags=["y"])
+    with pytest.raises(Exception):  # ValidationError
+        VR(items=[], tags=["y"])
+
+
+def test_gen_options_map_constraints_enforced(opts_validate):
+    VM = opts_validate.ValidatedMap
+    VM(labels={"k": "v"})
+    with pytest.raises(Exception):  # ValidationError
+        VM(labels={})
