@@ -55,7 +55,7 @@ func main() {
 	autoTrimEnumPrefix := flags.Bool("auto_trim_enum_prefix", true, "")
 	useIntegersForEnums := flags.Bool("use_integers_for_enums", false, "")
 	disableFieldDescription := flags.Bool("disable_field_description", false, "")
-	useNoneUnionSyntaxInsteadOfOptional := flags.Bool("use_none_union_syntax_instead_of_optional", false, "")
+	useNoneUnionSyntaxInsteadOfOptional := flags.Bool("use_none_union_syntax_instead_of_optional", true, "")
 
 	opts := protogen.Options{
 		ParamFunc: flags.Set,
@@ -1129,6 +1129,9 @@ func (e *generator) resolveBaseType(referer string, field protoreflect.FieldDesc
 }
 
 func (e *generator) wrapOptional(typ string) string {
+	if typ == "None" {
+		return "None"
+	}
 	if e.config.UseNoneUnionSyntaxInsteadOfOptional {
 		return fmt.Sprintf("%s | None", typ)
 	}

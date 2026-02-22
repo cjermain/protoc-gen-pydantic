@@ -114,7 +114,7 @@ Passed via `opt:` in buf.gen.yaml or `--pydantic_opt=` with protoc:
 | `auto_trim_enum_prefix` | `true` | Remove enum type name prefix from value names |
 | `use_integers_for_enums` | `false` | Use integer values for enums instead of string names |
 | `disable_field_description` | `false` | Omit `description=` from generated fields |
-| `use_none_union_syntax_instead_of_optional` | `false` | Use `T \| None` instead of `Optional[T]` |
+| `use_none_union_syntax_instead_of_optional` | `true` | Use `T \| None` instead of `Optional[T]` |
 
 ### `preserving_proto_field_name`
 
@@ -221,18 +221,18 @@ class User(_BaseModel):
 
 ### `use_none_union_syntax_instead_of_optional`
 
-If `use_none_union_syntax_instead_of_optional` is `false` (default):
-
-```python
-class User(_BaseModel):
-    name: _Optional[str] = _Field(...)
-```
-
-If `use_none_union_syntax_instead_of_optional` is `true`:
+If `use_none_union_syntax_instead_of_optional` is `true` (default):
 
 ```python
 class User(_BaseModel):
     name: str | None = _Field(...)
+```
+
+If `use_none_union_syntax_instead_of_optional` is `false`:
+
+```python
+class User(_BaseModel):
+    name: _Optional[str] = _Field(...)
 ```
 
 ## buf.validate
