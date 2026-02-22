@@ -14,13 +14,6 @@ updates:
     cooldown:
       default-days: 7
 
-  - package-ecosystem: "mise"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-    cooldown:
-      default-days: 7
-
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
