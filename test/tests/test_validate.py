@@ -309,6 +309,17 @@ def test_validated_dropped_comments_in_generated_file():
 # ---------------------------------------------------------------------------
 
 
+def test_validated_scalars_priority_string_input_valid():
+    """ProtoJSON sends int64 as a string; constraint must still apply."""
+    s = ValidatedScalars(age=1, score=0.0, priority="5", ratio=0.0, rank=1)
+    assert s.priority == 5
+
+
+def test_validated_scalars_priority_string_input_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedScalars(age=1, score=0.0, priority="0", ratio=0.0, rank=1)
+
+
 def test_validated_scalars_json_roundtrip():
     s = ValidatedScalars(age=42, score=75.5, priority=10, ratio=0.25, rank=7)
     json_str = s.model_dump_json()
