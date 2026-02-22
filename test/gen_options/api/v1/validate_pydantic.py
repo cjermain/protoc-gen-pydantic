@@ -439,6 +439,12 @@ class ValidatedSilentDrop(_ProtoModel):
         Tags must contain unique elements.
       ratio (float):
         Ratio must be finite (not inf or NaN).
+      token (str):
+        Token must be a valid UUID.
+      hostV4 (str):
+        Host must be a valid IPv4 address.
+      hostV6 (str):
+        Host must be a valid IPv6 address.
     """
 
     model_config = _ConfigDict(
@@ -475,6 +481,24 @@ class ValidatedSilentDrop(_ProtoModel):
     ratio: "float" = _Field(
         0.0,
         # buf.validate: finite (not translated)
+    )
+
+    # Token must be a valid UUID.
+    token: "str" = _Field(
+        "",
+        # buf.validate: uuid (not translated)
+    )
+
+    # Host must be a valid IPv4 address.
+    hostV4: "str" = _Field(
+        "",
+        # buf.validate: ipv4 (not translated)
+    )
+
+    # Host must be a valid IPv6 address.
+    hostV6: "str" = _Field(
+        "",
+        # buf.validate: ipv6 (not translated)
     )
 
 

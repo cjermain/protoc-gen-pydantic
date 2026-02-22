@@ -506,11 +506,29 @@ def test_validated_silent_drop_defaults():
 
 @pytest.mark.parametrize(
     "constraint",
-    ["email", "uri", "ip", "unique", "finite"],
+    ["email", "uri", "ip", "unique", "finite", "uuid", "ipv4", "ipv6"],
 )
 def test_validated_silent_drop_comments_in_generated_file(constraint):
     text = _GEN_VALIDATE.read_text()
     assert f"# buf.validate: {constraint} (not translated)" in text
+
+
+def test_validated_silent_drop_uuid_not_enforced():
+    # uuid = true is not translated; any string is accepted.
+    d = ValidatedSilentDrop(token="not-a-uuid")
+    assert d.token == "not-a-uuid"
+
+
+def test_validated_silent_drop_ipv4_not_enforced():
+    # ipv4 = true is not translated; any string is accepted.
+    d = ValidatedSilentDrop(host_v4="not-an-ip")
+    assert d.host_v4 == "not-an-ip"
+
+
+def test_validated_silent_drop_ipv6_not_enforced():
+    # ipv6 = true is not translated; any string is accepted.
+    d = ValidatedSilentDrop(host_v6="not-an-ipv6")
+    assert d.host_v6 == "not-an-ipv6"
 
 
 # ---------------------------------------------------------------------------

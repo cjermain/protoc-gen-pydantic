@@ -147,6 +147,12 @@ message ValidatedSilentDrop {
   repeated string tags = 4 [(buf.validate.field).repeated.unique = true];
   // Ratio must be finite (not inf or NaN).
   float ratio = 5 [(buf.validate.field).float.finite = true];
+  // Token must be a valid UUID.
+  string token = 6 [(buf.validate.field).string.uuid = true];
+  // Host must be a valid IPv4 address.
+  string host_v4 = 7 [(buf.validate.field).string.ipv4 = true];
+  // Host must be a valid IPv6 address.
+  string host_v6 = 8 [(buf.validate.field).string.ipv6 = true];
 }
 
 // ValidatedDropped exercises constraints that are recognised but not translated.
