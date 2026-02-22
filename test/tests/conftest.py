@@ -11,6 +11,8 @@ from api.v1.scalars_pydantic import Scalars, Scalars_NestedEnum, Scalars_NestedM
 
 # Directory paths relative to the test root (test/)
 _TEST_ROOT = Path(__file__).resolve().parent.parent
+_GEN_PB2_DIR = _TEST_ROOT / "gen_pb2"
+_PROTO_DIR = _TEST_ROOT / "proto"
 
 _GENERATED_FILES = sorted(
     list(Path("gen").rglob("*_pydantic.py"))
@@ -23,10 +25,6 @@ _GENERATED_FILES = sorted(
 @pytest.fixture(params=_GENERATED_FILES, ids=str)
 def generated_file(request):
     return request.param
-
-
-_GEN_PB2_DIR = _TEST_ROOT / "gen_pb2"
-_PROTO_DIR = _TEST_ROOT / "proto"
 
 
 def pytest_configure(config):

@@ -296,7 +296,7 @@ Other useful commands:
 
 ```sh
 just dev    # Full rebuild + generate + test cycle
-just lint   # Run all linters (Go + Python)
+just lint   # Run all linters (Go + Python + type check)
 just test   # Run Python tests only
 ```
 
