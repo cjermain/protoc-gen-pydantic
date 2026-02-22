@@ -19,7 +19,7 @@
 - Handles Python builtin/keyword shadowing with PEP 8 trailing underscore aliases
 - Resolves cross-package message references
 - Preserves enum value options (built-in `deprecated`/`debug_redact` and custom extensions) as accessible metadata on enum members
-- Translates [buf.validate (protovalidate)](https://github.com/bufbuild/protovalidate) field constraints to native Pydantic `Field()` kwargs — numeric bounds, string/list lengths, and regex patterns — with no extra runtime dependency
+- Translates [buf.validate (protovalidate)](https://github.com/bufbuild/protovalidate) field constraints to native Pydantic constructs: numeric bounds, string/list lengths, regex patterns, `const` → `Literal[...]`, `in`/`not_in` → `AfterValidator`, `unique` → `AfterValidator`, and format validators (`email`, `uri`, `ip`, `ipv4`, `ipv6`, `uuid`) via lightweight runtime helpers in a generated `_proto_types.py`
 
 ## Installation
 
@@ -250,13 +250,24 @@ deps:
   - buf.build/bufbuild/protovalidate
 ```
 
-| buf.validate rule | `Field()` kwarg |
+| buf.validate rule | Generated Pydantic construct |
 |---|---|
-| Numeric `gt` / `gte` / `lt` / `lte` | `gt=` / `ge=` / `lt=` / `le=` |
-| `string.min_len` / `string.max_len` | `min_length=` / `max_length=` |
-| `string.pattern` | `pattern=` |
-| `repeated.min_items` / `repeated.max_items` | `min_length=` / `max_length=` |
-| `map.min_pairs` / `map.max_pairs` | `min_length=` / `max_length=` |
+| Numeric `gt` / `gte` / `lt` / `lte` | `Field(gt=` / `ge=` / `lt=` / `le=...)` |
+| `string.min_len` / `string.max_len` | `Field(min_length=..., max_length=...)` |
+| `string.len` | `Field(min_length=N, max_length=N)` |
+| `string.pattern` | `Field(pattern=...)` |
+| `string.prefix` / `string.suffix` | `Field(pattern=...)` (anchored regex) |
+| `repeated.min_items` / `repeated.max_items` | `Field(min_length=..., max_length=...)` |
+| `map.min_pairs` / `map.max_pairs` | `Field(min_length=..., max_length=...)` |
+| `field.example` | `Field(examples=[...])` |
+| `string.const` / `int.const` / `bool.const` | `Literal[value]` type + matching default |
+| `string.in` / `int.in` / etc. | `Annotated[T, AfterValidator(_make_in_validator(...))]` |
+| `string.not_in` / `int.not_in` / etc. | `Annotated[T, AfterValidator(_make_not_in_validator(...))]` |
+| `repeated.unique` | `Annotated[list[T], AfterValidator(_require_unique)]` |
+| `string.email` | `Annotated[str, AfterValidator(_validate_email)]` |
+| `string.uri` | `Annotated[str, AfterValidator(_validate_uri)]` |
+| `string.ip` / `string.ipv4` / `string.ipv6` | `Annotated[str, AfterValidator(_validate_ip*)]` |
+| `string.uuid` | `Annotated[str, AfterValidator(_validate_uuid)]` |
 
 ```proto
 import "buf/validate/validate.proto";
@@ -264,24 +275,22 @@ import "buf/validate/validate.proto";
 message CreateUser {
   string username = 1 [(buf.validate.field).string.min_len = 1, (buf.validate.field).string.max_len = 50];
   int32 age = 2 [(buf.validate.field).int32.gte = 18, (buf.validate.field).int32.lte = 120];
+  string email = 3 [(buf.validate.field).string.email = true];
+  string status = 4 [(buf.validate.field) = {string: {in: ["active", "inactive"]}}];
 }
 ```
 
 ```python
 class CreateUser(_ProtoModel):
-    username: "str" = _Field(
-        "",
-        min_length=1,
-        max_length=50,
-    )
-    age: "int" = _Field(
-        0,
-        ge=18,
-        le=120,
-    )
+    username: "str" = _Field("", min_length=1, max_length=50)
+    age: "int" = _Field(0, ge=18, le=120)
+    email: "_Annotated[str, _AfterValidator(_validate_email)]" = _Field("")
+    status: "_Annotated[str, _AfterValidator(_make_in_validator(frozenset({'active', 'inactive'})))]" = _Field("")
 ```
 
-Constraints without a direct Pydantic equivalent (`required`, `const`, CEL expressions) are emitted as `# buf.validate: X (not translated)` comments in the generated `_Field()` call so they remain visible to developers. Other unsupported constraints (`email`, `uuid`, `in`/`not_in`, etc.) are silently ignored.
+Format validators (`email`, `uri`, `ip*`, `uuid`) and set validators (`in`, `not_in`, `unique`) are emitted into a generated `_proto_types.py` alongside the model files. Only the helpers that are actually used in a given output directory are included — unused imports (e.g. `ipaddress`, `AnyUrl`) are omitted.
+
+Constraints without a Pydantic equivalent are emitted as `# buf.validate: X (not translated)` comments inside `_Field()` so they remain visible to developers: `required`, CEL expressions, `float`/`double`/`bytes` `const` (not valid in `Literal[]`), and message-typed bounds (e.g. `duration.gt`, `timestamp.lte`).
 
 ## Development
 
