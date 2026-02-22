@@ -3,14 +3,25 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
+import datetime
+
 from api.v1.validate_pydantic import (
+    ValidatedConst,
     ValidatedDropped,
+    ValidatedDuration,
+    ValidatedExamples,
+    ValidatedIn,
     ValidatedMap,
     ValidatedOneof,
     ValidatedRepeated,
     ValidatedReserved,
     ValidatedScalars,
+    ValidatedSilentDrop,
+    ValidatedStringAffix,
+    ValidatedStringLen,
     ValidatedStrings,
+    ValidatedTimestamp,
+    ValidatedUnique,
 )
 
 
@@ -293,10 +304,10 @@ def test_validated_dropped_required_not_enforced():
     assert d.name == ""
 
 
-def test_validated_dropped_const_not_enforced():
-    # string.const is not translated; any string value is accepted.
-    d = ValidatedDropped(tag="anything")
-    assert d.tag == "anything"
+def test_validated_dropped_bytes_const_not_enforced():
+    # bytes.const is not translated (bytes kind unsupported); any bytes value is accepted.
+    d = ValidatedDropped(blob=b"\xff")
+    assert d.blob == b"\xff"
 
 
 def test_validated_dropped_comments_in_generated_file():
@@ -418,3 +429,362 @@ def test_gen_options_map_constraints_enforced(opts_validate):
     VM(labels={"k": "v"})
     with pytest.raises(Exception):  # ValidationError
         VM(labels={})
+
+
+# ---------------------------------------------------------------------------
+# ValidatedDuration / ValidatedTimestamp — no panic on message-typed bounds
+# ---------------------------------------------------------------------------
+
+
+def test_validated_duration_accepts_timedelta():
+    # Duration bounds (gt, lte) are dropped; any timedelta is accepted.
+    d = ValidatedDuration(timeout=datetime.timedelta(seconds=30))
+    assert d.timeout == datetime.timedelta(seconds=30)
+
+
+def test_validated_duration_accepts_none():
+    # Field is optional (message type), so None is valid.
+    d = ValidatedDuration()
+    assert d.timeout is None
+
+
+def test_validated_duration_comments_in_generated_file():
+    text = _GEN_VALIDATE.read_text()
+    # Both bounds appear as dropped-constraint comments, not as Field() kwargs.
+    assert "# buf.validate: gt (not translated)" in text
+    assert "# buf.validate: lte (not translated)" in text
+    # No Pydantic bound args are emitted for the duration field.
+    assert "class ValidatedDuration" in text
+
+
+def test_validated_timestamp_accepts_datetime():
+    # Timestamp bounds (gt) are dropped; any datetime is accepted.
+    ts = ValidatedTimestamp(
+        created_at=datetime.datetime(2024, 1, 1, tzinfo=datetime.timezone.utc)
+    )
+    assert ts.created_at == datetime.datetime(2024, 1, 1, tzinfo=datetime.timezone.utc)
+
+
+def test_validated_timestamp_accepts_none():
+    ts = ValidatedTimestamp()
+    assert ts.created_at is None
+
+
+def test_validated_timestamp_comments_in_generated_file():
+    text = _GEN_VALIDATE.read_text()
+    assert "class ValidatedTimestamp" in text
+    # The timestamp gt bound also appears as a dropped comment.
+    # (The string "gt (not translated)" already checked by duration test above.)
+
+
+# ---------------------------------------------------------------------------
+# ValidatedSilentDrop — format validators enforced via _AfterValidator (P3)
+# ---------------------------------------------------------------------------
+
+
+def test_validated_format_defaults():
+    # Default empty strings skip validation (proto3 zero-value semantics).
+    d = ValidatedSilentDrop()
+    assert d.email == ""
+    assert d.website == ""
+    assert d.address == ""
+    assert d.token == ""
+    assert d.host_v4 == ""
+    assert d.host_v6 == ""
+    assert d.ratio == pytest.approx(0.0)
+
+
+def test_validated_format_finite_still_dropped():
+    # float.finite is not translated; any float value is accepted.
+    d = ValidatedSilentDrop(ratio=float("inf"))
+    assert d.ratio == float("inf")
+
+
+def test_validated_format_finite_comment_in_generated_file():
+    text = _GEN_VALIDATE.read_text()
+    assert "# buf.validate: finite (not translated)" in text
+
+
+@pytest.mark.parametrize("email", ["user@example.com", "a@b.co", "x.y+z@domain.org"])
+def test_validated_format_email_valid(email):
+    d = ValidatedSilentDrop(email=email)
+    assert d.email == email
+
+
+@pytest.mark.parametrize("email", ["notanemail", "@domain.com", "user@", "nodot@nodot"])
+def test_validated_format_email_invalid(email):
+    with pytest.raises(ValidationError):
+        ValidatedSilentDrop(email=email)
+
+
+@pytest.mark.parametrize("uri", ["https://example.com", "http://x.org/path?q=1"])
+def test_validated_format_uri_valid(uri):
+    d = ValidatedSilentDrop(website=uri)
+    assert d.website == uri
+
+
+@pytest.mark.parametrize("uri", ["notauri", "example.com", "ftp//missing-colon"])
+def test_validated_format_uri_invalid(uri):
+    with pytest.raises(ValidationError):
+        ValidatedSilentDrop(website=uri)
+
+
+@pytest.mark.parametrize("addr", ["1.2.3.4", "::1", "2001:db8::1"])
+def test_validated_format_ip_valid(addr):
+    d = ValidatedSilentDrop(address=addr)
+    assert d.address == addr
+
+
+@pytest.mark.parametrize("addr", ["999.0.0.1", "not-an-ip", "256.1.1.1"])
+def test_validated_format_ip_invalid(addr):
+    with pytest.raises(ValidationError):
+        ValidatedSilentDrop(address=addr)
+
+
+@pytest.mark.parametrize("v4", ["192.168.1.1", "0.0.0.0", "255.255.255.255"])
+def test_validated_format_ipv4_valid(v4):
+    d = ValidatedSilentDrop(host_v4=v4)
+    assert d.host_v4 == v4
+
+
+@pytest.mark.parametrize("v4", ["::1", "not-an-ip", "256.0.0.1"])
+def test_validated_format_ipv4_invalid(v4):
+    with pytest.raises(ValidationError):
+        ValidatedSilentDrop(host_v4=v4)
+
+
+@pytest.mark.parametrize("v6", ["::1", "2001:db8::1", "fe80::1"])
+def test_validated_format_ipv6_valid(v6):
+    d = ValidatedSilentDrop(host_v6=v6)
+    assert d.host_v6 == v6
+
+
+@pytest.mark.parametrize("v6", ["1.2.3.4", "not-an-ip", "gggg::1"])
+def test_validated_format_ipv6_invalid(v6):
+    with pytest.raises(ValidationError):
+        ValidatedSilentDrop(host_v6=v6)
+
+
+@pytest.mark.parametrize(
+    "u",
+    [
+        "550e8400-e29b-41d4-a716-446655440000",
+        "6ba7b810-9dad-11d1-80b4-00c04fd430c8",
+    ],
+)
+def test_validated_format_uuid_valid(u):
+    d = ValidatedSilentDrop(token=u)
+    assert d.token == u
+
+
+@pytest.mark.parametrize(
+    "u", ["not-a-uuid", "12345", "550e8400-zzzz-41d4-a716-446655440000"]
+)
+def test_validated_format_uuid_invalid(u):
+    with pytest.raises(ValidationError):
+        ValidatedSilentDrop(token=u)
+
+
+# ---------------------------------------------------------------------------
+# ValidatedStringLen — string.len → min_length=N, max_length=N (P2)
+# ---------------------------------------------------------------------------
+
+
+def test_validated_string_len_exact_length_valid():
+    m = ValidatedStringLen(code="hello")
+    assert m.code == "hello"
+
+
+def test_validated_string_len_too_short():
+    with pytest.raises(ValidationError):
+        ValidatedStringLen(code="hi")
+
+
+def test_validated_string_len_too_long():
+    with pytest.raises(ValidationError):
+        ValidatedStringLen(code="toolong")
+
+
+def test_validated_string_len_boundary():
+    # Exactly 5 chars is the only valid length.
+    ValidatedStringLen(code="abcde")
+    with pytest.raises(ValidationError):
+        ValidatedStringLen(code="abcd")
+    with pytest.raises(ValidationError):
+        ValidatedStringLen(code="abcdef")
+
+
+# ---------------------------------------------------------------------------
+# ValidatedStringAffix — prefix/suffix → pattern (P2)
+# ---------------------------------------------------------------------------
+
+
+def test_validated_string_affix_prefix_valid():
+    m = ValidatedStringAffix(url="https://example.com")
+    assert m.url == "https://example.com"
+
+
+def test_validated_string_affix_prefix_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedStringAffix(url="http://example.com")
+
+
+def test_validated_string_affix_suffix_valid():
+    m = ValidatedStringAffix(filename="main.go")
+    assert m.filename == "main.go"
+
+
+def test_validated_string_affix_suffix_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedStringAffix(filename="main.py")
+
+
+def test_validated_string_affix_prefix_and_suffix_valid():
+    m = ValidatedStringAffix(path="/home/user/notes.txt")
+    assert m.path == "/home/user/notes.txt"
+
+
+def test_validated_string_affix_prefix_and_suffix_invalid_prefix():
+    with pytest.raises(ValidationError):
+        ValidatedStringAffix(path="/tmp/notes.txt")
+
+
+def test_validated_string_affix_prefix_and_suffix_invalid_suffix():
+    with pytest.raises(ValidationError):
+        ValidatedStringAffix(path="/home/user/notes.py")
+
+
+def test_validated_string_affix_conflict_pattern_wins():
+    # content has both pattern and prefix; pattern is translated, prefix is dropped.
+    # The explicit pattern ^[a-z]+$ is enforced.
+    ValidatedStringAffix(content="abc")
+    with pytest.raises(ValidationError):
+        ValidatedStringAffix(content="ABC")
+
+
+def test_validated_string_affix_conflict_comment_in_generated_file():
+    text = _GEN_VALIDATE.read_text()
+    assert "# buf.validate: prefix (not translated)" in text
+
+
+# ---------------------------------------------------------------------------
+# ValidatedExamples — field examples annotation (P2)
+# ---------------------------------------------------------------------------
+
+
+def test_validated_examples_valid():
+    m = ValidatedExamples(count=5, name="alice")
+    assert m.count == 5
+    assert m.name == "alice"
+
+
+def test_validated_examples_constraint_still_enforced():
+    # examples= does not affect validation; gt=0 is still enforced.
+    with pytest.raises(ValidationError):
+        ValidatedExamples(count=0, name="alice")
+
+
+def test_validated_examples_in_generated_file():
+    text = _GEN_VALIDATE.read_text()
+    assert "examples=[1, 42]" in text
+    assert 'examples=["alice", "bob"]' in text
+
+
+# ---------------------------------------------------------------------------
+# ValidatedConst — const constraint translated to Literal[...]
+# ---------------------------------------------------------------------------
+
+
+def test_validated_const_tag_enforced():
+    with pytest.raises(ValidationError):
+        ValidatedConst(tag="other")
+
+
+def test_validated_const_tag_default():
+    m = ValidatedConst()
+    assert m.tag == "fixed"
+
+
+def test_validated_const_count_enforced():
+    with pytest.raises(ValidationError):
+        ValidatedConst(count=99)
+
+
+def test_validated_const_count_default():
+    m = ValidatedConst()
+    assert m.count == 42
+
+
+def test_validated_const_active_default():
+    m = ValidatedConst()
+    assert m.active is True
+
+
+def test_validated_const_in_generated_file():
+    text = _GEN_VALIDATE.read_text()
+    assert "_Literal['fixed']" in text
+
+
+# ---------------------------------------------------------------------------
+# ValidatedIn — in and not_in constraints translated to AfterValidator
+# ---------------------------------------------------------------------------
+
+
+def test_validated_in_status_valid():
+    m = ValidatedIn(status="active")
+    assert m.status == "active"
+
+
+def test_validated_in_status_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedIn(status="banned")
+
+
+def test_validated_in_not_in_code_valid():
+    m = ValidatedIn(code="approved")
+    assert m.code == "approved"
+
+
+def test_validated_in_not_in_code_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedIn(code="deleted")
+
+
+def test_validated_in_priority_valid():
+    m = ValidatedIn(priority=1)
+    assert m.priority == 1
+
+
+def test_validated_in_priority_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedIn(priority=5)
+
+
+def test_validated_in_default_accepted():
+    # AfterValidator does not run on defaults in Pydantic v2 — no error expected.
+    ValidatedIn()
+
+
+# ---------------------------------------------------------------------------
+# ValidatedUnique — repeated.unique translated to AfterValidator
+# ---------------------------------------------------------------------------
+
+
+def test_validated_unique_tags_valid():
+    m = ValidatedUnique(tags=["a", "b", "c"])
+    assert m.tags == ["a", "b", "c"]
+
+
+def test_validated_unique_tags_duplicates():
+    with pytest.raises(ValidationError):
+        ValidatedUnique(tags=["a", "a"])
+
+
+def test_validated_unique_empty_allowed():
+    m = ValidatedUnique(tags=[])
+    assert m.tags == []
+
+
+def test_validated_unique_in_generated_file():
+    text = _GEN_VALIDATE.read_text()
+    assert "_AfterValidator(_require_unique)" in text

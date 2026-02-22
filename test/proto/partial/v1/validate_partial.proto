@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package test.partial.v1;
+
+import "buf/validate/validate.proto";
+
+option go_package = "github.com/cjermain/protoc-gen-pydantic/test/partial";
+
+// ValidatedEmail exercises the string.email format constraint.
+message ValidatedEmail {
+  // Address must be a valid email address.
+  string address = 1 [(buf.validate.field).string.email = true];
+}
+
+// ValidatedUUID exercises the string.uuid format constraint.
+message ValidatedUUID {
+  // Id must be a valid UUID.
+  string id = 1 [(buf.validate.field).string.uuid = true];
+}

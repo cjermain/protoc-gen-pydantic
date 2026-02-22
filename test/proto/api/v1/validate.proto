@@ -3,6 +3,8 @@ syntax = "proto3";
 package test.api.v1;
 
 import "buf/validate/validate.proto";
+import "google/protobuf/duration.proto";
+import "google/protobuf/timestamp.proto";
 
 option go_package = "github.com/cjermain/protoc-gen-pydantic/test/api";
 
@@ -71,12 +73,113 @@ message ValidatedOneof {
   }
 }
 
+// ValidatedDuration exercises Duration bound constraints, which use
+// message-typed rule fields and cannot be translated to Pydantic Field() args.
+// The generator must not panic; instead it emits dropped-constraint comments.
+message ValidatedDuration {
+  // Timeout must be positive and at most one hour.
+  google.protobuf.Duration timeout = 1 [
+    (buf.validate.field).duration.gt = {seconds: 0},
+    (buf.validate.field).duration.lte = {seconds: 3600}
+  ];
+}
+
+// ValidatedTimestamp exercises Timestamp bound constraints, which also use
+// message-typed rule fields and must not panic.
+message ValidatedTimestamp {
+  // CreatedAt must be after the Unix epoch.
+  google.protobuf.Timestamp created_at = 1 [
+    (buf.validate.field).timestamp.gt = {seconds: 0}
+  ];
+}
+
+// ValidatedStringLen exercises the string.len exact-length constraint.
+message ValidatedStringLen {
+  // Code must be exactly 5 characters.
+  string code = 1 [(buf.validate.field).string.len = 5];
+}
+
+// ValidatedStringAffix exercises string.prefix and string.suffix constraints.
+message ValidatedStringAffix {
+  // Url must start with "https://".
+  string url = 1 [(buf.validate.field).string.prefix = "https://"];
+  // Filename must end with ".go".
+  string filename = 2 [(buf.validate.field).string.suffix = ".go"];
+  // Path must start with "/home/" and end with ".txt".
+  string path = 3 [
+    (buf.validate.field).string.prefix = "/home/",
+    (buf.validate.field).string.suffix = ".txt"
+  ];
+  // Content must match a pattern; prefix is also set (conflict → prefix dropped).
+  string content = 4 [
+    (buf.validate.field).string.pattern = "^[a-z]+$",
+    (buf.validate.field).string.prefix = "abc"
+  ];
+}
+
+// ValidatedExamples exercises the field examples annotation.
+message ValidatedExamples {
+  // Count with integer examples.
+  int32 count = 1 [
+    (buf.validate.field).int32.gt = 0,
+    (buf.validate.field).int32.example = 1,
+    (buf.validate.field).int32.example = 42
+  ];
+  // Name with string examples.
+  string name = 2 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).string.example = "alice",
+    (buf.validate.field).string.example = "bob"
+  ];
+}
+
+// ValidatedSilentDrop exercises constraints that were previously silently
+// ignored but now emit dropped-constraint comments via the default case in
+// extractRuleField.
+message ValidatedSilentDrop {
+  // Email must be a valid email address.
+  string email = 1 [(buf.validate.field).string.email = true];
+  // Website must be a valid URI.
+  string website = 2 [(buf.validate.field).string.uri = true];
+  // Address must be a valid IP address.
+  string address = 3 [(buf.validate.field).string.ip = true];
+  // Ratio must be finite (not inf or NaN).
+  float ratio = 4 [(buf.validate.field).float.finite = true];
+  // Token must be a valid UUID.
+  string token = 5 [(buf.validate.field).string.uuid = true];
+  // Host must be a valid IPv4 address.
+  string host_v4 = 6 [(buf.validate.field).string.ipv4 = true];
+  // Host must be a valid IPv6 address.
+  string host_v6 = 7 [(buf.validate.field).string.ipv6 = true];
+}
+
 // ValidatedDropped exercises constraints that are recognised but not translated.
 message ValidatedDropped {
   // Name is required; the required constraint is not translated.
   string name = 1 [(buf.validate.field).required = true];
-  // Tag must equal "fixed"; the const constraint is not translated.
-  string tag = 2 [(buf.validate.field).string.const = "fixed"];
+  // Blob has a bytes.const constraint which is not translated (bytes kind unsupported).
+  bytes blob = 2 [(buf.validate.field).bytes.const = "\x01"];
   // Score must be positive; required is also set but not translated.
   int32 score = 3 [(buf.validate.field).required = true, (buf.validate.field).int32.gt = 0];
+}
+
+// ValidatedConst exercises the const constraint translated to Literal[...].
+message ValidatedConst {
+  string tag = 1 [(buf.validate.field).string.const = "fixed"];
+  int32 count = 2 [(buf.validate.field).int32.const = 42];
+  bool active = 3 [(buf.validate.field).bool.const = true];
+  double score = 4 [(buf.validate.field).double.const = 3.14];
+}
+
+// ValidatedIn exercises in and not_in constraints translated to AfterValidator.
+message ValidatedIn {
+  string status = 1 [(buf.validate.field) = {string: {in: ["active", "inactive"]}}];
+  string code = 2 [(buf.validate.field) = {string: {not_in: ["deleted", "archived"]}}];
+  int32 priority = 3 [(buf.validate.field) = {int32: {in: [1, 2, 3]}}];
+}
+
+// ValidatedUnique exercises repeated.unique translated to AfterValidator.
+message ValidatedUnique {
+  repeated string tags = 1 [(buf.validate.field).repeated.unique = true];
+  repeated int32 scores = 2 [(buf.validate.field).repeated.unique = true];
 }

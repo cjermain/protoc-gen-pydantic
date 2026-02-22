@@ -63,13 +63,16 @@ just clean              # Remove build artifacts and generated files
     │   ├── buf.yaml                 # Buf module config (includes buf.validate dep)
     │   ├── buf.lock                 # Pinned buf dependency commits
     │   ├── api/v1/*.proto           # Proto definitions for testing
-    │   └── foo/bar/v1/*.proto       # Cross-package proto definitions
+    │   ├── foo/bar/v1/*.proto       # Cross-package proto definitions
+    │   └── partial/v1/*.proto       # Partial buf.validate subset (email+uuid only)
     ├── gen/                         # Generated output, default options (committed)
     │   ├── api/v1/*_pydantic.py
-    │   └── foo/bar/v1/*_pydantic.py
+    │   ├── foo/bar/v1/*_pydantic.py
+    │   └── partial/v1/*_pydantic.py
     ├── gen_options/                  # Generated output, all non-default options (committed)
     │   ├── api/v1/*_pydantic.py
-    │   └── foo/bar/v1/*_pydantic.py
+    │   ├── foo/bar/v1/*_pydantic.py
+    │   └── partial/v1/*_pydantic.py
     └── tests/                       # Pytest suite
 ```
 
@@ -105,15 +108,32 @@ Protobuf WKTs are mapped to native Python types (not raw `_pb2` classes):
 The `wellKnownTypes` map in main.go defines these mappings.
 
 ### buf.validate / protovalidate
-`buf.validate` field constraints are translated to Pydantic `Field()` kwargs
-using the same `dynamicpb` extension-resolution pattern as enum value options;
-see `buildFieldConstraintExt()` and `extractFieldConstraints()` in main.go.
-Numeric `gt`/`ge`/`lt`/`le`, `string.min_len`/`max_len`/`pattern`,
-`repeated.min_items`/`max_items`, and `map.min_pairs`/`max_pairs` are
-supported; `required`, `const`, and CEL are recognised but not translated —
-they are emitted as `# buf.validate: X (not translated)` comments inside
-`_Field()`. Other unsupported constraints (`email`, `uuid`, `in`/`not_in`,
-etc.) are silently ignored.
+`buf.validate` field constraints are translated to Pydantic constructs using
+the same `dynamicpb` extension-resolution pattern as enum value options; see
+`buildFieldConstraintExt()` and `extractFieldConstraints()` in main.go.
+
+Supported translations:
+- Numeric `gt`/`ge`/`lt`/`le` → `Field(gt=..., ge=..., lt=..., le=...)`
+- `string.min_len`/`max_len`/`len`, `repeated.min_items`/`max_items`, `map.min_pairs`/`max_pairs` → `Field(min_length=..., max_length=...)`
+- `string.pattern` → `Field(pattern=...)`
+- `string.prefix`/`suffix` → `Field(pattern=...)` (anchored regex; conflicts with `pattern` → dropped comment)
+- `field.example` → `Field(examples=[...])`
+- `string.const`/`int.const`/`bool.const` → `Literal[value]` type + matching default (float/double/bytes excluded — not valid in `Literal[]`)
+- `string.in`/`int.in`/etc. → `Annotated[T, AfterValidator(_make_in_validator(frozenset({...})))]`
+- `string.not_in`/etc. → `Annotated[T, AfterValidator(_make_not_in_validator(frozenset({...})))]`
+- `repeated.unique` → `Annotated[list[T], AfterValidator(_require_unique)]`
+- `string.email`/`uri`/`ip`/`ipv4`/`ipv6`/`uuid` → `Annotated[str, AfterValidator(_validate_*)]`
+
+Emitted as `# buf.validate: X (not translated)` comments: `required`, CEL,
+float/double/bytes `const`, message-typed bounds (duration, timestamp).
+`enum.defined_only` is a no-op (Python enums enforce this natively).
+
+Format and set validator helpers live in `_proto_types.py` (generated
+alongside model files). `buildProtoTypesContent(needed map[string]bool)`
+assembles the file conditionally — only imports and functions actually used by
+the directory's proto files are emitted. `protoTypeDirs` in `main()` is
+`map[string]map[string]bool` accumulating runtime import names per directory.
+
 `test/proto/buf.yaml` declares the `buf.build/bufbuild/protovalidate` dep;
 `_has_bsr_imports()` in conftest.py excludes BSR protos from the standalone
 `protoc` compilation.
@@ -143,13 +163,14 @@ Test coverage includes:
 - JSON/dict roundtrips
 - `test_ruff_format`: ruff format compliance of all generated files
 - `test_ty`: ty type checking of all generated files
+- `test_proto_types`: structural and content tests for conditional `_proto_types.py` generation (presence/absence of format-validator imports per directory)
 
 Format/type issues in generated files are caught by `just test`, not `just lint`. `just lint-types` covers `tests/` only. False-positive ty rules (Pydantic alias mechanics, `**kwargs` spreading, dynamic imports) are suppressed globally in `[tool.ty.rules]` in `test/pyproject.toml`.
 
 ### Adding Tests
-1. Add proto definitions to `test/proto/api/v1/*.proto`
+1. Add proto definitions to `test/proto/api/v1/*.proto` (or `test/proto/partial/v1/` for buf.validate subset tests)
 2. Rebuild and regenerate: `just generate`
-3. Add pytest functions to the matching test file in `test/tests/` (e.g. `test_scalars.py`, `test_collections.py`, `test_enums.py`)
+3. Add pytest functions to the matching test file in `test/tests/` (e.g. `test_scalars.py`, `test_collections.py`, `test_enums.py`, `test_validate.py`, `test_proto_types.py`)
 4. Run: `just test`
 
 ## Code Style
