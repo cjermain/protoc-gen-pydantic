@@ -48,8 +48,12 @@ lint-python:
     cd test && uv run ruff check tests/
     cd test && uv run ruff format --check tests/
 
+# Run type checker on test suite code
+lint-types:
+    cd test && uv run ty check tests/
+
 # Run all linters
-lint: lint-go lint-python
+lint: lint-go lint-python lint-types
 
 # Auto-fix Python lint issues
 fix-python:

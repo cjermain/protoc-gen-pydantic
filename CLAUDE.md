@@ -31,9 +31,10 @@ just build              # Build the Go binary
 just generate           # Build + generate Python models from test protos
 just test               # Run Python tests
 just dev                # Full rebuild + generate + test cycle
-just lint               # Run all linters (Go + Python)
+just lint               # Run all linters (Go + Python + type check)
 just lint-go            # Run Go linter
 just lint-python        # Run Python linters on test suite
+just lint-types         # Run ty type checker on test suite code (tests/ only)
 just fix-python         # Auto-fix Python lint issues
 just check-generated    # Verify generated files match committed versions
 just clean              # Remove build artifacts and generated files
@@ -132,7 +133,15 @@ just test
 cd test && uv run pytest -v -k test_wkt_timestamp
 ```
 
-Test coverage includes: enums, scalar fields, optional/repeated/map fields, oneof, builtin alias handling, well-known types, enum value options (built-in and custom), buf.validate field constraints, and JSON/dict roundtrips.
+Test coverage includes:
+- Proto field types: enums, scalars, optional/repeated/map, oneof, well-known types
+- Builtin alias handling (`bool_`, `float_`, `bytes_`)
+- Enum value options (built-in and custom), buf.validate field constraints
+- JSON/dict roundtrips
+- `test_ruff_format`: ruff format compliance of all generated files
+- `test_ty`: ty type checking of all generated files
+
+Format/type issues in generated files are caught by `just test`, not `just lint`. `just lint-types` covers `tests/` only. False-positive ty rules (Pydantic alias mechanics, `**kwargs` spreading, dynamic imports) are suppressed globally in `[tool.ty.rules]` in `test/pyproject.toml`.
 
 ### Adding Tests
 1. Add proto definitions to `test/proto/api/v1/*.proto`

@@ -30,6 +30,9 @@ jobs:
       - name: Lint Python
         run: just lint-python
 
+      - name: Type check Python
+        run: just lint-types
+
   check-generated:
     runs-on: ubuntu-latest
     steps:

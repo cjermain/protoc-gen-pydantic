@@ -20,6 +20,7 @@ build-backend = "uv_build"
 dev = [
     "pytest>=8.3.5",
     "ruff>=0.15.1",
+    "ty>=0.0.18",
 ]
 
 [tool.uv]
@@ -28,3 +29,17 @@ managed = true
 [tool.uv.build-backend]
 module-root = "gen"
 namespace = true
+
+[tool.ty.rules]
+# Pydantic aliases (bool_, float_, bytes_, id_) are not visible to ty's static analysis
+unknown-argument = "ignore"
+# Pydantic **{**defaults, **overrides} kwargs spreading loses per-key type info
+invalid-argument-type = "ignore"
+# __doc__ is typed as str | None; unsupported-operator fires for `in __doc__` patterns
+unsupported-operator = "ignore"
+# Optional Pydantic fields accessed in tests where None is impossible at runtime
+unresolved-attribute = "ignore"
+# Protobuf read-only properties assigned in test fixtures
+invalid-assignment = "ignore"
+# Dynamically-loaded modules (gen_pb2) created at pytest collection time
+unresolved-import = "ignore"
