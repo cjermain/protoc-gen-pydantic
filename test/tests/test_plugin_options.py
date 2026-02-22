@@ -5,7 +5,7 @@ All options are set to non-default values:
   - auto_trim_enum_prefix=false
   - use_integers_for_enums=true
   - disable_field_description=true
-  - use_none_union_syntax_instead_of_optional=true
+  - use_none_union_syntax_instead_of_optional=false
 """
 
 import importlib.machinery
@@ -141,10 +141,10 @@ def test_disable_field_description(opts_messages):
     assert Message.model_fields["lastName"].description is None
 
 
-# --- use_none_union_syntax_instead_of_optional=true ---
+# --- use_none_union_syntax_instead_of_optional=false ---
 
 
 def test_use_none_union_syntax(scalars_source):
-    """Source uses `| None` syntax instead of Optional when option is true."""
-    assert "| None" in scalars_source
-    assert "_Optional" not in scalars_source
+    """Source uses `Optional[T]` syntax instead of `| None` when option is false."""
+    assert "_Optional" in scalars_source
+    assert "| None" not in scalars_source

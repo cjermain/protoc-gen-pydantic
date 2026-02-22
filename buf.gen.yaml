@@ -19,7 +19,7 @@ plugins:
       - auto_trim_enum_prefix=false
       - use_integers_for_enums=true
       - disable_field_description=true
-      - use_none_union_syntax_instead_of_optional=true
+      - use_none_union_syntax_instead_of_optional=false
     out: test/gen_options
 inputs:
   - directory: test/proto

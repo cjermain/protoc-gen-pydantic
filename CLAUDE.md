@@ -83,7 +83,7 @@ Passed via `opt:` in buf.gen.yaml or `--pydantic_opt=` with protoc:
 | `auto_trim_enum_prefix` | `true` | Remove enum type prefix from value names |
 | `use_integers_for_enums` | `false` | Use int values instead of string names |
 | `disable_field_description` | `false` | Skip field descriptions from comments |
-| `use_none_union_syntax_instead_of_optional` | `false` | Use `T \| None` instead of `Optional[T]` |
+| `use_none_union_syntax_instead_of_optional` | `true` | Use `T \| None` instead of `Optional[T]` |
 
 buf.validate field constraints are **not** controlled by a plugin option. They
 are read automatically from the proto descriptor whenever
