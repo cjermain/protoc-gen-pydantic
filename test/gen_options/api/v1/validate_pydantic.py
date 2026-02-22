@@ -17,6 +17,12 @@ from ._proto_types import (
     _make_in_validator,
     _make_not_in_validator,
     _require_unique,
+    _validate_email,
+    _validate_ip,
+    _validate_ipv4,
+    _validate_ipv6,
+    _validate_uri,
+    _validate_uuid,
 )
 
 
@@ -442,19 +448,19 @@ class ValidatedSilentDrop(_ProtoModel):
     extractRuleField.
 
     Attributes:
-      email (str):
+      email (_Annotated[str, _AfterValidator(_validate_email)]):
         Email must be a valid email address.
-      website (str):
+      website (_Annotated[str, _AfterValidator(_validate_uri)]):
         Website must be a valid URI.
-      address (str):
+      address (_Annotated[str, _AfterValidator(_validate_ip)]):
         Address must be a valid IP address.
       ratio (float):
         Ratio must be finite (not inf or NaN).
-      token (str):
+      token (_Annotated[str, _AfterValidator(_validate_uuid)]):
         Token must be a valid UUID.
-      hostV4 (str):
+      hostV4 (_Annotated[str, _AfterValidator(_validate_ipv4)]):
         Host must be a valid IPv4 address.
-      hostV6 (str):
+      hostV6 (_Annotated[str, _AfterValidator(_validate_ipv6)]):
         Host must be a valid IPv6 address.
     """
 
@@ -465,21 +471,18 @@ class ValidatedSilentDrop(_ProtoModel):
     )
 
     # Email must be a valid email address.
-    email: "str" = _Field(
+    email: "_Annotated[str, _AfterValidator(_validate_email)]" = _Field(
         "",
-        # buf.validate: email (not translated)
     )
 
     # Website must be a valid URI.
-    website: "str" = _Field(
+    website: "_Annotated[str, _AfterValidator(_validate_uri)]" = _Field(
         "",
-        # buf.validate: uri (not translated)
     )
 
     # Address must be a valid IP address.
-    address: "str" = _Field(
+    address: "_Annotated[str, _AfterValidator(_validate_ip)]" = _Field(
         "",
-        # buf.validate: ip (not translated)
     )
 
     # Ratio must be finite (not inf or NaN).
@@ -489,21 +492,18 @@ class ValidatedSilentDrop(_ProtoModel):
     )
 
     # Token must be a valid UUID.
-    token: "str" = _Field(
+    token: "_Annotated[str, _AfterValidator(_validate_uuid)]" = _Field(
         "",
-        # buf.validate: uuid (not translated)
     )
 
     # Host must be a valid IPv4 address.
-    hostV4: "str" = _Field(
+    hostV4: "_Annotated[str, _AfterValidator(_validate_ipv4)]" = _Field(
         "",
-        # buf.validate: ipv4 (not translated)
     )
 
     # Host must be a valid IPv6 address.
-    hostV6: "str" = _Field(
+    hostV6: "_Annotated[str, _AfterValidator(_validate_ipv6)]" = _Field(
         "",
-        # buf.validate: ipv6 (not translated)
     )
 
 

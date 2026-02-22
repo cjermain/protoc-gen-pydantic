@@ -478,57 +478,111 @@ def test_validated_timestamp_comments_in_generated_file():
 
 
 # ---------------------------------------------------------------------------
-# ValidatedSilentDrop — previously silent drops now emit comments (P1)
+# ValidatedSilentDrop — format validators enforced via _AfterValidator (P3)
 # ---------------------------------------------------------------------------
 
 
-def test_validated_silent_drop_accepts_any_value():
-    # No Pydantic constraints are translated, so any value is accepted.
-    d = ValidatedSilentDrop(
-        email="not-an-email",
-        website="not-a-uri",
-        address="not-an-ip",
-        ratio=float("inf"),  # infinite — finite not enforced
-    )
-    assert d.email == "not-an-email"
-    assert d.website == "not-a-uri"
-    assert d.address == "not-an-ip"
-
-
-def test_validated_silent_drop_defaults():
-    # Default construction works; all constraints are dropped comments only.
+def test_validated_format_defaults():
+    # Default empty strings skip validation (proto3 zero-value semantics).
     d = ValidatedSilentDrop()
     assert d.email == ""
     assert d.website == ""
     assert d.address == ""
+    assert d.token == ""
+    assert d.host_v4 == ""
+    assert d.host_v6 == ""
     assert d.ratio == pytest.approx(0.0)
 
 
-@pytest.mark.parametrize(
-    "constraint",
-    ["email", "uri", "ip", "finite", "uuid", "ipv4", "ipv6"],
-)
-def test_validated_silent_drop_comments_in_generated_file(constraint):
+def test_validated_format_finite_still_dropped():
+    # float.finite is not translated; any float value is accepted.
+    d = ValidatedSilentDrop(ratio=float("inf"))
+    assert d.ratio == float("inf")
+
+
+def test_validated_format_finite_comment_in_generated_file():
     text = _GEN_VALIDATE.read_text()
-    assert f"# buf.validate: {constraint} (not translated)" in text
+    assert "# buf.validate: finite (not translated)" in text
 
 
-def test_validated_silent_drop_uuid_not_enforced():
-    # uuid = true is not translated; any string is accepted.
-    d = ValidatedSilentDrop(token="not-a-uuid")
-    assert d.token == "not-a-uuid"
+@pytest.mark.parametrize("email", ["user@example.com", "a@b.co", "x.y+z@domain.org"])
+def test_validated_format_email_valid(email):
+    d = ValidatedSilentDrop(email=email)
+    assert d.email == email
 
 
-def test_validated_silent_drop_ipv4_not_enforced():
-    # ipv4 = true is not translated; any string is accepted.
-    d = ValidatedSilentDrop(host_v4="not-an-ip")
-    assert d.host_v4 == "not-an-ip"
+@pytest.mark.parametrize("email", ["notanemail", "@domain.com", "user@", "nodot@nodot"])
+def test_validated_format_email_invalid(email):
+    with pytest.raises(ValidationError):
+        ValidatedSilentDrop(email=email)
 
 
-def test_validated_silent_drop_ipv6_not_enforced():
-    # ipv6 = true is not translated; any string is accepted.
-    d = ValidatedSilentDrop(host_v6="not-an-ipv6")
-    assert d.host_v6 == "not-an-ipv6"
+@pytest.mark.parametrize("uri", ["https://example.com", "http://x.org/path?q=1"])
+def test_validated_format_uri_valid(uri):
+    d = ValidatedSilentDrop(website=uri)
+    assert d.website == uri
+
+
+@pytest.mark.parametrize("uri", ["notauri", "example.com", "ftp//missing-colon"])
+def test_validated_format_uri_invalid(uri):
+    with pytest.raises(ValidationError):
+        ValidatedSilentDrop(website=uri)
+
+
+@pytest.mark.parametrize("addr", ["1.2.3.4", "::1", "2001:db8::1"])
+def test_validated_format_ip_valid(addr):
+    d = ValidatedSilentDrop(address=addr)
+    assert d.address == addr
+
+
+@pytest.mark.parametrize("addr", ["999.0.0.1", "not-an-ip", "256.1.1.1"])
+def test_validated_format_ip_invalid(addr):
+    with pytest.raises(ValidationError):
+        ValidatedSilentDrop(address=addr)
+
+
+@pytest.mark.parametrize("v4", ["192.168.1.1", "0.0.0.0", "255.255.255.255"])
+def test_validated_format_ipv4_valid(v4):
+    d = ValidatedSilentDrop(host_v4=v4)
+    assert d.host_v4 == v4
+
+
+@pytest.mark.parametrize("v4", ["::1", "not-an-ip", "256.0.0.1"])
+def test_validated_format_ipv4_invalid(v4):
+    with pytest.raises(ValidationError):
+        ValidatedSilentDrop(host_v4=v4)
+
+
+@pytest.mark.parametrize("v6", ["::1", "2001:db8::1", "fe80::1"])
+def test_validated_format_ipv6_valid(v6):
+    d = ValidatedSilentDrop(host_v6=v6)
+    assert d.host_v6 == v6
+
+
+@pytest.mark.parametrize("v6", ["1.2.3.4", "not-an-ip", "gggg::1"])
+def test_validated_format_ipv6_invalid(v6):
+    with pytest.raises(ValidationError):
+        ValidatedSilentDrop(host_v6=v6)
+
+
+@pytest.mark.parametrize(
+    "u",
+    [
+        "550e8400-e29b-41d4-a716-446655440000",
+        "6ba7b810-9dad-11d1-80b4-00c04fd430c8",
+    ],
+)
+def test_validated_format_uuid_valid(u):
+    d = ValidatedSilentDrop(token=u)
+    assert d.token == u
+
+
+@pytest.mark.parametrize(
+    "u", ["not-a-uuid", "12345", "550e8400-zzzz-41d4-a716-446655440000"]
+)
+def test_validated_format_uuid_invalid(u):
+    with pytest.raises(ValidationError):
+        ValidatedSilentDrop(token=u)
 
 
 # ---------------------------------------------------------------------------
