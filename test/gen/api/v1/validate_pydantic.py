@@ -3,7 +3,7 @@
 
 from pydantic import BaseModel as _BaseModel, ConfigDict as _ConfigDict, Field as _Field
 
-from ._proto_types import ProtoInt64, ProtoUInt64
+from ._proto_types import ProtoDuration, ProtoInt64, ProtoTimestamp, ProtoUInt64
 
 
 class _ProtoModel(_BaseModel):
@@ -285,6 +285,56 @@ class ValidatedOneof(_ProtoModel):
         None,
         description="Must be positive when set.\nOnly one of the fields can be specified with: [small large] (oneof value)",
         gt=0,
+    )
+
+
+class ValidatedDuration(_ProtoModel):
+    """
+    ValidatedDuration exercises Duration bound constraints, which use
+    message-typed rule fields and cannot be translated to Pydantic Field() args.
+    The generator must not panic; instead it emits dropped-constraint comments.
+
+    Attributes:
+      timeout (ProtoDuration | None):
+        Timeout must be positive and at most one hour.
+    """
+
+    model_config = _ConfigDict(
+        ser_json_bytes="base64",
+        val_json_bytes="base64",
+        ser_json_inf_nan="strings",
+    )
+
+    # Timeout must be positive and at most one hour.
+    timeout: "ProtoDuration | None" = _Field(
+        None,
+        description="Timeout must be positive and at most one hour.",
+        # buf.validate: lte (not translated)
+        # buf.validate: gt (not translated)
+    )
+
+
+class ValidatedTimestamp(_ProtoModel):
+    """
+    ValidatedTimestamp exercises Timestamp bound constraints, which also use
+    message-typed rule fields and must not panic.
+
+    Attributes:
+      created_at (ProtoTimestamp | None):
+        CreatedAt must be after the Unix epoch.
+    """
+
+    model_config = _ConfigDict(
+        ser_json_bytes="base64",
+        val_json_bytes="base64",
+        ser_json_inf_nan="strings",
+    )
+
+    # CreatedAt must be after the Unix epoch.
+    created_at: "ProtoTimestamp | None" = _Field(
+        None,
+        description="CreatedAt must be after the Unix epoch.",
+        # buf.validate: gt (not translated)
     )
 
 

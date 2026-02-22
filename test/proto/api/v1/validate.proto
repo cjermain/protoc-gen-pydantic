@@ -3,6 +3,8 @@ syntax = "proto3";
 package test.api.v1;
 
 import "buf/validate/validate.proto";
+import "google/protobuf/duration.proto";
+import "google/protobuf/timestamp.proto";
 
 option go_package = "github.com/cjermain/protoc-gen-pydantic/test/api";
 
@@ -69,6 +71,26 @@ message ValidatedOneof {
     // Must be positive when set.
     int64 large = 2 [(buf.validate.field).int64.gt = 0];
   }
+}
+
+// ValidatedDuration exercises Duration bound constraints, which use
+// message-typed rule fields and cannot be translated to Pydantic Field() args.
+// The generator must not panic; instead it emits dropped-constraint comments.
+message ValidatedDuration {
+  // Timeout must be positive and at most one hour.
+  google.protobuf.Duration timeout = 1 [
+    (buf.validate.field).duration.gt = {seconds: 0},
+    (buf.validate.field).duration.lte = {seconds: 3600}
+  ];
+}
+
+// ValidatedTimestamp exercises Timestamp bound constraints, which also use
+// message-typed rule fields and must not panic.
+message ValidatedTimestamp {
+  // CreatedAt must be after the Unix epoch.
+  google.protobuf.Timestamp created_at = 1 [
+    (buf.validate.field).timestamp.gt = {seconds: 0}
+  ];
 }
 
 // ValidatedDropped exercises constraints that are recognised but not translated.

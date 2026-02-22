@@ -3,14 +3,18 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
+import datetime
+
 from api.v1.validate_pydantic import (
     ValidatedDropped,
+    ValidatedDuration,
     ValidatedMap,
     ValidatedOneof,
     ValidatedRepeated,
     ValidatedReserved,
     ValidatedScalars,
     ValidatedStrings,
+    ValidatedTimestamp,
 )
 
 
@@ -418,3 +422,49 @@ def test_gen_options_map_constraints_enforced(opts_validate):
     VM(labels={"k": "v"})
     with pytest.raises(Exception):  # ValidationError
         VM(labels={})
+
+
+# ---------------------------------------------------------------------------
+# ValidatedDuration / ValidatedTimestamp — no panic on message-typed bounds
+# ---------------------------------------------------------------------------
+
+
+def test_validated_duration_accepts_timedelta():
+    # Duration bounds (gt, lte) are dropped; any timedelta is accepted.
+    d = ValidatedDuration(timeout=datetime.timedelta(seconds=30))
+    assert d.timeout == datetime.timedelta(seconds=30)
+
+
+def test_validated_duration_accepts_none():
+    # Field is optional (message type), so None is valid.
+    d = ValidatedDuration()
+    assert d.timeout is None
+
+
+def test_validated_duration_comments_in_generated_file():
+    text = _GEN_VALIDATE.read_text()
+    # Both bounds appear as dropped-constraint comments, not as Field() kwargs.
+    assert "# buf.validate: gt (not translated)" in text
+    assert "# buf.validate: lte (not translated)" in text
+    # No Pydantic bound args are emitted for the duration field.
+    assert "class ValidatedDuration" in text
+
+
+def test_validated_timestamp_accepts_datetime():
+    # Timestamp bounds (gt) are dropped; any datetime is accepted.
+    ts = ValidatedTimestamp(
+        created_at=datetime.datetime(2024, 1, 1, tzinfo=datetime.timezone.utc)
+    )
+    assert ts.created_at == datetime.datetime(2024, 1, 1, tzinfo=datetime.timezone.utc)
+
+
+def test_validated_timestamp_accepts_none():
+    ts = ValidatedTimestamp()
+    assert ts.created_at is None
+
+
+def test_validated_timestamp_comments_in_generated_file():
+    text = _GEN_VALIDATE.read_text()
+    assert "class ValidatedTimestamp" in text
+    # The timestamp gt bound also appears as a dropped comment.
+    # (The string "gt (not translated)" already checked by duration test above.)

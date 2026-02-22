@@ -1407,17 +1407,29 @@ func (e *generator) extractFieldConstraints(
 func extractRuleField(fc *FieldConstraints, fd protoreflect.FieldDescriptor, v protoreflect.Value, isFloat bool) {
 	switch string(fd.Name()) {
 	case "gt":
-		s := formatNumericLiteral(fd, v, isFloat)
-		fc.Gt = &s
+		if s, ok := formatNumericLiteral(fd, v, isFloat); ok {
+			fc.Gt = &s
+		} else {
+			fc.DroppedConstraints = append(fc.DroppedConstraints, "gt")
+		}
 	case "gte":
-		s := formatNumericLiteral(fd, v, isFloat)
-		fc.Gte = &s
+		if s, ok := formatNumericLiteral(fd, v, isFloat); ok {
+			fc.Gte = &s
+		} else {
+			fc.DroppedConstraints = append(fc.DroppedConstraints, "gte")
+		}
 	case "lt":
-		s := formatNumericLiteral(fd, v, isFloat)
-		fc.Lt = &s
+		if s, ok := formatNumericLiteral(fd, v, isFloat); ok {
+			fc.Lt = &s
+		} else {
+			fc.DroppedConstraints = append(fc.DroppedConstraints, "lt")
+		}
 	case "lte":
-		s := formatNumericLiteral(fd, v, isFloat)
-		fc.Lte = &s
+		if s, ok := formatNumericLiteral(fd, v, isFloat); ok {
+			fc.Lte = &s
+		} else {
+			fc.DroppedConstraints = append(fc.DroppedConstraints, "lte")
+		}
 	case "min_len":
 		n := int64(v.Uint())
 		fc.MinLength = &n
@@ -1438,23 +1450,31 @@ func extractRuleField(fc *FieldConstraints, fd protoreflect.FieldDescriptor, v p
 	}
 }
 
-func formatNumericLiteral(fd protoreflect.FieldDescriptor, v protoreflect.Value, isFloat bool) string {
+// formatNumericLiteral formats a protoreflect Value as a Python numeric literal.
+// Returns ("", false) when fd is a MessageKind (e.g. Duration or Timestamp
+// bounds), which cannot be expressed as a simple numeric literal and must be
+// dropped with a comment instead.
+func formatNumericLiteral(fd protoreflect.FieldDescriptor, v protoreflect.Value, isFloat bool) (string, bool) {
 	switch fd.Kind() {
 	case protoreflect.FloatKind:
-		return formatPythonFloat(float64(float32(v.Float())))
+		return formatPythonFloat(float64(float32(v.Float()))), true
 	case protoreflect.DoubleKind:
-		return formatPythonFloat(v.Float())
+		return formatPythonFloat(v.Float()), true
 	case protoreflect.Int32Kind, protoreflect.Sint32Kind, protoreflect.Sfixed32Kind,
 		protoreflect.Int64Kind, protoreflect.Sint64Kind, protoreflect.Sfixed64Kind:
-		return fmt.Sprintf("%d", v.Int())
+		return fmt.Sprintf("%d", v.Int()), true
 	case protoreflect.Uint32Kind, protoreflect.Fixed32Kind,
 		protoreflect.Uint64Kind, protoreflect.Fixed64Kind:
-		return fmt.Sprintf("%d", v.Uint())
+		return fmt.Sprintf("%d", v.Uint()), true
+	case protoreflect.MessageKind:
+		// Duration and Timestamp bounds are message-typed; cannot be represented
+		// as a simple numeric literal.
+		return "", false
 	default:
 		if isFloat {
-			return formatPythonFloat(v.Float())
+			return formatPythonFloat(v.Float()), true
 		}
-		return fmt.Sprintf("%d", v.Int())
+		return fmt.Sprintf("%d", v.Int()), true
 	}
 }
 
