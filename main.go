@@ -1759,6 +1759,9 @@ func (e *generator) extractFieldConstraints(
 	if !result.HasAny() {
 		return nil
 	}
+	// Sort dropped constraint names so the emitted comments are deterministic
+	// regardless of the non-deterministic iteration order of protoreflect.Range.
+	sort.Strings(result.DroppedConstraints)
 	if result.ConstLiteral != nil {
 		e.addStdImport("_Literal")
 	}

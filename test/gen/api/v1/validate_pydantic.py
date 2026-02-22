@@ -329,8 +329,8 @@ class ValidatedDuration(_ProtoModel):
     timeout: "ProtoDuration | None" = _Field(
         None,
         description="Timeout must be positive and at most one hour.",
-        # buf.validate: lte (not translated)
         # buf.validate: gt (not translated)
+        # buf.validate: lte (not translated)
     )
 
 
