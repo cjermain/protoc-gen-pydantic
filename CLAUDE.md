@@ -23,9 +23,10 @@ protoc-gen-pydantic is a `protoc` plugin written in Go that generates Pydantic v
 
 ## Dev Commands
 
-This project uses [just](https://github.com/casey/just) as a command runner. Run `just --list` to see all recipes.
+This project uses [mise](https://mise.jdx.dev/) to manage tool versions and [just](https://github.com/casey/just) as a command runner. Run `mise install` first, then `just --list` to see all recipes.
 
 ```bash
+mise install            # Install all pinned tools (buf, just, uv, protoc, golangci-lint, pre-commit)
 just init               # Check dependencies, install pre-commit hooks, sync Python venv
 just build              # Build the Go binary
 just generate           # Build + generate Python models from test protos

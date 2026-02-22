@@ -285,13 +285,20 @@ Constraints without a direct Pydantic equivalent (`required`, `const`, CEL expre
 
 ## Development
 
-This project uses [just](https://github.com/casey/just) as a command runner. After cloning, run:
+This project uses [mise](https://mise.jdx.dev/) to manage tool versions and
+[just](https://github.com/casey/just) as a command runner.
+
+After cloning, install all required tools with mise:
+
+```sh
+mise install
+```
+
+Then set up the project (sync Python venv, install pre-commit hooks):
 
 ```sh
 just init
 ```
-
-This checks that all required tools are installed (`go`, `buf`, `protoc`, `uv`, `golangci-lint`), syncs the Python virtual environment, and installs pre-commit hooks.
 
 Other useful commands:
 
@@ -302,6 +309,9 @@ just test   # Run Python tests only
 ```
 
 Run `just --list` to see all available recipes.
+
+> **Without mise**: install `go`, `buf`, `protoc`, `uv`, `golangci-lint`, `just`, and
+> `pre-commit` manually, then run `just init`.
 
 ## Contributing
 
