@@ -672,7 +672,7 @@ func (c *FieldConstraints) PydanticArgs() []string {
 		args = append(args, fmt.Sprintf("max_length=%d", *c.MaxLength))
 	}
 	if c.Pattern != nil {
-		args = append(args, fmt.Sprintf("pattern=%q", *c.Pattern))
+		args = append(args, fmt.Sprintf("pattern=%s", pyQuote(*c.Pattern)))
 	}
 	return args
 }
