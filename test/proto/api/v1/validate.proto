@@ -53,6 +53,14 @@ message ValidatedMap {
   ];
 }
 
+// ValidatedReserved exercises a field whose name is a Python reserved word and
+// also carries a buf.validate constraint. The generated field must emit both
+// alias= and the constraint kwargs in a single _Field() call.
+message ValidatedReserved {
+  // Score must be positive.
+  float float = 1 [(buf.validate.field).float.gt = 0.0];
+}
+
 // ValidatedDropped exercises constraints that are recognised but not translated.
 message ValidatedDropped {
   // Name is required; the required constraint is not translated.

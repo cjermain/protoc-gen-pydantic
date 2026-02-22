@@ -230,6 +230,33 @@ class ValidatedMap(_ProtoModel):
     )
 
 
+class ValidatedReserved(_ProtoModel):
+    """
+    ValidatedReserved exercises a field whose name is a Python reserved word and
+    also carries a buf.validate constraint. The generated field must emit both
+    alias= and the constraint kwargs in a single _Field() call.
+
+    Attributes:
+      float_ (float):
+        Score must be positive.
+    """
+
+    model_config = _ConfigDict(
+        populate_by_name=True,
+        ser_json_bytes="base64",
+        val_json_bytes="base64",
+        ser_json_inf_nan="strings",
+    )
+
+    # Score must be positive.
+    float_: "float" = _Field(
+        0.0,
+        description="Score must be positive.",
+        alias="float",
+        gt=0.0,
+    )
+
+
 class ValidatedDropped(_ProtoModel):
     """
     ValidatedDropped exercises constraints that are recognised but not translated.

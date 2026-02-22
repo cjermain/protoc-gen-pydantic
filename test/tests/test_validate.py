@@ -7,6 +7,7 @@ from api.v1.validate_pydantic import (
     ValidatedDropped,
     ValidatedMap,
     ValidatedRepeated,
+    ValidatedReserved,
     ValidatedScalars,
     ValidatedStrings,
 )
@@ -253,6 +254,27 @@ def test_validated_scalars_offset_omitted():
     # optional — can be omitted; None does not trigger the constraint
     s = ValidatedScalars(age=1, score=0.0, priority=1, ratio=0.0, rank=1)
     assert s.offset is None
+
+
+# ---------------------------------------------------------------------------
+# ValidatedReserved — alias + constraint combination (item 10)
+# ---------------------------------------------------------------------------
+
+
+def test_validated_reserved_alias_and_constraint():
+    r = ValidatedReserved(float_=1.0)
+    assert r.float_ == pytest.approx(1.0)
+
+
+def test_validated_reserved_alias_construction():
+    # alias allows construction with the original proto name
+    r = ValidatedReserved(**{"float": 1.0})
+    assert r.float_ == pytest.approx(1.0)
+
+
+def test_validated_reserved_constraint_enforced():
+    with pytest.raises(ValidationError):
+        ValidatedReserved(float_=0.0)
 
 
 # ---------------------------------------------------------------------------
