@@ -72,3 +72,27 @@ ProtoDuration = _Annotated[
     _BeforeValidator(_parse_duration),
     _PlainSerializer(_serialize_duration, return_type=str, when_used="json"),
 ]
+
+
+def _require_unique(v):
+    if len(v) != len(set(v)):
+        raise ValueError("list items must be unique")
+    return v
+
+
+def _make_in_validator(valid_values):
+    def _validate(v):
+        if v not in valid_values:
+            raise ValueError(f"value must be one of {sorted(valid_values)}")
+        return v
+
+    return _validate
+
+
+def _make_not_in_validator(excluded_values):
+    def _validate(v):
+        if v in excluded_values:
+            raise ValueError(f"value must not be one of {sorted(excluded_values)}")
+        return v
+
+    return _validate

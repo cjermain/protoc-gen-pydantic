@@ -6,9 +6,11 @@ from pydantic import ValidationError
 import datetime
 
 from api.v1.validate_pydantic import (
+    ValidatedConst,
     ValidatedDropped,
     ValidatedDuration,
     ValidatedExamples,
+    ValidatedIn,
     ValidatedMap,
     ValidatedOneof,
     ValidatedRepeated,
@@ -19,6 +21,7 @@ from api.v1.validate_pydantic import (
     ValidatedStringLen,
     ValidatedStrings,
     ValidatedTimestamp,
+    ValidatedUnique,
 )
 
 
@@ -301,10 +304,10 @@ def test_validated_dropped_required_not_enforced():
     assert d.name == ""
 
 
-def test_validated_dropped_const_not_enforced():
-    # string.const is not translated; any string value is accepted.
-    d = ValidatedDropped(tag="anything")
-    assert d.tag == "anything"
+def test_validated_dropped_bytes_const_not_enforced():
+    # bytes.const is not translated (bytes kind unsupported); any bytes value is accepted.
+    d = ValidatedDropped(blob=b"\xff")
+    assert d.blob == b"\xff"
 
 
 def test_validated_dropped_comments_in_generated_file():
@@ -485,13 +488,11 @@ def test_validated_silent_drop_accepts_any_value():
         email="not-an-email",
         website="not-a-uri",
         address="not-an-ip",
-        tags=["a", "a"],  # duplicate — unique not enforced
         ratio=float("inf"),  # infinite — finite not enforced
     )
     assert d.email == "not-an-email"
     assert d.website == "not-a-uri"
     assert d.address == "not-an-ip"
-    assert d.tags == ["a", "a"]
 
 
 def test_validated_silent_drop_defaults():
@@ -500,13 +501,12 @@ def test_validated_silent_drop_defaults():
     assert d.email == ""
     assert d.website == ""
     assert d.address == ""
-    assert d.tags == []
     assert d.ratio == pytest.approx(0.0)
 
 
 @pytest.mark.parametrize(
     "constraint",
-    ["email", "uri", "ip", "unique", "finite", "uuid", "ipv4", "ipv6"],
+    ["email", "uri", "ip", "finite", "uuid", "ipv4", "ipv6"],
 )
 def test_validated_silent_drop_comments_in_generated_file(constraint):
     text = _GEN_VALIDATE.read_text()
@@ -634,3 +634,103 @@ def test_validated_examples_in_generated_file():
     text = _GEN_VALIDATE.read_text()
     assert "examples=[1, 42]" in text
     assert 'examples=["alice", "bob"]' in text
+
+
+# ---------------------------------------------------------------------------
+# ValidatedConst — const constraint translated to Literal[...]
+# ---------------------------------------------------------------------------
+
+
+def test_validated_const_tag_enforced():
+    with pytest.raises(ValidationError):
+        ValidatedConst(tag="other")
+
+
+def test_validated_const_tag_default():
+    m = ValidatedConst()
+    assert m.tag == "fixed"
+
+
+def test_validated_const_count_enforced():
+    with pytest.raises(ValidationError):
+        ValidatedConst(count=99)
+
+
+def test_validated_const_count_default():
+    m = ValidatedConst()
+    assert m.count == 42
+
+
+def test_validated_const_active_default():
+    m = ValidatedConst()
+    assert m.active is True
+
+
+def test_validated_const_in_generated_file():
+    text = _GEN_VALIDATE.read_text()
+    assert "_Literal['fixed']" in text
+
+
+# ---------------------------------------------------------------------------
+# ValidatedIn — in and not_in constraints translated to AfterValidator
+# ---------------------------------------------------------------------------
+
+
+def test_validated_in_status_valid():
+    m = ValidatedIn(status="active")
+    assert m.status == "active"
+
+
+def test_validated_in_status_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedIn(status="banned")
+
+
+def test_validated_in_not_in_code_valid():
+    m = ValidatedIn(code="approved")
+    assert m.code == "approved"
+
+
+def test_validated_in_not_in_code_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedIn(code="deleted")
+
+
+def test_validated_in_priority_valid():
+    m = ValidatedIn(priority=1)
+    assert m.priority == 1
+
+
+def test_validated_in_priority_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedIn(priority=5)
+
+
+def test_validated_in_default_accepted():
+    # AfterValidator does not run on defaults in Pydantic v2 — no error expected.
+    ValidatedIn()
+
+
+# ---------------------------------------------------------------------------
+# ValidatedUnique — repeated.unique translated to AfterValidator
+# ---------------------------------------------------------------------------
+
+
+def test_validated_unique_tags_valid():
+    m = ValidatedUnique(tags=["a", "b", "c"])
+    assert m.tags == ["a", "b", "c"]
+
+
+def test_validated_unique_tags_duplicates():
+    with pytest.raises(ValidationError):
+        ValidatedUnique(tags=["a", "a"])
+
+
+def test_validated_unique_empty_allowed():
+    m = ValidatedUnique(tags=[])
+    assert m.tags == []
+
+
+def test_validated_unique_in_generated_file():
+    text = _GEN_VALIDATE.read_text()
+    assert "_AfterValidator(_require_unique)" in text

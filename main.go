@@ -43,6 +43,42 @@ func pyQuote(s string) string {
 	return q
 }
 
+// pyQuoteSingle produces a single-quoted Python string literal for s.
+// Needed to embed string values inside double-quoted type annotation strings
+// (e.g. inside Literal[...]) without breaking the outer delimiter.
+func pyQuoteSingle(s string) string {
+	q := fmt.Sprintf("%q", s)                    // double-quoted Go literal, e.g. "fixed"
+	inner := q[1 : len(q)-1]                     // strip outer double-quotes: fixed
+	inner = strings.ReplaceAll(inner, `\"`, `"`) // unescape \"
+	inner = strings.ReplaceAll(inner, `'`, `\'`) // escape any single quotes
+	return "'" + inner + "'"
+}
+
+// formatScalarLiteral formats a scalar protoreflect.Value as a Python literal
+// suitable for embedding in type annotations (single-quoted strings for strings).
+// Returns "" for unsupported kinds (bytes, float, double, messages, enums) so
+// callers fall through to dropped-constraint comments. Float/double are excluded
+// because Python's Literal[] type does not accept float values (PEP 586).
+func formatScalarLiteral(fd protoreflect.FieldDescriptor, v protoreflect.Value) string {
+	switch fd.Kind() {
+	case protoreflect.StringKind:
+		return pyQuoteSingle(v.String())
+	case protoreflect.BoolKind:
+		if v.Bool() {
+			return "True"
+		}
+		return "False"
+	case protoreflect.Int32Kind, protoreflect.Sint32Kind, protoreflect.Sfixed32Kind,
+		protoreflect.Int64Kind, protoreflect.Sint64Kind, protoreflect.Sfixed64Kind:
+		return fmt.Sprintf("%d", v.Int())
+	case protoreflect.Uint32Kind, protoreflect.Fixed32Kind,
+		protoreflect.Uint64Kind, protoreflect.Fixed64Kind:
+		return fmt.Sprintf("%d", v.Uint())
+	default:
+		return "" // float, double, bytes, messages, enums — unsupported
+	}
+}
+
 func init() {
 	tmpl = template.Must(template.New("pydantic").Funcs(template.FuncMap{
 		"pyQuote": pyQuote,
@@ -133,16 +169,16 @@ from enum import Enum as _Enum
 {{- if $hasEnumOptions }}
 from dataclasses import dataclass as _dataclass
 {{- end }}
-{{- if or .StdImports._Any .StdImports._Optional }}
-from typing import {{ if .StdImports._Any }}Any as _Any{{ if .StdImports._Optional }}, {{ end }}{{ end }}{{ if .StdImports._Optional }}Optional as _Optional{{ end }}
+{{- if .TypingImportLine }}
+{{ .TypingImportLine }}
 {{- end }}
-{{- if .StdImports._BaseModel }}
+{{- if .PydanticImportLine }}
 
-from pydantic import BaseModel as _BaseModel, ConfigDict as _ConfigDict, Field as _Field
+{{ .PydanticImportLine }}
 {{- end }}
 {{- if .RuntimeImportLine }}
 
-from ._proto_types import {{ .RuntimeImportLine }}
+{{ .RuntimeImportLine }}
 {{- end }}
 {{- range .RelativeImports }}
 
@@ -442,6 +478,30 @@ ProtoDuration = _Annotated[
     _BeforeValidator(_parse_duration),
     _PlainSerializer(_serialize_duration, return_type=str, when_used="json"),
 ]
+
+
+def _require_unique(v):
+    if len(v) != len(set(v)):
+        raise ValueError("list items must be unique")
+    return v
+
+
+def _make_in_validator(valid_values):
+    def _validate(v):
+        if v not in valid_values:
+            raise ValueError(f"value must be one of {sorted(valid_values)}")
+        return v
+
+    return _validate
+
+
+def _make_not_in_validator(excluded_values):
+    def _validate(v):
+        if v in excluded_values:
+            raise ValueError(f"value must not be one of {sorted(excluded_values)}")
+        return v
+
+    return _validate
 `
 
 // reservedNames is the set of names that must not be used as Pydantic field
@@ -638,14 +698,20 @@ type FieldConstraints struct {
 	Prefix             *string  // string.prefix — intermediate; resolved into Pattern by combinePatternConstraints
 	Suffix             *string  // string.suffix — intermediate; resolved into Pattern by combinePatternConstraints
 	Examples           []string // field examples as Python literals for Field(examples=[...])
-	DroppedConstraints []string // constraint names not translated (required, const, cel, ...)
+	DroppedConstraints []string // constraint names not translated (required, cel, ...)
+	ConstLiteral       *string  // Python literal for Literal[...] (single-quoted string for strings)
+	ConstDefault       *string  // Python literal for _Field(...) default (double-quoted for strings)
+	InValues           []string // Python literals for AfterValidator in-set
+	NotInValues        []string // Python literals for AfterValidator exclusion-set
+	UniqueItems        bool     // true when repeated.unique = true
 }
 
 func (c *FieldConstraints) HasAny() bool {
 	if c == nil {
 		return false
 	}
-	return c.Gt != nil || c.Gte != nil || c.Lt != nil || c.Lte != nil ||
+	return c.ConstLiteral != nil || len(c.InValues) > 0 || len(c.NotInValues) > 0 || c.UniqueItems ||
+		c.Gt != nil || c.Gte != nil || c.Lt != nil || c.Lte != nil ||
 		c.MinLength != nil || c.MaxLength != nil || c.Pattern != nil ||
 		len(c.Examples) > 0 ||
 		len(c.DroppedConstraints) > 0
@@ -818,7 +884,7 @@ func (e *generator) runtimeImportLine() string {
 		names = append(names, name)
 	}
 	sort.Strings(names)
-	return strings.Join(names, ", ")
+	return formatImportBlock("from ._proto_types import ", names)
 }
 
 func (e *generator) hasEnumOptions() bool {
@@ -834,10 +900,123 @@ func (e *generator) addStdImport(name string) {
 	e.stdImports[name] = true
 }
 
+// formatImportBlock formats a Python import statement, expanding to the
+// multi-line parenthesized form when the single-line form would exceed
+// 88 characters (ruff's default line length).
+func formatImportBlock(prefix string, symbols []string) string {
+	oneLine := prefix + strings.Join(symbols, ", ")
+	if len(oneLine) <= 88 {
+		return oneLine
+	}
+	var sb strings.Builder
+	sb.WriteString(prefix + "(\n")
+	for _, sym := range symbols {
+		sb.WriteString("    " + sym + ",\n")
+	}
+	sb.WriteString(")")
+	return sb.String()
+}
+
+// typingImportLine returns a complete `from typing import ...` statement,
+// or "" when nothing from typing is needed.
+func (e *generator) typingImportLine() string {
+	var symbols []string
+	if e.stdImports["_Annotated"] {
+		symbols = append(symbols, "Annotated as _Annotated")
+	}
+	if e.stdImports["_Any"] {
+		symbols = append(symbols, "Any as _Any")
+	}
+	if e.stdImports["_Literal"] {
+		symbols = append(symbols, "Literal as _Literal")
+	}
+	if e.stdImports["_Optional"] {
+		symbols = append(symbols, "Optional as _Optional")
+	}
+	if len(symbols) == 0 {
+		return ""
+	}
+	return formatImportBlock("from typing import ", symbols)
+}
+
+// pydanticImportLine returns a complete `from pydantic import ...` statement,
+// or "" when _BaseModel is not needed (i.e. no messages in the file).
+func (e *generator) pydanticImportLine() string {
+	if !e.stdImports["_BaseModel"] {
+		return ""
+	}
+	var symbols []string
+	if e.stdImports["_AfterValidator"] {
+		symbols = append(symbols, "AfterValidator as _AfterValidator")
+	}
+	symbols = append(symbols, "BaseModel as _BaseModel", "ConfigDict as _ConfigDict", "Field as _Field")
+	return formatImportBlock("from pydantic import ", symbols)
+}
+
+// wrapWithAnnotated wraps a type string with _Annotated[..., validators],
+// preserving `| None` and `_Optional[...]` wrappers correctly.
+func wrapWithAnnotated(typ string, validators []string) string {
+	vStr := strings.Join(validators, ", ")
+	if strings.HasSuffix(typ, " | None") {
+		inner := strings.TrimSuffix(typ, " | None")
+		return "_Annotated[" + inner + ", " + vStr + "] | None"
+	}
+	if strings.HasPrefix(typ, "_Optional[") && strings.HasSuffix(typ, "]") {
+		inner := typ[len("_Optional[") : len(typ)-1]
+		return "_Optional[_Annotated[" + inner + ", " + vStr + "]]"
+	}
+	return "_Annotated[" + typ + ", " + vStr + "]"
+}
+
+// applyConstraintTypeOverrides modifies f.Type (and f.Default for const) based
+// on FieldConstraints that require type-level changes rather than Field() kwargs.
+func (e *generator) applyConstraintTypeOverrides(f *Field) {
+	fc := f.Constraints
+	if fc == nil {
+		return
+	}
+
+	// const → Literal type override
+	if fc.ConstLiteral != nil {
+		litType := "_Literal[" + *fc.ConstLiteral + "]"
+		switch {
+		case strings.HasSuffix(f.Type, " | None"):
+			f.Type = litType + " | None"
+		case strings.HasPrefix(f.Type, "_Optional[") && strings.HasSuffix(f.Type, "]"):
+			f.Type = "_Optional[" + litType + "]"
+		default:
+			f.Type = litType
+			f.Default = *fc.ConstDefault
+		}
+	}
+
+	// in/not_in/unique → AfterValidator wrapping
+	var validators []string
+	if len(fc.InValues) > 0 {
+		v := "{" + strings.Join(fc.InValues, ", ") + "}"
+		validators = append(validators, "_AfterValidator(_make_in_validator(frozenset("+v+")))")
+		e.addRuntimeImport("_make_in_validator")
+	}
+	if len(fc.NotInValues) > 0 {
+		v := "{" + strings.Join(fc.NotInValues, ", ") + "}"
+		validators = append(validators, "_AfterValidator(_make_not_in_validator(frozenset("+v+")))")
+		e.addRuntimeImport("_make_not_in_validator")
+	}
+	if fc.UniqueItems {
+		validators = append(validators, "_AfterValidator(_require_unique)")
+		e.addRuntimeImport("_require_unique")
+	}
+	if len(validators) > 0 {
+		f.Type = wrapWithAnnotated(f.Type, validators)
+	}
+}
+
 func (e *generator) Generate(w io.Writer) error {
 	var buf bytes.Buffer
 	hasEnumOptions := e.hasEnumOptions()
 	runtimeImportLine := e.runtimeImportLine()
+	typingImportLine := e.typingImportLine()
+	pydanticImportLine := e.pydanticImportLine()
 	err := tmpl.Execute(&buf, struct {
 		File               File
 		Enums              []Enum
@@ -849,6 +1028,8 @@ func (e *generator) Generate(w io.Writer) error {
 		HasEnumOptions     bool
 		CustomOptionFields []CustomOptionField
 		RuntimeImportLine  string
+		TypingImportLine   string
+		PydanticImportLine string
 	}{
 		e.file,
 		e.enums,
@@ -860,6 +1041,8 @@ func (e *generator) Generate(w io.Writer) error {
 		hasEnumOptions,
 		e.customOptionFields,
 		runtimeImportLine,
+		typingImportLine,
+		pydanticImportLine,
 	})
 	if err != nil {
 		return err
@@ -1046,6 +1229,7 @@ func (e *generator) processMessage(
 		if fp := msgProto.GetField()[i]; fp.GetOptions() != nil {
 			f.Constraints = e.extractFieldConstraints(fp.GetOptions(), field)
 		}
+		e.applyConstraintTypeOverrides(&f)
 		def.Fields = append(def.Fields, f)
 	}
 
@@ -1446,6 +1630,13 @@ func (e *generator) extractFieldConstraints(
 	if !result.HasAny() {
 		return nil
 	}
+	if result.ConstLiteral != nil {
+		e.addStdImport("_Literal")
+	}
+	if len(result.InValues) > 0 || len(result.NotInValues) > 0 || result.UniqueItems {
+		e.addStdImport("_Annotated")
+		e.addStdImport("_AfterValidator")
+	}
 	return result
 }
 
@@ -1512,7 +1703,52 @@ func extractRuleField(fc *FieldConstraints, fd protoreflect.FieldDescriptor, v p
 			}
 		}
 	case "const":
-		fc.DroppedConstraints = append(fc.DroppedConstraints, "const")
+		if lit := formatScalarLiteral(fd, v); lit != "" {
+			fc.ConstLiteral = &lit
+			var def string
+			if fd.Kind() == protoreflect.StringKind {
+				def = pyQuote(v.String()) // double-quoted for standalone default
+			} else {
+				def = lit
+			}
+			fc.ConstDefault = &def
+		} else {
+			fc.DroppedConstraints = append(fc.DroppedConstraints, "const")
+		}
+	case "in":
+		if fd.IsList() {
+			list := v.List()
+			var lits []string
+			for i := 0; i < list.Len(); i++ {
+				if l := formatScalarLiteral(fd, list.Get(i)); l != "" {
+					lits = append(lits, l)
+				}
+			}
+			if len(lits) > 0 {
+				fc.InValues = append(fc.InValues, lits...)
+			} else {
+				fc.DroppedConstraints = append(fc.DroppedConstraints, "in")
+			}
+		}
+	case "not_in":
+		if fd.IsList() {
+			list := v.List()
+			var lits []string
+			for i := 0; i < list.Len(); i++ {
+				if l := formatScalarLiteral(fd, list.Get(i)); l != "" {
+					lits = append(lits, l)
+				}
+			}
+			if len(lits) > 0 {
+				fc.NotInValues = append(fc.NotInValues, lits...)
+			} else {
+				fc.DroppedConstraints = append(fc.DroppedConstraints, "not_in")
+			}
+		}
+	case "unique":
+		if v.Bool() {
+			fc.UniqueItems = true
+		}
 	default:
 		fc.DroppedConstraints = append(fc.DroppedConstraints, string(fd.Name()))
 	}
