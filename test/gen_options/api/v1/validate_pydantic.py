@@ -292,8 +292,8 @@ class ValidatedDuration(_ProtoModel):
     # Timeout must be positive and at most one hour.
     timeout: "_Optional[ProtoDuration]" = _Field(
         None,
-        # buf.validate: gt (not translated)
         # buf.validate: lte (not translated)
+        # buf.validate: gt (not translated)
     )
 
 
@@ -317,6 +317,62 @@ class ValidatedTimestamp(_ProtoModel):
     createdAt: "_Optional[ProtoTimestamp]" = _Field(
         None,
         # buf.validate: gt (not translated)
+    )
+
+
+class ValidatedSilentDrop(_ProtoModel):
+    """
+    ValidatedSilentDrop exercises constraints that were previously silently
+    ignored but now emit dropped-constraint comments via the default case in
+    extractRuleField.
+
+    Attributes:
+      email (str):
+        Email must be a valid email address.
+      website (str):
+        Website must be a valid URI.
+      address (str):
+        Address must be a valid IP address.
+      tags (list[str]):
+        Tags must contain unique elements.
+      ratio (float):
+        Ratio must be finite (not inf or NaN).
+    """
+
+    model_config = _ConfigDict(
+        ser_json_bytes="base64",
+        val_json_bytes="base64",
+        ser_json_inf_nan="strings",
+    )
+
+    # Email must be a valid email address.
+    email: "str" = _Field(
+        "",
+        # buf.validate: email (not translated)
+    )
+
+    # Website must be a valid URI.
+    website: "str" = _Field(
+        "",
+        # buf.validate: uri (not translated)
+    )
+
+    # Address must be a valid IP address.
+    address: "str" = _Field(
+        "",
+        # buf.validate: ip (not translated)
+    )
+
+    # Tags must contain unique elements.
+    tags: "list[str]" = _Field(
+        default_factory=list,
+        # buf.validate: unique (not translated)
+    )
+
+    # Ratio must be finite (not inf or NaN).
+    ratio: "float" = _Field(
+        0.0,
+        # buf.validate: finite (not translated)
     )
 
 

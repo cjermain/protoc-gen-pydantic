@@ -1447,6 +1447,8 @@ func extractRuleField(fc *FieldConstraints, fd protoreflect.FieldDescriptor, v p
 		fc.Pattern = &s
 	case "const":
 		fc.DroppedConstraints = append(fc.DroppedConstraints, "const")
+	default:
+		fc.DroppedConstraints = append(fc.DroppedConstraints, string(fd.Name()))
 	}
 }
 

@@ -338,6 +338,67 @@ class ValidatedTimestamp(_ProtoModel):
     )
 
 
+class ValidatedSilentDrop(_ProtoModel):
+    """
+    ValidatedSilentDrop exercises constraints that were previously silently
+    ignored but now emit dropped-constraint comments via the default case in
+    extractRuleField.
+
+    Attributes:
+      email (str):
+        Email must be a valid email address.
+      website (str):
+        Website must be a valid URI.
+      address (str):
+        Address must be a valid IP address.
+      tags (list[str]):
+        Tags must contain unique elements.
+      ratio (float):
+        Ratio must be finite (not inf or NaN).
+    """
+
+    model_config = _ConfigDict(
+        ser_json_bytes="base64",
+        val_json_bytes="base64",
+        ser_json_inf_nan="strings",
+    )
+
+    # Email must be a valid email address.
+    email: "str" = _Field(
+        "",
+        description="Email must be a valid email address.",
+        # buf.validate: email (not translated)
+    )
+
+    # Website must be a valid URI.
+    website: "str" = _Field(
+        "",
+        description="Website must be a valid URI.",
+        # buf.validate: uri (not translated)
+    )
+
+    # Address must be a valid IP address.
+    address: "str" = _Field(
+        "",
+        description="Address must be a valid IP address.",
+        # buf.validate: ip (not translated)
+    )
+
+    # Tags must contain unique elements.
+    tags: "list[str]" = _Field(
+        default_factory=list,
+        description="Tags must contain unique elements.",
+        # buf.validate: unique (not translated)
+    )
+
+    # Ratio must be finite (not inf or NaN).
+    ratio: "float" = _Field(
+        0.0,
+        description="Ratio must be finite (not inf or NaN).",
+        # buf.validate: finite (not translated)
+    )
+
+
 class ValidatedDropped(_ProtoModel):
     """
     ValidatedDropped exercises constraints that are recognised but not translated.

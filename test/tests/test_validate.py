@@ -13,6 +13,7 @@ from api.v1.validate_pydantic import (
     ValidatedRepeated,
     ValidatedReserved,
     ValidatedScalars,
+    ValidatedSilentDrop,
     ValidatedStrings,
     ValidatedTimestamp,
 )
@@ -468,3 +469,42 @@ def test_validated_timestamp_comments_in_generated_file():
     assert "class ValidatedTimestamp" in text
     # The timestamp gt bound also appears as a dropped comment.
     # (The string "gt (not translated)" already checked by duration test above.)
+
+
+# ---------------------------------------------------------------------------
+# ValidatedSilentDrop — previously silent drops now emit comments (P1)
+# ---------------------------------------------------------------------------
+
+
+def test_validated_silent_drop_accepts_any_value():
+    # No Pydantic constraints are translated, so any value is accepted.
+    d = ValidatedSilentDrop(
+        email="not-an-email",
+        website="not-a-uri",
+        address="not-an-ip",
+        tags=["a", "a"],  # duplicate — unique not enforced
+        ratio=float("inf"),  # infinite — finite not enforced
+    )
+    assert d.email == "not-an-email"
+    assert d.website == "not-a-uri"
+    assert d.address == "not-an-ip"
+    assert d.tags == ["a", "a"]
+
+
+def test_validated_silent_drop_defaults():
+    # Default construction works; all constraints are dropped comments only.
+    d = ValidatedSilentDrop()
+    assert d.email == ""
+    assert d.website == ""
+    assert d.address == ""
+    assert d.tags == []
+    assert d.ratio == pytest.approx(0.0)
+
+
+@pytest.mark.parametrize(
+    "constraint",
+    ["email", "uri", "ip", "unique", "finite"],
+)
+def test_validated_silent_drop_comments_in_generated_file(constraint):
+    text = _GEN_VALIDATE.read_text()
+    assert f"# buf.validate: {constraint} (not translated)" in text

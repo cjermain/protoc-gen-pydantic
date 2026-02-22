@@ -93,6 +93,22 @@ message ValidatedTimestamp {
   ];
 }
 
+// ValidatedSilentDrop exercises constraints that were previously silently
+// ignored but now emit dropped-constraint comments via the default case in
+// extractRuleField.
+message ValidatedSilentDrop {
+  // Email must be a valid email address.
+  string email = 1 [(buf.validate.field).string.email = true];
+  // Website must be a valid URI.
+  string website = 2 [(buf.validate.field).string.uri = true];
+  // Address must be a valid IP address.
+  string address = 3 [(buf.validate.field).string.ip = true];
+  // Tags must contain unique elements.
+  repeated string tags = 4 [(buf.validate.field).repeated.unique = true];
+  // Ratio must be finite (not inf or NaN).
+  float ratio = 5 [(buf.validate.field).float.finite = true];
+}
+
 // ValidatedDropped exercises constraints that are recognised but not translated.
 message ValidatedDropped {
   // Name is required; the required constraint is not translated.
