@@ -382,7 +382,7 @@ def test_validated_scalars_json_roundtrip():
 # gen_options build — constraints are preserved under non-default plugin options
 # ---------------------------------------------------------------------------
 
-_GEN_OPTIONS_VALIDATE = Path("gen_options/api/v1")
+_GEN_OPTIONS_VALIDATE = Path(__file__).parent.parent / "gen_options" / "api" / "v1"
 
 
 @pytest.fixture(scope="module")
