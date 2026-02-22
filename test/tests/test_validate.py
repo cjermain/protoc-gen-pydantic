@@ -6,6 +6,7 @@ from pydantic import ValidationError
 from api.v1.validate_pydantic import (
     ValidatedDropped,
     ValidatedMap,
+    ValidatedOneof,
     ValidatedRepeated,
     ValidatedReserved,
     ValidatedScalars,
@@ -302,6 +303,32 @@ def test_validated_dropped_comments_in_generated_file():
     text = _GEN_VALIDATE.read_text()
     assert "# buf.validate: required (not translated)" in text
     assert "# buf.validate: const (not translated)" in text
+
+
+# ---------------------------------------------------------------------------
+# ValidatedOneof — comment + oneof + constraint triple combination (item 12)
+# ---------------------------------------------------------------------------
+
+
+def test_validated_oneof_valid_small():
+    v = ValidatedOneof(small=1)
+    assert v.small == 1
+
+
+def test_validated_oneof_valid_large():
+    v = ValidatedOneof(large=1)
+    assert v.large == 1
+
+
+def test_validated_oneof_constraint_enforced():
+    with pytest.raises(ValidationError):
+        ValidatedOneof(small=0)
+
+
+def test_validated_oneof_description_contains_comment_and_oneof():
+    field_info = ValidatedOneof.model_fields["small"]
+    assert "Must be positive when set" in field_info.description
+    assert "oneof" in field_info.description
 
 
 # ---------------------------------------------------------------------------

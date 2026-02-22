@@ -61,6 +61,16 @@ message ValidatedReserved {
   float float = 1 [(buf.validate.field).float.gt = 0.0];
 }
 
+// ValidatedOneof exercises a oneof field that also carries a constraint.
+message ValidatedOneof {
+  oneof value {
+    // Must be positive when set.
+    int32 small = 1 [(buf.validate.field).int32.gt = 0];
+    // Must be positive when set.
+    int64 large = 2 [(buf.validate.field).int64.gt = 0];
+  }
+}
+
 // ValidatedDropped exercises constraints that are recognised but not translated.
 message ValidatedDropped {
   // Name is required; the required constraint is not translated.

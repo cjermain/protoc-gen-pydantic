@@ -241,6 +241,36 @@ class ValidatedReserved(_ProtoModel):
     )
 
 
+class ValidatedOneof(_ProtoModel):
+    """
+    ValidatedOneof exercises a oneof field that also carries a constraint.
+
+    Attributes:
+      small (int | None):
+        Must be positive when set.
+      large (ProtoInt64 | None):
+        Must be positive when set.
+    """
+
+    model_config = _ConfigDict(
+        ser_json_bytes="base64",
+        val_json_bytes="base64",
+        ser_json_inf_nan="strings",
+    )
+
+    # Must be positive when set.
+    small: "int | None" = _Field(
+        None,
+        gt=0,
+    )
+
+    # Must be positive when set.
+    large: "ProtoInt64 | None" = _Field(
+        None,
+        gt=0,
+    )
+
+
 class ValidatedDropped(_ProtoModel):
     """
     ValidatedDropped exercises constraints that are recognised but not translated.
