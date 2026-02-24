@@ -748,23 +748,6 @@ class ValidatedStringContains(_ProtoModel):
     )
 
 
-class ValidatedRequired_Detail(_ProtoModel):
-    """
-    Detail is a nested message used to test message-typed required handling.
-
-    Attributes:
-      value (str):
-    """
-
-    model_config = _ConfigDict(
-        ser_json_bytes="base64",
-        val_json_bytes="base64",
-        ser_json_inf_nan="strings",
-    )
-
-    value: "str" = _Field("")
-
-
 class ValidatedRequired(_ProtoModel):
     """
     ValidatedRequired exercises required = true on proto3 optional scalar fields
@@ -775,7 +758,7 @@ class ValidatedRequired(_ProtoModel):
         required on proto3 optional scalar: | None stripped, field becomes required.
       required_score (int):
         required on proto3 optional scalar with an additional constraint.
-      required_detail (ValidatedRequired_Detail | None):
+      required_detail (ValidatedRequired.Detail | None):
         required on message-typed optional: not translated, emits dropped comment.
       plain_name (str):
         required on plain proto3 scalar: not translated, emits dropped comment.
@@ -786,6 +769,22 @@ class ValidatedRequired(_ProtoModel):
         val_json_bytes="base64",
         ser_json_inf_nan="strings",
     )
+
+    class Detail(_ProtoModel):
+        """
+        Detail is a nested message used to test message-typed required handling.
+
+        Attributes:
+          value (str):
+        """
+
+        model_config = _ConfigDict(
+            ser_json_bytes="base64",
+            val_json_bytes="base64",
+            ser_json_inf_nan="strings",
+        )
+
+        value: "str" = _Field("")
 
     # required on proto3 optional scalar: | None stripped, field becomes required.
     required_name: "str" = _Field(
@@ -801,7 +800,7 @@ class ValidatedRequired(_ProtoModel):
     )
 
     # required on message-typed optional: not translated, emits dropped comment.
-    required_detail: "ValidatedRequired_Detail | None" = _Field(
+    required_detail: "ValidatedRequired.Detail | None" = _Field(
         None,
         description="required on message-typed optional: not translated, emits dropped comment.",
         # buf.validate: required (not translated)

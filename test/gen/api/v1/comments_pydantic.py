@@ -39,88 +39,6 @@ class _ProtoModel(_BaseModel):
         return cls.model_validate_json(json_str, **kwargs)
 
 
-class CommentedMessage_NestedEnum(str, _Enum):
-    """
-    Leading comment on NestedEnum.
-    An enum nested inside CommentedMessage.
-    """
-
-    # Trailing comment on NestedEnum.
-    # Documents the enum values.
-
-    # Leading comment on UNSPECIFIED value.
-    UNSPECIFIED = "UNSPECIFIED"  # 0
-    # Right comment on UNSPECIFIED.
-
-    # Leading comment on ACTIVE value.
-    ACTIVE = "ACTIVE"  # 1
-    # Right comment on ACTIVE.
-
-    # Leading comment on INACTIVE value.
-    INACTIVE = "INACTIVE"  # 2
-    # Right comment on INACTIVE.
-
-
-class Outer_OuterEnum(str, _Enum):
-    """
-    Outer enum comment.
-    """
-
-    UNSPECIFIED = "UNSPECIFIED"  # 0
-
-    X = "X"  # 1
-
-
-class Outer_Inner_InnerEnum(str, _Enum):
-    """
-    Inner enum comment.
-    """
-
-    UNSPECIFIED = "UNSPECIFIED"  # 0
-
-    A = "A"  # 1
-
-
-class CommentedMessage_NestedMessage(_ProtoModel):
-    """
-    Leading comment on NestedMessage.
-    A message nested inside CommentedMessage.
-
-    Attributes:
-      first_name (str):
-        Leading comment on nested first_name.
-        The given name in the nested message.
-      last_name (str):
-        Leading comment on nested last_name.
-        The family name in the nested message.
-    """
-
-    model_config = _ConfigDict(
-        ser_json_bytes="base64",
-        val_json_bytes="base64",
-        ser_json_inf_nan="strings",
-    )
-
-    # Trailing comment on NestedMessage.
-    # Documents internal structure.
-
-    # Leading comment on nested first_name.
-    # The given name in the nested message.
-    first_name: "str" = _Field(
-        "",
-        description="Leading comment on nested first_name.\nThe given name in the nested message.",
-    )
-    # Right comment on nested first_name.
-
-    # Leading comment on nested last_name.
-    # The family name in the nested message.
-    last_name: "str" = _Field(
-        "",
-        description="Leading comment on nested last_name.\nThe family name in the nested message.",
-    )
-    # Right comment on nested last_name.
-
-
 class CommentedMessage(_ProtoModel):
     """
     Leading comment on CommentedMessage.
@@ -140,6 +58,66 @@ class CommentedMessage(_ProtoModel):
         val_json_bytes="base64",
         ser_json_inf_nan="strings",
     )
+
+    class NestedEnum(str, _Enum):
+        """
+        Leading comment on NestedEnum.
+        An enum nested inside CommentedMessage.
+        """
+
+        # Trailing comment on NestedEnum.
+        # Documents the enum values.
+
+        # Leading comment on UNSPECIFIED value.
+        UNSPECIFIED = "UNSPECIFIED"  # 0
+        # Right comment on UNSPECIFIED.
+
+        # Leading comment on ACTIVE value.
+        ACTIVE = "ACTIVE"  # 1
+        # Right comment on ACTIVE.
+
+        # Leading comment on INACTIVE value.
+        INACTIVE = "INACTIVE"  # 2
+        # Right comment on INACTIVE.
+
+    class NestedMessage(_ProtoModel):
+        """
+        Leading comment on NestedMessage.
+        A message nested inside CommentedMessage.
+
+        Attributes:
+          first_name (str):
+            Leading comment on nested first_name.
+            The given name in the nested message.
+          last_name (str):
+            Leading comment on nested last_name.
+            The family name in the nested message.
+        """
+
+        model_config = _ConfigDict(
+            ser_json_bytes="base64",
+            val_json_bytes="base64",
+            ser_json_inf_nan="strings",
+        )
+
+        # Trailing comment on NestedMessage.
+        # Documents internal structure.
+
+        # Leading comment on nested first_name.
+        # The given name in the nested message.
+        first_name: "str" = _Field(
+            "",
+            description="Leading comment on nested first_name.\nThe given name in the nested message.",
+        )
+        # Right comment on nested first_name.
+
+        # Leading comment on nested last_name.
+        # The family name in the nested message.
+        last_name: "str" = _Field(
+            "",
+            description="Leading comment on nested last_name.\nThe family name in the nested message.",
+        )
+        # Right comment on nested last_name.
 
     # Trailing comment on CommentedMessage.
     # Documents internal structure.
@@ -161,50 +139,6 @@ class CommentedMessage(_ProtoModel):
     # Right comment on last_name.
 
 
-class Outer_Inner_Deepest(_ProtoModel):
-    """
-    Deepest message comment.
-
-    Attributes:
-      deepest_field (str):
-        Deepest field comment.
-    """
-
-    model_config = _ConfigDict(
-        ser_json_bytes="base64",
-        val_json_bytes="base64",
-        ser_json_inf_nan="strings",
-    )
-
-    # Deepest field comment.
-    deepest_field: "str" = _Field(
-        "",
-        description="Deepest field comment.",
-    )
-
-
-class Outer_Inner(_ProtoModel):
-    """
-    Inner message comment.
-
-    Attributes:
-      inner_field (str):
-        Inner field comment.
-    """
-
-    model_config = _ConfigDict(
-        ser_json_bytes="base64",
-        val_json_bytes="base64",
-        ser_json_inf_nan="strings",
-    )
-
-    # Inner field comment.
-    inner_field: "str" = _Field(
-        "",
-        description="Inner field comment.",
-    )
-
-
 class Outer(_ProtoModel):
     """
     Outer message comment.
@@ -219,6 +153,66 @@ class Outer(_ProtoModel):
         val_json_bytes="base64",
         ser_json_inf_nan="strings",
     )
+
+    class OuterEnum(str, _Enum):
+        """
+        Outer enum comment.
+        """
+
+        UNSPECIFIED = "UNSPECIFIED"  # 0
+
+        X = "X"  # 1
+
+    class Inner(_ProtoModel):
+        """
+        Inner message comment.
+
+        Attributes:
+          inner_field (str):
+            Inner field comment.
+        """
+
+        model_config = _ConfigDict(
+            ser_json_bytes="base64",
+            val_json_bytes="base64",
+            ser_json_inf_nan="strings",
+        )
+
+        class InnerEnum(str, _Enum):
+            """
+            Inner enum comment.
+            """
+
+            UNSPECIFIED = "UNSPECIFIED"  # 0
+
+            A = "A"  # 1
+
+        class Deepest(_ProtoModel):
+            """
+            Deepest message comment.
+
+            Attributes:
+              deepest_field (str):
+                Deepest field comment.
+            """
+
+            model_config = _ConfigDict(
+                ser_json_bytes="base64",
+                val_json_bytes="base64",
+                ser_json_inf_nan="strings",
+            )
+
+            # Deepest field comment.
+            deepest_field: "str" = _Field(
+                "",
+                description="Deepest field comment.",
+            )
+
+        # Inner field comment.
+        inner_field: "str" = _Field(
+            "",
+            description="Inner field comment.",
+        )
 
     # Outer field comment.
     outer_field: "str" = _Field(

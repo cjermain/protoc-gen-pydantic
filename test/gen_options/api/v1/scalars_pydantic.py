@@ -46,35 +46,6 @@ class _ProtoModel(_BaseModel):
         return cls.model_validate_json(json_str, **kwargs)
 
 
-class Scalars_NestedEnum(int, _Enum):
-    """ """
-
-    NESTED_ENUM_UNSPECIFIED = 0  # NESTED_ENUM_UNSPECIFIED
-
-    NESTED_ENUM_ACTIVE = 1  # NESTED_ENUM_ACTIVE
-
-    NESTED_ENUM_INACTIVE = 2  # NESTED_ENUM_INACTIVE
-
-
-class Scalars_NestedMessage(_ProtoModel):
-    """
-
-    Attributes:
-      firstName (str):
-      lastName (str):
-    """
-
-    model_config = _ConfigDict(
-        ser_json_bytes="base64",
-        val_json_bytes="base64",
-        ser_json_inf_nan="strings",
-    )
-
-    firstName: "str" = _Field("")
-
-    lastName: "str" = _Field("")
-
-
 class Scalars(_ProtoModel):
     """
 
@@ -95,9 +66,9 @@ class Scalars(_ProtoModel):
       string (str):
       bytes_ (bytes):
       enum (_Optional[Enum]):
-      nestedEnum (_Optional[Scalars_NestedEnum]):
+      nestedEnum (_Optional[Scalars.NestedEnum]):
       message (_Optional[Message]):
-      nestedMessage (_Optional[Scalars_NestedMessage]):
+      nestedMessage (_Optional[Scalars.NestedMessage]):
       int32Optional (_Optional[int]):
       int64Optional (_Optional[ProtoInt64]):
       uint32Optional (_Optional[int]):
@@ -114,9 +85,9 @@ class Scalars(_ProtoModel):
       stringOptional (_Optional[str]):
       bytesOptional (_Optional[bytes]):
       enumOptional (_Optional[Enum]):
-      nestedEnumOptional (_Optional[Scalars_NestedEnum]):
+      nestedEnumOptional (_Optional[Scalars.NestedEnum]):
       messageOptional (_Optional[Message]):
-      nestedMessageOptional (_Optional[Scalars_NestedMessage]):
+      nestedMessageOptional (_Optional[Scalars.NestedMessage]):
     """
 
     model_config = _ConfigDict(
@@ -125,6 +96,33 @@ class Scalars(_ProtoModel):
         val_json_bytes="base64",
         ser_json_inf_nan="strings",
     )
+
+    class NestedEnum(int, _Enum):
+        """ """
+
+        NESTED_ENUM_UNSPECIFIED = 0  # NESTED_ENUM_UNSPECIFIED
+
+        NESTED_ENUM_ACTIVE = 1  # NESTED_ENUM_ACTIVE
+
+        NESTED_ENUM_INACTIVE = 2  # NESTED_ENUM_INACTIVE
+
+    class NestedMessage(_ProtoModel):
+        """
+
+        Attributes:
+          firstName (str):
+          lastName (str):
+        """
+
+        model_config = _ConfigDict(
+            ser_json_bytes="base64",
+            val_json_bytes="base64",
+            ser_json_inf_nan="strings",
+        )
+
+        firstName: "str" = _Field("")
+
+        lastName: "str" = _Field("")
 
     int32: "int" = _Field(0)
 
@@ -167,11 +165,11 @@ class Scalars(_ProtoModel):
 
     enum: "_Optional[Enum]" = _Field(None)
 
-    nestedEnum: "_Optional[Scalars_NestedEnum]" = _Field(None)
+    nestedEnum: "_Optional[Scalars.NestedEnum]" = _Field(None)
 
     message: "_Optional[Message]" = _Field(None)
 
-    nestedMessage: "_Optional[Scalars_NestedMessage]" = _Field(None)
+    nestedMessage: "_Optional[Scalars.NestedMessage]" = _Field(None)
 
     int32Optional: "_Optional[int]" = _Field(None)
 
@@ -205,8 +203,8 @@ class Scalars(_ProtoModel):
 
     enumOptional: "_Optional[Enum]" = _Field(None)
 
-    nestedEnumOptional: "_Optional[Scalars_NestedEnum]" = _Field(None)
+    nestedEnumOptional: "_Optional[Scalars.NestedEnum]" = _Field(None)
 
     messageOptional: "_Optional[Message]" = _Field(None)
 
-    nestedMessageOptional: "_Optional[Scalars_NestedMessage]" = _Field(None)
+    nestedMessageOptional: "_Optional[Scalars.NestedMessage]" = _Field(None)

@@ -107,7 +107,7 @@ def test_preserving_proto_field_name_no_snake_case(opts_messages):
 
 def test_auto_trim_enum_prefix_keeps_prefix(opts_scalars):
     """Enum values keep their type prefix when auto_trim_enum_prefix=false."""
-    NestedEnum = opts_scalars.Scalars_NestedEnum
+    NestedEnum = opts_scalars.Scalars.NestedEnum
     assert hasattr(NestedEnum, "NESTED_ENUM_ACTIVE")
     assert hasattr(NestedEnum, "NESTED_ENUM_INACTIVE")
     assert hasattr(NestedEnum, "NESTED_ENUM_UNSPECIFIED")
@@ -118,7 +118,7 @@ def test_auto_trim_enum_prefix_keeps_prefix(opts_scalars):
 
 def test_use_integers_for_enums_base_is_int(opts_scalars):
     """Enum base class is int when use_integers_for_enums=true."""
-    NestedEnum = opts_scalars.Scalars_NestedEnum
+    NestedEnum = opts_scalars.Scalars.NestedEnum
     assert issubclass(NestedEnum, int)
     assert issubclass(NestedEnum, StdEnum)
     assert not issubclass(NestedEnum, str)
@@ -126,7 +126,7 @@ def test_use_integers_for_enums_base_is_int(opts_scalars):
 
 def test_use_integers_for_enums_values_are_ints(opts_scalars):
     """Enum member values are integers when use_integers_for_enums=true."""
-    NestedEnum = opts_scalars.Scalars_NestedEnum
+    NestedEnum = opts_scalars.Scalars.NestedEnum
     assert NestedEnum.NESTED_ENUM_ACTIVE == 1
     assert NestedEnum.NESTED_ENUM_INACTIVE == 2
 

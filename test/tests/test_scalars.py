@@ -1,7 +1,7 @@
 import pytest
 
 from api.v1.enums_pydantic import Enum
-from api.v1.scalars_pydantic import Scalars, Scalars_NestedEnum, Scalars_NestedMessage
+from api.v1.scalars_pydantic import Scalars
 
 from conftest import make_scalars
 
@@ -17,7 +17,7 @@ def test_required_scalars():
     assert s.float_ == 1.5
     assert s.double == 2.5
     assert s.enum == Enum.ACTIVE
-    assert s.nested_enum == Scalars_NestedEnum.ACTIVE
+    assert s.nested_enum == Scalars.NestedEnum.ACTIVE
     assert s.message.first_name == "John"
     assert s.nested_message.first_name == "Jane"
 
@@ -54,7 +54,7 @@ def test_alias_construction_by_alias(message, nested_message):
         double=2.5,
         string="hello",
         enum=Enum.ACTIVE,
-        nested_enum=Scalars_NestedEnum.ACTIVE,
+        nested_enum=Scalars.NestedEnum.ACTIVE,
         message=message,
         nested_message=nested_message,
         # Use alias names (original proto names) instead of Python attr names
@@ -120,13 +120,13 @@ def test_optional_set(message):
 
 
 def test_nested_message_valid():
-    m = Scalars_NestedMessage(first_name="Jane", last_name="Doe")
+    m = Scalars.NestedMessage(first_name="Jane", last_name="Doe")
     assert m.first_name == "Jane"
 
 
 def test_nested_message_zero_value_defaults():
     """Nested messages also support proto3 zero-value defaults."""
-    m = Scalars_NestedMessage()
+    m = Scalars.NestedMessage()
     assert m.first_name == ""
     assert m.last_name == ""
 

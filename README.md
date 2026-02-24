@@ -11,7 +11,7 @@
 ## Features
 
 - Supports all standard `proto3` field types
-- Handles nested messages and enums
+- Generates true Python nested classes for nested messages and enums (e.g. `Foo.NestedMessage`)
 - Generates Pydantic models with type annotations and field descriptions
 - Supports `oneof`, `optional`, `repeated`, and `map` fields
 - Retains comments from `.proto` files as docstrings in the generated models
@@ -103,6 +103,43 @@ class User(_BaseModel):
     emails: list[str] = _Field(...)
     is_active: bool = _Field(...)
 ```
+
+### Nested messages and enums
+
+Nested message and enum types are generated as true Python nested classes, accessible via dotted attribute access:
+
+```proto
+message Order {
+  enum Status {
+    STATUS_UNSPECIFIED = 0;
+    STATUS_PENDING = 1;
+    STATUS_SHIPPED = 2;
+  }
+  message Item {
+    string sku = 1;
+    int32 quantity = 2;
+  }
+  Status status = 1;
+  repeated Item items = 2;
+}
+```
+
+```python
+class Order(_ProtoModel):
+    class Status(str, _Enum):
+        UNSPECIFIED = "UNSPECIFIED"
+        PENDING = "PENDING"
+        SHIPPED = "SHIPPED"
+
+    class Item(_ProtoModel):
+        sku: "str" = _Field("")
+        quantity: "int" = _Field(0)
+
+    status: "Order.Status | None" = _Field(None)
+    items: "list[Order.Item]" = _Field(default_factory=list)
+```
+
+Cross-file references import only the top-level class; nested types are resolved via dotted access at runtime.
 
 ## Options
 

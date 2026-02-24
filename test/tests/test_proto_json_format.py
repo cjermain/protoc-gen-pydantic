@@ -16,7 +16,7 @@ import pytest
 from api.v1.enums_pydantic import Enum
 from api.v1.known_types_pydantic import WellKnownTypes
 from api.v1.messages_pydantic import Message
-from api.v1.scalars_pydantic import Scalars, Scalars_NestedEnum, Scalars_NestedMessage
+from api.v1.scalars_pydantic import Scalars
 
 _WKT_DEFAULTS = dict(
     wkt_timestamp=datetime.datetime(2024, 1, 1, tzinfo=datetime.timezone.utc),
@@ -88,9 +88,9 @@ def scalars_with_int64():
         string="hello",
         bytes_=b"\x00\x01\xff",
         enum=Enum.ACTIVE,
-        nested_enum=Scalars_NestedEnum.ACTIVE,
+        nested_enum=Scalars.NestedEnum.ACTIVE,
         message=Message(first_name="John", last_name="Doe"),
-        nested_message=Scalars_NestedMessage(first_name="Jane", last_name="Doe"),
+        nested_message=Scalars.NestedMessage(first_name="Jane", last_name="Doe"),
     )
 
 
