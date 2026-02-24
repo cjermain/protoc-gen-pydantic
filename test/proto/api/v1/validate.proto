@@ -204,3 +204,24 @@ message ValidatedStringContains {
     (buf.validate.field).string.contains = "prod"
   ];
 }
+
+// ValidatedRequired exercises required = true on proto3 optional scalar fields
+// (where it strips | None) vs. message-typed and plain scalar fields (dropped).
+message ValidatedRequired {
+  // required on proto3 optional scalar: | None stripped, field becomes required.
+  optional string required_name = 1 [(buf.validate.field).required = true];
+  // required on proto3 optional scalar with an additional constraint.
+  optional int32 required_score = 2 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).int32.gt = 0
+  ];
+  // required on message-typed optional: not translated, emits dropped comment.
+  optional Detail required_detail = 3 [(buf.validate.field).required = true];
+  // required on plain proto3 scalar: not translated, emits dropped comment.
+  string plain_name = 4 [(buf.validate.field).required = true];
+
+  // Detail is a nested message used to test message-typed required handling.
+  message Detail {
+    string value = 1;
+  }
+}

@@ -19,6 +19,7 @@ from api.v1.validate_pydantic import (
     ValidatedScalars,
     ValidatedFormats,
     ValidatedStringAffix,
+    ValidatedRequired,
     ValidatedStringContains,
     ValidatedStringLen,
     ValidatedStrings,
@@ -871,3 +872,51 @@ def test_validated_bytes_payload_valid():
 def test_validated_bytes_payload_too_large():
     with pytest.raises(ValidationError):
         ValidatedBytes(payload=b"x" * 1025)
+
+
+# ---------------------------------------------------------------------------
+# ValidatedRequired — required = true on proto3 optional scalar fields
+# ---------------------------------------------------------------------------
+
+
+def test_validated_required_optional_scalar_is_required():
+    # required_name and required_score have no default; omitting them raises.
+    with pytest.raises(ValidationError):
+        ValidatedRequired(plain_name="x")
+
+
+def test_validated_required_optional_scalar_accepts_value():
+    r = ValidatedRequired(required_name="alice", required_score=1)
+    assert r.required_name == "alice"
+    assert r.required_score == 1
+
+
+def test_validated_required_score_constraint_enforced():
+    # gt=0 still enforced after required stripping.
+    with pytest.raises(ValidationError):
+        ValidatedRequired(required_name="alice", required_score=0)
+
+
+def test_validated_required_detail_accepts_none():
+    # Message-typed required: not translated; field still accepts None.
+    r = ValidatedRequired(required_name="alice", required_score=1)
+    assert r.required_detail is None
+
+
+def test_validated_required_plain_scalar_accepts_default():
+    # Plain scalar required: not translated; default "" is accepted.
+    r = ValidatedRequired(required_name="alice", required_score=1)
+    assert r.plain_name == ""
+
+
+def test_validated_required_annotations_in_generated_file():
+    text = _GEN_VALIDATE.read_text()
+    assert 'required_name: "str"' in text
+    assert 'required_detail: "ValidatedRequired_Detail | None"' in text
+    assert "# buf.validate: required (not translated)" in text
+
+
+def test_validated_required_field_is_required_in_pydantic():
+    assert ValidatedRequired.model_fields["required_name"].is_required()
+    assert ValidatedRequired.model_fields["required_score"].is_required()
+    assert not ValidatedRequired.model_fields["plain_name"].is_required()

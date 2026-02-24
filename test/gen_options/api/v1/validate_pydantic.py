@@ -705,3 +705,66 @@ class ValidatedStringContains(_ProtoModel):
         pattern="^env-",
         # buf.validate: contains (not translated)
     )
+
+
+class ValidatedRequired_Detail(_ProtoModel):
+    """
+    Detail is a nested message used to test message-typed required handling.
+
+    Attributes:
+      value (str):
+    """
+
+    model_config = _ConfigDict(
+        ser_json_bytes="base64",
+        val_json_bytes="base64",
+        ser_json_inf_nan="strings",
+    )
+
+    value: "str" = _Field("")
+
+
+class ValidatedRequired(_ProtoModel):
+    """
+    ValidatedRequired exercises required = true on proto3 optional scalar fields
+    (where it strips | None) vs. message-typed and plain scalar fields (dropped).
+
+    Attributes:
+      requiredName (str):
+        required on proto3 optional scalar: | None stripped, field becomes required.
+      requiredScore (int):
+        required on proto3 optional scalar with an additional constraint.
+      requiredDetail (_Optional[ValidatedRequired_Detail]):
+        required on message-typed optional: not translated, emits dropped comment.
+      plainName (str):
+        required on plain proto3 scalar: not translated, emits dropped comment.
+    """
+
+    model_config = _ConfigDict(
+        ser_json_bytes="base64",
+        val_json_bytes="base64",
+        ser_json_inf_nan="strings",
+    )
+
+    # required on proto3 optional scalar: | None stripped, field becomes required.
+    requiredName: "str" = _Field(
+        ...,
+    )
+
+    # required on proto3 optional scalar with an additional constraint.
+    requiredScore: "int" = _Field(
+        ...,
+        gt=0,
+    )
+
+    # required on message-typed optional: not translated, emits dropped comment.
+    requiredDetail: "_Optional[ValidatedRequired_Detail]" = _Field(
+        None,
+        # buf.validate: required (not translated)
+    )
+
+    # required on plain proto3 scalar: not translated, emits dropped comment.
+    plainName: "str" = _Field(
+        "",
+        # buf.validate: required (not translated)
+    )

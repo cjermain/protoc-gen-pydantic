@@ -746,3 +746,70 @@ class ValidatedStringContains(_ProtoModel):
         pattern="^env-",
         # buf.validate: contains (not translated)
     )
+
+
+class ValidatedRequired_Detail(_ProtoModel):
+    """
+    Detail is a nested message used to test message-typed required handling.
+
+    Attributes:
+      value (str):
+    """
+
+    model_config = _ConfigDict(
+        ser_json_bytes="base64",
+        val_json_bytes="base64",
+        ser_json_inf_nan="strings",
+    )
+
+    value: "str" = _Field("")
+
+
+class ValidatedRequired(_ProtoModel):
+    """
+    ValidatedRequired exercises required = true on proto3 optional scalar fields
+    (where it strips | None) vs. message-typed and plain scalar fields (dropped).
+
+    Attributes:
+      required_name (str):
+        required on proto3 optional scalar: | None stripped, field becomes required.
+      required_score (int):
+        required on proto3 optional scalar with an additional constraint.
+      required_detail (ValidatedRequired_Detail | None):
+        required on message-typed optional: not translated, emits dropped comment.
+      plain_name (str):
+        required on plain proto3 scalar: not translated, emits dropped comment.
+    """
+
+    model_config = _ConfigDict(
+        ser_json_bytes="base64",
+        val_json_bytes="base64",
+        ser_json_inf_nan="strings",
+    )
+
+    # required on proto3 optional scalar: | None stripped, field becomes required.
+    required_name: "str" = _Field(
+        ...,
+        description="required on proto3 optional scalar: | None stripped, field becomes required.",
+    )
+
+    # required on proto3 optional scalar with an additional constraint.
+    required_score: "int" = _Field(
+        ...,
+        description="required on proto3 optional scalar with an additional constraint.",
+        gt=0,
+    )
+
+    # required on message-typed optional: not translated, emits dropped comment.
+    required_detail: "ValidatedRequired_Detail | None" = _Field(
+        None,
+        description="required on message-typed optional: not translated, emits dropped comment.",
+        # buf.validate: required (not translated)
+    )
+
+    # required on plain proto3 scalar: not translated, emits dropped comment.
+    plain_name: "str" = _Field(
+        "",
+        description="required on plain proto3 scalar: not translated, emits dropped comment.",
+        # buf.validate: required (not translated)
+    )

@@ -859,13 +859,16 @@ type FieldConstraints struct {
 	RequireFinite      bool     // true when float/double.finite = true
 	Contains           *string  // string.contains substring — intermediate; resolved into Pattern by combinePatternConstraints
 	ConstFloatLiteral  *string  // Python float literal for float/double const (Literal[] is invalid per PEP 586)
+	Required           bool     // true when buf.validate required = true is set
+	IsNonScalar        bool     // true when field kind is MessageKind or EnumKind
 }
 
 func (c *FieldConstraints) HasAny() bool {
 	if c == nil {
 		return false
 	}
-	return c.ConstLiteral != nil || c.ConstFloatLiteral != nil || c.RequireFinite ||
+	return c.Required ||
+		c.ConstLiteral != nil || c.ConstFloatLiteral != nil || c.RequireFinite ||
 		len(c.InValues) > 0 || len(c.NotInValues) > 0 || c.UniqueItems ||
 		c.Gt != nil || c.Gte != nil || c.Lt != nil || c.Lte != nil ||
 		c.MinLength != nil || c.MaxLength != nil || c.Pattern != nil || c.Contains != nil ||
@@ -1146,6 +1149,25 @@ func (e *generator) applyConstraintTypeOverrides(f *Field) {
 	fc := f.Constraints
 	if fc == nil {
 		return
+	}
+
+	// required = true → strip | None and set default to ...
+	// Only for scalar-kinded proto3-optional/oneof fields. Message/enum-typed fields
+	// and plain scalars (no | None) keep the dropped comment.
+	if fc.Required {
+		hasNoneSuffix := strings.HasSuffix(f.Type, " | None")
+		hasOptionalPrefix := strings.HasPrefix(f.Type, "_Optional[") && strings.HasSuffix(f.Type, "]")
+		if (hasNoneSuffix || hasOptionalPrefix) && !fc.IsNonScalar {
+			if hasNoneSuffix {
+				f.Type = strings.TrimSuffix(f.Type, " | None")
+			} else {
+				f.Type = f.Type[len("_Optional[") : len(f.Type)-1]
+			}
+			f.Default = "..."
+		} else {
+			fc.DroppedConstraints = append(fc.DroppedConstraints, "required")
+			sort.Strings(fc.DroppedConstraints)
+		}
 	}
 
 	// const → Literal type override
@@ -1795,6 +1817,7 @@ func (e *generator) extractFieldConstraints(
 
 	result := &FieldConstraints{}
 	isFloat := field.Kind() == protoreflect.FloatKind || field.Kind() == protoreflect.DoubleKind
+	result.IsNonScalar = field.Kind() == protoreflect.MessageKind || field.Kind() == protoreflect.EnumKind
 
 	// Walk the top-level FieldConstraints message fields. The type-specific
 	// rules live inside a oneof sub-message; required and cel are top-level.
@@ -1802,7 +1825,7 @@ func (e *generator) extractFieldConstraints(
 		name := string(fd.Name())
 		switch {
 		case name == "required" && v.Bool():
-			result.DroppedConstraints = append(result.DroppedConstraints, "required")
+			result.Required = true
 		case name == "cel":
 			// cel is a repeated Constraint message; not translated.
 			result.DroppedConstraints = append(result.DroppedConstraints, "cel")
