@@ -1,0 +1,29 @@
+name: coverage
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - uses: jdx/mise-action@v3
+
+      - name: Collect Go coverage via instrumented binary
+        run: just coverage
+
+      - uses: codecov/codecov-action@v5
+        with:
+          files: coverage.out

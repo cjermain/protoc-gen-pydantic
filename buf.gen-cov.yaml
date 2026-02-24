@@ -1,0 +1,19 @@
+version: v2
+managed:
+  enabled: true
+plugins:
+  - local: ./protoc-gen-pydantic-cov
+    opt:
+      - paths=source_relative
+    out: test/gen
+  - local: ./protoc-gen-pydantic-cov
+    opt:
+      - paths=source_relative
+      - preserving_proto_field_name=false
+      - auto_trim_enum_prefix=false
+      - use_integers_for_enums=true
+      - disable_field_description=true
+      - use_none_union_syntax_instead_of_optional=false
+    out: test/gen_options
+inputs:
+  - directory: test/proto
