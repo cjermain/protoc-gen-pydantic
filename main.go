@@ -563,6 +563,25 @@ def _validate_uuid(v: str) -> str:
     return v
 `
 
+const protoTypesFiniteFunc = `
+
+def _require_finite(v: float) -> float:
+    if not _math.isfinite(v):
+        raise ValueError("value must be finite")
+    return v
+`
+
+const protoTypesConstValidatorFunc = `
+
+def _make_const_validator(c):
+    def _validate(v):
+        if v != c:
+            raise ValueError(f"value must equal {c!r}")
+        return v
+
+    return _validate
+`
+
 // buildProtoTypesContent assembles the content for _proto_types.py, including
 // only the format validator functions (and their imports) that are actually
 // used by files in the same output directory.
@@ -578,6 +597,9 @@ func buildProtoTypesContent(needed map[string]bool) string {
 	b.WriteString("import datetime as _datetime\n")
 	if needIP {
 		b.WriteString("import ipaddress as _ipaddress\n")
+	}
+	if needed["_require_finite"] {
+		b.WriteString("import math as _math\n")
 	}
 	b.WriteString("import re as _re\n")
 	if needed["_validate_uuid"] {
@@ -622,6 +644,12 @@ func buildProtoTypesContent(needed map[string]bool) string {
 	}
 	if needed["_validate_uuid"] {
 		b.WriteString(protoTypesUUIDFunc)
+	}
+	if needed["_require_finite"] {
+		b.WriteString(protoTypesFiniteFunc)
+	}
+	if needed["_make_const_validator"] {
+		b.WriteString(protoTypesConstValidatorFunc)
 	}
 
 	return b.String()
@@ -828,15 +856,22 @@ type FieldConstraints struct {
 	NotInValues        []string // Python literals for AfterValidator exclusion-set
 	UniqueItems        bool     // true when repeated.unique = true
 	FormatValidator    *string  // one of: "email", "uri", "ip", "ipv4", "ipv6", "uuid"
+	RequireFinite      bool     // true when float/double.finite = true
+	Contains           *string  // string.contains substring — intermediate; resolved into Pattern by combinePatternConstraints
+	ConstFloatLiteral  *string  // Python float literal for float/double const (Literal[] is invalid per PEP 586)
+	Required           bool     // true when buf.validate required = true is set
+	IsNonScalar        bool     // true when field kind is MessageKind or EnumKind
 }
 
 func (c *FieldConstraints) HasAny() bool {
 	if c == nil {
 		return false
 	}
-	return c.ConstLiteral != nil || len(c.InValues) > 0 || len(c.NotInValues) > 0 || c.UniqueItems ||
+	return c.Required ||
+		c.ConstLiteral != nil || c.ConstFloatLiteral != nil || c.RequireFinite ||
+		len(c.InValues) > 0 || len(c.NotInValues) > 0 || c.UniqueItems ||
 		c.Gt != nil || c.Gte != nil || c.Lt != nil || c.Lte != nil ||
-		c.MinLength != nil || c.MaxLength != nil || c.Pattern != nil ||
+		c.MinLength != nil || c.MaxLength != nil || c.Pattern != nil || c.Contains != nil ||
 		len(c.Examples) > 0 || c.FormatValidator != nil ||
 		len(c.DroppedConstraints) > 0
 }
@@ -892,12 +927,12 @@ func (c *FieldConstraints) DroppedConstraintComments() []string {
 // called after iterating all sub-message rule fields so that all three fields
 // are populated before combining.
 func (c *FieldConstraints) combinePatternConstraints() {
-	if c.Prefix == nil && c.Suffix == nil {
+	if c.Prefix == nil && c.Suffix == nil && c.Contains == nil {
 		return
 	}
 	if c.Pattern != nil {
 		// An explicit pattern is already present; we cannot combine, so drop
-		// prefix/suffix as untranslated comments.
+		// prefix/suffix/contains as untranslated comments.
 		if c.Prefix != nil {
 			c.DroppedConstraints = append(c.DroppedConstraints, "prefix")
 			c.Prefix = nil
@@ -906,21 +941,37 @@ func (c *FieldConstraints) combinePatternConstraints() {
 			c.DroppedConstraints = append(c.DroppedConstraints, "suffix")
 			c.Suffix = nil
 		}
+		if c.Contains != nil {
+			c.DroppedConstraints = append(c.DroppedConstraints, "contains")
+			c.Contains = nil
+		}
 		return
 	}
-	// Build a single pattern from whichever of Prefix/Suffix are present.
-	var pat string
-	switch {
-	case c.Prefix != nil && c.Suffix != nil:
-		pat = "^" + regexp.QuoteMeta(*c.Prefix) + ".*" + regexp.QuoteMeta(*c.Suffix) + "$"
-	case c.Prefix != nil:
-		pat = "^" + regexp.QuoteMeta(*c.Prefix)
-	default:
-		pat = regexp.QuoteMeta(*c.Suffix) + "$"
+	// Build pattern from prefix/suffix first.
+	if c.Prefix != nil || c.Suffix != nil {
+		var pat string
+		switch {
+		case c.Prefix != nil && c.Suffix != nil:
+			pat = "^" + regexp.QuoteMeta(*c.Prefix) + ".*" + regexp.QuoteMeta(*c.Suffix) + "$"
+		case c.Prefix != nil:
+			pat = "^" + regexp.QuoteMeta(*c.Prefix)
+		default:
+			pat = regexp.QuoteMeta(*c.Suffix) + "$"
+		}
+		c.Pattern = &pat
+		c.Prefix = nil
+		c.Suffix = nil
+		// If contains is also set, it conflicts with the prefix/suffix pattern.
+		if c.Contains != nil {
+			c.DroppedConstraints = append(c.DroppedConstraints, "contains")
+			c.Contains = nil
+		}
+		return
 	}
+	// Only contains is set — translate to an unanchored regex.
+	pat := regexp.QuoteMeta(*c.Contains)
 	c.Pattern = &pat
-	c.Prefix = nil
-	c.Suffix = nil
+	c.Contains = nil
 }
 
 type Message struct {
@@ -1100,6 +1151,25 @@ func (e *generator) applyConstraintTypeOverrides(f *Field) {
 		return
 	}
 
+	// required = true → strip | None and set default to ...
+	// Only for scalar-kinded proto3-optional/oneof fields. Message/enum-typed fields
+	// and plain scalars (no | None) keep the dropped comment.
+	if fc.Required {
+		hasNoneSuffix := strings.HasSuffix(f.Type, " | None")
+		hasOptionalPrefix := strings.HasPrefix(f.Type, "_Optional[") && strings.HasSuffix(f.Type, "]")
+		if (hasNoneSuffix || hasOptionalPrefix) && !fc.IsNonScalar {
+			if hasNoneSuffix {
+				f.Type = strings.TrimSuffix(f.Type, " | None")
+			} else {
+				f.Type = f.Type[len("_Optional[") : len(f.Type)-1]
+			}
+			f.Default = "..."
+		} else {
+			fc.DroppedConstraints = append(fc.DroppedConstraints, "required")
+			sort.Strings(fc.DroppedConstraints)
+		}
+	}
+
 	// const → Literal type override
 	if fc.ConstLiteral != nil {
 		litType := "_Literal[" + *fc.ConstLiteral + "]"
@@ -1134,6 +1204,20 @@ func (e *generator) applyConstraintTypeOverrides(f *Field) {
 		helperName := "_validate_" + *fc.FormatValidator
 		validators = append(validators, "_AfterValidator("+helperName+")")
 		e.addRuntimeImport(helperName)
+	}
+	if fc.RequireFinite {
+		validators = append(validators, "_AfterValidator(_require_finite)")
+		e.addRuntimeImport("_require_finite")
+	}
+	if fc.ConstFloatLiteral != nil {
+		validators = append(validators, "_AfterValidator(_make_const_validator("+*fc.ConstFloatLiteral+"))")
+		e.addRuntimeImport("_make_const_validator")
+		// Set the field default to the const value (only for non-optional fields).
+		if fc.ConstDefault != nil &&
+			!strings.HasSuffix(f.Type, " | None") &&
+			!strings.HasPrefix(f.Type, "_Optional[") {
+			f.Default = *fc.ConstDefault
+		}
 	}
 	if len(validators) > 0 {
 		f.Type = wrapWithAnnotated(f.Type, validators)
@@ -1733,6 +1817,7 @@ func (e *generator) extractFieldConstraints(
 
 	result := &FieldConstraints{}
 	isFloat := field.Kind() == protoreflect.FloatKind || field.Kind() == protoreflect.DoubleKind
+	result.IsNonScalar = field.Kind() == protoreflect.MessageKind || field.Kind() == protoreflect.EnumKind
 
 	// Walk the top-level FieldConstraints message fields. The type-specific
 	// rules live inside a oneof sub-message; required and cel are top-level.
@@ -1740,7 +1825,7 @@ func (e *generator) extractFieldConstraints(
 		name := string(fd.Name())
 		switch {
 		case name == "required" && v.Bool():
-			result.DroppedConstraints = append(result.DroppedConstraints, "required")
+			result.Required = true
 		case name == "cel":
 			// cel is a repeated Constraint message; not translated.
 			result.DroppedConstraints = append(result.DroppedConstraints, "cel")
@@ -1765,7 +1850,8 @@ func (e *generator) extractFieldConstraints(
 	if result.ConstLiteral != nil {
 		e.addStdImport("_Literal")
 	}
-	if len(result.InValues) > 0 || len(result.NotInValues) > 0 || result.UniqueItems || result.FormatValidator != nil {
+	if len(result.InValues) > 0 || len(result.NotInValues) > 0 || result.UniqueItems || result.FormatValidator != nil ||
+		result.RequireFinite || result.ConstFloatLiteral != nil {
 		e.addStdImport("_Annotated")
 		e.addStdImport("_AfterValidator")
 	}
@@ -1844,6 +1930,16 @@ func extractRuleField(fc *FieldConstraints, fd protoreflect.FieldDescriptor, v p
 				def = lit
 			}
 			fc.ConstDefault = &def
+		} else if fd.Kind() == protoreflect.FloatKind || fd.Kind() == protoreflect.DoubleKind {
+			// Literal[float] is invalid per PEP 586; use AfterValidator instead.
+			var flit string
+			if fd.Kind() == protoreflect.FloatKind {
+				flit = formatPythonFloat(float64(float32(v.Float())))
+			} else {
+				flit = formatPythonFloat(v.Float())
+			}
+			fc.ConstFloatLiteral = &flit
+			fc.ConstDefault = &flit
 		} else {
 			fc.DroppedConstraints = append(fc.DroppedConstraints, "const")
 		}
@@ -1881,6 +1977,13 @@ func extractRuleField(fc *FieldConstraints, fd protoreflect.FieldDescriptor, v p
 		if v.Bool() {
 			fc.UniqueItems = true
 		}
+	case "finite":
+		if v.Bool() {
+			fc.RequireFinite = true
+		}
+	case "contains":
+		s := v.String()
+		fc.Contains = &s
 	case "email", "uri", "ip", "ipv4", "ipv6", "uuid":
 		if v.Bool() {
 			name := string(fd.Name())

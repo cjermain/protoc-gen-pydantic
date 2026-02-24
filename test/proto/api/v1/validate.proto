@@ -133,10 +133,9 @@ message ValidatedExamples {
   ];
 }
 
-// ValidatedSilentDrop exercises constraints that were previously silently
-// ignored but now emit dropped-constraint comments via the default case in
-// extractRuleField.
-message ValidatedSilentDrop {
+// ValidatedFormats exercises format and semantic validators: email, URI,
+// IP address (v4/v6), UUID, and float finite.
+message ValidatedFormats {
   // Email must be a valid email address.
   string email = 1 [(buf.validate.field).string.email = true];
   // Website must be a valid URI.
@@ -182,4 +181,47 @@ message ValidatedIn {
 message ValidatedUnique {
   repeated string tags = 1 [(buf.validate.field).repeated.unique = true];
   repeated int32 scores = 2 [(buf.validate.field).repeated.unique = true];
+}
+
+// ValidatedBytes exercises bytes length constraints.
+message ValidatedBytes {
+  // Token must be at least 16 bytes.
+  bytes token = 1 [(buf.validate.field).bytes.min_len = 16];
+  // Hash must be exactly 32 bytes.
+  bytes hash = 2 [(buf.validate.field).bytes.len = 32];
+  // Payload must be at most 1024 bytes.
+  bytes payload = 3 [(buf.validate.field).bytes.max_len = 1024];
+}
+
+// ValidatedStringContains exercises the string.contains constraint.
+message ValidatedStringContains {
+  // Topic must contain "protobuf".
+  string topic = 1 [(buf.validate.field).string.contains = "protobuf"];
+  // Label must start with "env-" and contain "prod".
+  // The contains conflicts with prefix so contains is dropped.
+  string label = 2 [
+    (buf.validate.field).string.prefix = "env-",
+    (buf.validate.field).string.contains = "prod"
+  ];
+}
+
+// ValidatedRequired exercises required = true on proto3 optional scalar fields
+// (where it strips | None) vs. message-typed and plain scalar fields (dropped).
+message ValidatedRequired {
+  // required on proto3 optional scalar: | None stripped, field becomes required.
+  optional string required_name = 1 [(buf.validate.field).required = true];
+  // required on proto3 optional scalar with an additional constraint.
+  optional int32 required_score = 2 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).int32.gt = 0
+  ];
+  // required on message-typed optional: not translated, emits dropped comment.
+  optional Detail required_detail = 3 [(buf.validate.field).required = true];
+  // required on plain proto3 scalar: not translated, emits dropped comment.
+  string plain_name = 4 [(buf.validate.field).required = true];
+
+  // Detail is a nested message used to test message-typed required handling.
+  message Detail {
+    string value = 1;
+  }
 }

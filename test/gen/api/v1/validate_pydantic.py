@@ -14,8 +14,10 @@ from ._proto_types import (
     ProtoInt64,
     ProtoTimestamp,
     ProtoUInt64,
+    _make_const_validator,
     _make_in_validator,
     _make_not_in_validator,
+    _require_finite,
     _require_unique,
     _validate_email,
     _validate_ip,
@@ -467,11 +469,10 @@ class ValidatedExamples(_ProtoModel):
     )
 
 
-class ValidatedSilentDrop(_ProtoModel):
+class ValidatedFormats(_ProtoModel):
     """
-    ValidatedSilentDrop exercises constraints that were previously silently
-    ignored but now emit dropped-constraint comments via the default case in
-    extractRuleField.
+    ValidatedFormats exercises format and semantic validators: email, URI,
+    IP address (v4/v6), UUID, and float finite.
 
     Attributes:
       email (_Annotated[str, _AfterValidator(_validate_email)]):
@@ -480,7 +481,7 @@ class ValidatedSilentDrop(_ProtoModel):
         Website must be a valid URI.
       address (_Annotated[str, _AfterValidator(_validate_ip)]):
         Address must be a valid IP address.
-      ratio (float):
+      ratio (_Annotated[float, _AfterValidator(_require_finite)]):
         Ratio must be finite (not inf or NaN).
       token (_Annotated[str, _AfterValidator(_validate_uuid)]):
         Token must be a valid UUID.
@@ -515,10 +516,9 @@ class ValidatedSilentDrop(_ProtoModel):
     )
 
     # Ratio must be finite (not inf or NaN).
-    ratio: "float" = _Field(
+    ratio: "_Annotated[float, _AfterValidator(_require_finite)]" = _Field(
         0.0,
         description="Ratio must be finite (not inf or NaN).",
-        # buf.validate: finite (not translated)
     )
 
     # Token must be a valid UUID.
@@ -590,7 +590,7 @@ class ValidatedConst(_ProtoModel):
       tag (_Literal['fixed']):
       count (_Literal[42]):
       active (_Literal[True]):
-      score (float):
+      score (_Annotated[float, _AfterValidator(_make_const_validator(3.14))]):
     """
 
     model_config = _ConfigDict(
@@ -611,9 +611,8 @@ class ValidatedConst(_ProtoModel):
         True,
     )
 
-    score: "float" = _Field(
-        0.0,
-        # buf.validate: const (not translated)
+    score: "_Annotated[float, _AfterValidator(_make_const_validator(3.14))]" = _Field(
+        3.14,
     )
 
 
@@ -667,4 +666,150 @@ class ValidatedUnique(_ProtoModel):
 
     scores: "_Annotated[list[int], _AfterValidator(_require_unique)]" = _Field(
         default_factory=list,
+    )
+
+
+class ValidatedBytes(_ProtoModel):
+    """
+    ValidatedBytes exercises bytes length constraints.
+
+    Attributes:
+      token (bytes):
+        Token must be at least 16 bytes.
+      hash_ (bytes):
+        Hash must be exactly 32 bytes.
+      payload (bytes):
+        Payload must be at most 1024 bytes.
+    """
+
+    model_config = _ConfigDict(
+        populate_by_name=True,
+        ser_json_bytes="base64",
+        val_json_bytes="base64",
+        ser_json_inf_nan="strings",
+    )
+
+    # Token must be at least 16 bytes.
+    token: "bytes" = _Field(
+        b"",
+        description="Token must be at least 16 bytes.",
+        min_length=16,
+    )
+
+    # Hash must be exactly 32 bytes.
+    hash_: "bytes" = _Field(
+        b"",
+        description="Hash must be exactly 32 bytes.",
+        alias="hash",
+        min_length=32,
+        max_length=32,
+    )
+
+    # Payload must be at most 1024 bytes.
+    payload: "bytes" = _Field(
+        b"",
+        description="Payload must be at most 1024 bytes.",
+        max_length=1024,
+    )
+
+
+class ValidatedStringContains(_ProtoModel):
+    """
+    ValidatedStringContains exercises the string.contains constraint.
+
+    Attributes:
+      topic (str):
+        Topic must contain "protobuf".
+      label (str):
+        Label must start with "env-" and contain "prod".
+        The contains conflicts with prefix so contains is dropped.
+    """
+
+    model_config = _ConfigDict(
+        ser_json_bytes="base64",
+        val_json_bytes="base64",
+        ser_json_inf_nan="strings",
+    )
+
+    # Topic must contain "protobuf".
+    topic: "str" = _Field(
+        "",
+        description='Topic must contain "protobuf".',
+        pattern="protobuf",
+    )
+
+    # Label must start with "env-" and contain "prod".
+    # The contains conflicts with prefix so contains is dropped.
+    label: "str" = _Field(
+        "",
+        description='Label must start with "env-" and contain "prod".\nThe contains conflicts with prefix so contains is dropped.',
+        pattern="^env-",
+        # buf.validate: contains (not translated)
+    )
+
+
+class ValidatedRequired_Detail(_ProtoModel):
+    """
+    Detail is a nested message used to test message-typed required handling.
+
+    Attributes:
+      value (str):
+    """
+
+    model_config = _ConfigDict(
+        ser_json_bytes="base64",
+        val_json_bytes="base64",
+        ser_json_inf_nan="strings",
+    )
+
+    value: "str" = _Field("")
+
+
+class ValidatedRequired(_ProtoModel):
+    """
+    ValidatedRequired exercises required = true on proto3 optional scalar fields
+    (where it strips | None) vs. message-typed and plain scalar fields (dropped).
+
+    Attributes:
+      required_name (str):
+        required on proto3 optional scalar: | None stripped, field becomes required.
+      required_score (int):
+        required on proto3 optional scalar with an additional constraint.
+      required_detail (ValidatedRequired_Detail | None):
+        required on message-typed optional: not translated, emits dropped comment.
+      plain_name (str):
+        required on plain proto3 scalar: not translated, emits dropped comment.
+    """
+
+    model_config = _ConfigDict(
+        ser_json_bytes="base64",
+        val_json_bytes="base64",
+        ser_json_inf_nan="strings",
+    )
+
+    # required on proto3 optional scalar: | None stripped, field becomes required.
+    required_name: "str" = _Field(
+        ...,
+        description="required on proto3 optional scalar: | None stripped, field becomes required.",
+    )
+
+    # required on proto3 optional scalar with an additional constraint.
+    required_score: "int" = _Field(
+        ...,
+        description="required on proto3 optional scalar with an additional constraint.",
+        gt=0,
+    )
+
+    # required on message-typed optional: not translated, emits dropped comment.
+    required_detail: "ValidatedRequired_Detail | None" = _Field(
+        None,
+        description="required on message-typed optional: not translated, emits dropped comment.",
+        # buf.validate: required (not translated)
+    )
+
+    # required on plain proto3 scalar: not translated, emits dropped comment.
+    plain_name: "str" = _Field(
+        "",
+        description="required on plain proto3 scalar: not translated, emits dropped comment.",
+        # buf.validate: required (not translated)
     )
