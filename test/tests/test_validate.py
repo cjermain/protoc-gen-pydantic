@@ -6,6 +6,7 @@ from pydantic import ValidationError
 import datetime
 
 from api.v1.validate_pydantic import (
+    ValidatedBytes,
     ValidatedConst,
     ValidatedDropped,
     ValidatedDuration,
@@ -16,8 +17,9 @@ from api.v1.validate_pydantic import (
     ValidatedRepeated,
     ValidatedReserved,
     ValidatedScalars,
-    ValidatedSilentDrop,
+    ValidatedFormats,
     ValidatedStringAffix,
+    ValidatedStringContains,
     ValidatedStringLen,
     ValidatedStrings,
     ValidatedTimestamp,
@@ -478,13 +480,13 @@ def test_validated_timestamp_comments_in_generated_file():
 
 
 # ---------------------------------------------------------------------------
-# ValidatedSilentDrop — format validators enforced via _AfterValidator (P3)
+# ValidatedFormats — format validators enforced via _AfterValidator (P3)
 # ---------------------------------------------------------------------------
 
 
 def test_validated_format_defaults():
     # Default empty strings skip validation (proto3 zero-value semantics).
-    d = ValidatedSilentDrop()
+    d = ValidatedFormats()
     assert d.email == ""
     assert d.website == ""
     assert d.address == ""
@@ -494,75 +496,79 @@ def test_validated_format_defaults():
     assert d.ratio == pytest.approx(0.0)
 
 
-def test_validated_format_finite_still_dropped():
-    # float.finite is not translated; any float value is accepted.
-    d = ValidatedSilentDrop(ratio=float("inf"))
-    assert d.ratio == float("inf")
+def test_validated_format_finite_enforced_inf():
+    with pytest.raises(ValidationError):
+        ValidatedFormats(ratio=float("inf"))
 
 
-def test_validated_format_finite_comment_in_generated_file():
-    text = _GEN_VALIDATE.read_text()
-    assert "# buf.validate: finite (not translated)" in text
+def test_validated_format_finite_enforced_nan():
+    with pytest.raises(ValidationError):
+        ValidatedFormats(ratio=float("nan"))
+
+
+def test_validated_format_finite_valid():
+    d = ValidatedFormats(ratio=1.0)
+    assert d.ratio == pytest.approx(1.0)
 
 
 @pytest.mark.parametrize("email", ["user@example.com", "a@b.co", "x.y+z@domain.org"])
 def test_validated_format_email_valid(email):
-    d = ValidatedSilentDrop(email=email)
+    d = ValidatedFormats(email=email)
     assert d.email == email
 
 
 @pytest.mark.parametrize("email", ["notanemail", "@domain.com", "user@", "nodot@nodot"])
 def test_validated_format_email_invalid(email):
     with pytest.raises(ValidationError):
-        ValidatedSilentDrop(email=email)
+        ValidatedFormats(email=email)
 
 
 @pytest.mark.parametrize("uri", ["https://example.com", "http://x.org/path?q=1"])
 def test_validated_format_uri_valid(uri):
-    d = ValidatedSilentDrop(website=uri)
+    d = ValidatedFormats(website=uri)
     assert d.website == uri
 
 
 @pytest.mark.parametrize("uri", ["notauri", "example.com", "ftp//missing-colon"])
 def test_validated_format_uri_invalid(uri):
     with pytest.raises(ValidationError):
-        ValidatedSilentDrop(website=uri)
+        ValidatedFormats(website=uri)
 
 
 @pytest.mark.parametrize("addr", ["1.2.3.4", "::1", "2001:db8::1"])
 def test_validated_format_ip_valid(addr):
-    d = ValidatedSilentDrop(address=addr)
+    d = ValidatedFormats(address=addr)
     assert d.address == addr
 
 
 @pytest.mark.parametrize("addr", ["999.0.0.1", "not-an-ip", "256.1.1.1"])
 def test_validated_format_ip_invalid(addr):
     with pytest.raises(ValidationError):
-        ValidatedSilentDrop(address=addr)
+        ValidatedFormats(address=addr)
 
 
 @pytest.mark.parametrize("v4", ["192.168.1.1", "0.0.0.0", "255.255.255.255"])
 def test_validated_format_ipv4_valid(v4):
-    d = ValidatedSilentDrop(host_v4=v4)
+    d = ValidatedFormats(host_v4=v4)
     assert d.host_v4 == v4
 
 
 @pytest.mark.parametrize("v4", ["::1", "not-an-ip", "256.0.0.1"])
 def test_validated_format_ipv4_invalid(v4):
     with pytest.raises(ValidationError):
-        ValidatedSilentDrop(host_v4=v4)
+        ValidatedFormats(host_v4=v4)
 
 
 @pytest.mark.parametrize("v6", ["::1", "2001:db8::1", "fe80::1"])
 def test_validated_format_ipv6_valid(v6):
-    d = ValidatedSilentDrop(host_v6=v6)
+    d = ValidatedFormats(host_v6=v6)
     assert d.host_v6 == v6
 
 
 @pytest.mark.parametrize("v6", ["1.2.3.4", "not-an-ip", "gggg::1"])
 def test_validated_format_ipv6_invalid(v6):
     with pytest.raises(ValidationError):
-        ValidatedSilentDrop(host_v6=v6)
+        ValidatedFormats(host_v6=v6)
 
 
 @pytest.mark.parametrize(
@@ -573,7 +579,7 @@ def test_validated_format_ipv6_invalid(v6):
     ],
 )
 def test_validated_format_uuid_valid(u):
-    d = ValidatedSilentDrop(token=u)
+    d = ValidatedFormats(token=u)
     assert d.token == u
 
 
@@ -582,7 +588,7 @@ def test_validated_format_uuid_valid(u):
 )
 def test_validated_format_uuid_invalid(u):
     with pytest.raises(ValidationError):
-        ValidatedSilentDrop(token=u)
+        ValidatedFormats(token=u)
 
 
 # ---------------------------------------------------------------------------
@@ -725,6 +731,21 @@ def test_validated_const_in_generated_file():
     assert "_Literal['fixed']" in text
 
 
+def test_validated_const_score_default():
+    m = ValidatedConst()
+    assert m.score == pytest.approx(3.14)
+
+
+def test_validated_const_score_valid():
+    m = ValidatedConst(score=3.14)
+    assert m.score == pytest.approx(3.14)
+
+
+def test_validated_const_score_enforced():
+    with pytest.raises(ValidationError):
+        ValidatedConst(score=9.9)
+
+
 # ---------------------------------------------------------------------------
 # ValidatedIn — in and not_in constraints translated to AfterValidator
 # ---------------------------------------------------------------------------
@@ -788,3 +809,65 @@ def test_validated_unique_empty_allowed():
 def test_validated_unique_in_generated_file():
     text = _GEN_VALIDATE.read_text()
     assert "_AfterValidator(_require_unique)" in text
+
+
+# ---------------------------------------------------------------------------
+# ValidatedStringContains — string.contains → pattern (unanchored regex)
+# ---------------------------------------------------------------------------
+
+
+def test_validated_string_contains_topic_valid():
+    m = ValidatedStringContains(topic="protobuf guide")
+    assert m.topic == "protobuf guide"
+
+
+def test_validated_string_contains_topic_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedStringContains(topic="avro guide")
+
+
+def test_validated_string_contains_label_prefix_only():
+    # prefix is used; contains conflicts with prefix and is dropped
+    m = ValidatedStringContains(label="env-prod-us")
+    assert m.label == "env-prod-us"
+
+
+def test_validated_string_contains_label_dropped_comment():
+    text = _GEN_VALIDATE.read_text()
+    assert "# buf.validate: contains (not translated)" in text
+
+
+# ---------------------------------------------------------------------------
+# ValidatedBytes — bytes min_len / len / max_len → min_length / max_length
+# ---------------------------------------------------------------------------
+
+
+def test_validated_bytes_token_valid():
+    m = ValidatedBytes(token=b"x" * 16)
+    assert m.token == b"x" * 16
+
+
+def test_validated_bytes_token_too_short():
+    with pytest.raises(ValidationError):
+        ValidatedBytes(token=b"short")
+
+
+def test_validated_bytes_hash_exact():
+    # `hash` is a Python builtin → renamed to `hash_` with alias
+    m = ValidatedBytes(hash=b"x" * 32)
+    assert m.hash_ == b"x" * 32
+
+
+def test_validated_bytes_hash_wrong_length():
+    with pytest.raises(ValidationError):
+        ValidatedBytes(hash=b"x" * 31)
+
+
+def test_validated_bytes_payload_valid():
+    m = ValidatedBytes(payload=b"x" * 1024)
+    assert m.payload == b"x" * 1024
+
+
+def test_validated_bytes_payload_too_large():
+    with pytest.raises(ValidationError):
+        ValidatedBytes(payload=b"x" * 1025)

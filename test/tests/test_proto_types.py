@@ -72,6 +72,7 @@ def test_partial_proto_types_omits_uri_imports():
     "symbol",
     [
         "import ipaddress as _ipaddress",
+        "import math as _math",
         "import uuid as _uuid_lib",
         "_AnyUrl",
         "_url_adapter",
@@ -81,6 +82,8 @@ def test_partial_proto_types_omits_uri_imports():
         "_validate_ipv4",
         "_validate_ipv6",
         "_validate_uuid",
+        "_require_finite",
+        "_make_const_validator",
     ],
 )
 def test_api_v1_proto_types_has_all_format_validators(symbol):
