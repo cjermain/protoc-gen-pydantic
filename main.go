@@ -82,6 +82,13 @@ func formatScalarLiteral(fd protoreflect.FieldDescriptor, v protoreflect.Value) 
 func init() {
 	tmpl = template.Must(template.New("pydantic").Funcs(template.FuncMap{
 		"pyQuote": pyQuote,
+		"dict": func(args ...interface{}) map[string]interface{} {
+			m := make(map[string]interface{}, len(args)/2)
+			for i := 0; i < len(args); i += 2 {
+				m[args[i].(string)] = args[i+1]
+			}
+			return m
+		},
 	}).Parse(modelTemplate))
 }
 
@@ -259,151 +266,170 @@ class _ProtoEnum({{ if $config.UseIntegersForEnums }}int{{ else }}str{{ end }}, 
 {{- range .Enums }}
 
 
-class {{ .Name }}({{ if .HasOptions }}_ProtoEnum{{ else }}{{ if $config.UseIntegersForEnums }}int{{ else }}str{{ end }}, _Enum{{ end }}):
-    {{- if .LeadingComments }}
-    """
-    {{- range .LeadingComments }}
-    {{ . }}
-    {{- end }}
-    """
-    {{- else }}
-    """ """
-    {{- end }}
-    {{- if .TrailingComments }}
-    {{ range .TrailingComments }}
-    # {{ . }}
-    {{- end }}
-    {{- end }}
-    {{- range .Values }}
-    {{ range .LeadingComments }}
-    # {{ . }}
-    {{- end }}
-    {{- if .EnumHasOptions }}
-    {{- if .SortedCustomOptions }}
-    {{- if $config.UseIntegersForEnums }}
-    {{ .Name }} = (
-        {{ .Number }},
-        _EnumValueOptions(
-            number={{ .Number }},
-{{- if .Deprecated }}
-            deprecated=True,
-{{- end }}
-{{- if .DebugRedact }}
-            debug_redact=True,
-{{- end }}
-{{- range .SortedCustomOptions }}
-            {{ .Key }}={{ .Value }},
-{{- end }}
-        ),
-    )  # {{ .Name }}
-    {{- else }}
-    {{ .Name }} = (
-        "{{ .Name }}",
-        _EnumValueOptions(
-            number={{ .Number }},
-{{- if .Deprecated }}
-            deprecated=True,
-{{- end }}
-{{- if .DebugRedact }}
-            debug_redact=True,
-{{- end }}
-{{- range .SortedCustomOptions }}
-            {{ .Key }}={{ .Value }},
-{{- end }}
-        ),
-    )  # {{ .Number }}
-    {{- end }}
-    {{- else }}
-    {{- if $config.UseIntegersForEnums }}
-    {{ .Name }} = (
-        {{ .Number }},
-        _EnumValueOptions(number={{ .Number }}{{ if .Deprecated }}, deprecated=True{{ end }}{{ if .DebugRedact }}, debug_redact=True{{ end }}),
-    )  # {{ .Name }}
-    {{- else }}
-    {{ .Name }} = (
-        "{{ .Name }}",
-        _EnumValueOptions(number={{ .Number }}{{ if .Deprecated }}, deprecated=True{{ end }}{{ if .DebugRedact }}, debug_redact=True{{ end }}),
-    )  # {{ .Number }}
-    {{- end }}
-    {{- end }}
-    {{- else }}
-    {{- if $config.UseIntegersForEnums }}
-    {{ .Name }} = {{ .Number }}  # {{ .Name }}
-    {{- else }}
-    {{ .Name }} = "{{ .Name }}"  # {{ .Number }}
-    {{- end }}
-    {{- end }}
-    {{- range .TrailingComments }}
-    # {{ . }}
-    {{- end }}
-    {{- end }}
-{{- end }}
-{{- range .Messages }}
+{{template "renderEnum" (dict "Enum" . "Indent" "" "Config" $config "HasEnumOptions" $hasEnumOptions "CustomOptionFields" $customOptionFields)}}{{- end }}{{- range .Messages }}
 
 
-class {{ .Name }}(_ProtoModel):
-    """
-    {{- range .LeadingComments }}
-    {{ . }}
-    {{- end }}
-
-    Attributes:
-    {{- range .Fields }}
-      {{ .Name }} ({{ .Type }}):
-    {{- range .LeadingComments }}
-        {{ . }}
-    {{- end }}
-    {{- end }}
-    """
-    {{- if .HasModelConfig }}
-
-    model_config = _ConfigDict(
-        {{- if .HasAlias }}
-        populate_by_name=True,
-        {{- end }}
-        ser_json_bytes="base64",
-        val_json_bytes="base64",
-        ser_json_inf_nan="strings",
-    )
-    {{- end }}
-    {{- range $i, $v := .TrailingComments }}{{ if eq $i 0 }}
-{{ end }}
-    # {{ $v }}
-    {{- end }}
-    {{ range .Fields }}
-    {{- range .LeadingComments }}
-    # {{ . }}
-    {{- end }}
-    {{- if or (and (not $config.DisableFieldDescription) (or (ne (len .LeadingComments) 0) (ne .OneOf nil))) .Alias .IsDefaultFactory .HasConstraints }}
-    {{ .Name }}: "{{ .Type }}" = _Field(
-        {{ .Default }},
-    {{- if and (not $config.DisableFieldDescription) (or (ne (len .LeadingComments) 0) (ne .OneOf nil)) }}
-        description={{ pyQuote .Description }},
-    {{- end }}
-    {{- if .Alias }}
-        alias="{{ .Alias }}",
-    {{- end }}
-    {{- range .ConstraintArgs }}
-        {{ . }},
-    {{- end }}
-    {{- range .DroppedConstraintComments }}
-        {{ . }}
-    {{- end }}
-    )
-    {{- else }}
-    {{ .Name }}: "{{ .Type }}" = _Field({{ .Default }})
-    {{- end }}
-    {{- range .TrailingComments }}
-    # {{ . }}
-    {{- end }}
-    {{ end }}
-    {{- if eq (len .Fields) 0 }}
-    pass
-    {{- end }}
-{{- end }}
+{{template "renderMessage" (dict "Message" . "Indent" "" "Config" $config "HasEnumOptions" $hasEnumOptions "CustomOptionFields" $customOptionFields)}}{{- end -}}
 {{- range .File.TrailingComments }}
 # {{ . }}
 {{- end }}
+{{define "renderEnum" -}}
+{{- $e := index . "Enum" -}}
+{{- $indent := index . "Indent" -}}
+{{- $bi := printf "%s    " $indent -}}
+{{- $config := index . "Config" -}}
+{{- $hasEnumOptions := index . "HasEnumOptions" -}}
+{{- $customOptionFields := index . "CustomOptionFields" -}}
+{{$indent}}class {{ $e.Name }}({{ if $e.HasOptions }}_ProtoEnum{{ else }}{{ if $config.UseIntegersForEnums }}int{{ else }}str{{ end }}, _Enum{{ end }}):
+{{- if $e.LeadingComments }}
+{{$bi}}"""
+{{- range $e.LeadingComments }}
+{{$bi}}{{ . }}
+{{- end }}
+{{$bi}}"""
+{{- else }}
+{{$bi}}""" """
+{{- end }}
+{{- if $e.TrailingComments }}
+{{$bi}}{{ range $e.TrailingComments }}
+{{$bi}}# {{ . }}
+{{- end }}
+{{- end }}
+{{- range $e.Values }}
+{{$bi}}{{ range .LeadingComments }}
+{{$bi}}# {{ . }}
+{{- end }}
+{{- if .EnumHasOptions }}
+{{- if .SortedCustomOptions }}
+{{- if $config.UseIntegersForEnums }}
+{{$bi}}{{ .Name }} = (
+{{$bi}}    {{ .Number }},
+{{$bi}}    _EnumValueOptions(
+{{$bi}}        number={{ .Number }},
+{{- if .Deprecated }}
+{{$bi}}        deprecated=True,
+{{- end }}
+{{- if .DebugRedact }}
+{{$bi}}        debug_redact=True,
+{{- end }}
+{{- range .SortedCustomOptions }}
+{{$bi}}        {{ .Key }}={{ .Value }},
+{{- end }}
+{{$bi}}    ),
+{{$bi}})  # {{ .Name }}
+{{- else }}
+{{$bi}}{{ .Name }} = (
+{{$bi}}    "{{ .Name }}",
+{{$bi}}    _EnumValueOptions(
+{{$bi}}        number={{ .Number }},
+{{- if .Deprecated }}
+{{$bi}}        deprecated=True,
+{{- end }}
+{{- if .DebugRedact }}
+{{$bi}}        debug_redact=True,
+{{- end }}
+{{- range .SortedCustomOptions }}
+{{$bi}}        {{ .Key }}={{ .Value }},
+{{- end }}
+{{$bi}}    ),
+{{$bi}})  # {{ .Number }}
+{{- end }}
+{{- else }}
+{{- if $config.UseIntegersForEnums }}
+{{$bi}}{{ .Name }} = (
+{{$bi}}    {{ .Number }},
+{{$bi}}    _EnumValueOptions(number={{ .Number }}{{ if .Deprecated }}, deprecated=True{{ end }}{{ if .DebugRedact }}, debug_redact=True{{ end }}),
+{{$bi}})  # {{ .Name }}
+{{- else }}
+{{$bi}}{{ .Name }} = (
+{{$bi}}    "{{ .Name }}",
+{{$bi}}    _EnumValueOptions(number={{ .Number }}{{ if .Deprecated }}, deprecated=True{{ end }}{{ if .DebugRedact }}, debug_redact=True{{ end }}),
+{{$bi}})  # {{ .Number }}
+{{- end }}
+{{- end }}
+{{- else }}
+{{- if $config.UseIntegersForEnums }}
+{{$bi}}{{ .Name }} = {{ .Number }}  # {{ .Name }}
+{{- else }}
+{{$bi}}{{ .Name }} = "{{ .Name }}"  # {{ .Number }}
+{{- end }}
+{{- end }}
+{{- range .TrailingComments }}
+{{$bi}}# {{ . }}
+{{- end }}
+{{- end }}
+{{- end -}}
+{{define "renderMessage" -}}
+{{- $m := index . "Message" -}}
+{{- $indent := index . "Indent" -}}
+{{- $bi := printf "%s    " $indent -}}
+{{- $config := index . "Config" -}}
+{{- $hasEnumOptions := index . "HasEnumOptions" -}}
+{{- $customOptionFields := index . "CustomOptionFields" -}}
+{{$indent}}class {{ $m.Name }}(_ProtoModel):
+{{$bi}}"""
+{{- range $m.LeadingComments }}
+{{$bi}}{{ . }}
+{{- end }}
+{{$bi}}
+{{$bi}}Attributes:
+{{- range $m.Fields }}
+{{$bi}}  {{ .Name }} ({{ .Type }}):
+{{- range .LeadingComments }}
+{{$bi}}    {{ . }}
+{{- end }}
+{{- end }}
+{{$bi}}"""
+{{- if $m.HasModelConfig }}
+
+{{$bi}}model_config = _ConfigDict(
+{{- if $m.HasAlias }}
+{{$bi}}    populate_by_name=True,
+{{- end }}
+{{$bi}}    ser_json_bytes="base64",
+{{$bi}}    val_json_bytes="base64",
+{{$bi}}    ser_json_inf_nan="strings",
+{{$bi}})
+{{- end }}
+{{- range $m.NestedEnums }}
+
+{{template "renderEnum" (dict "Enum" . "Indent" $bi "Config" $config "HasEnumOptions" $hasEnumOptions "CustomOptionFields" $customOptionFields)}}{{- end }}{{- range $m.NestedMessages }}
+
+{{template "renderMessage" (dict "Message" . "Indent" $bi "Config" $config "HasEnumOptions" $hasEnumOptions "CustomOptionFields" $customOptionFields)}}{{- end }}
+{{- range $i, $v := $m.TrailingComments }}{{ if eq $i 0 }}
+{{ end }}
+{{$bi}}# {{ $v }}
+{{- end }}
+{{ range $i, $field := $m.Fields }}{{ if $i }}
+{{ end }}{{- range $field.LeadingComments }}
+{{$bi}}# {{ . }}
+{{- end }}
+{{- if or (and (not $config.DisableFieldDescription) (or (ne (len $field.LeadingComments) 0) (ne $field.OneOf nil))) $field.Alias $field.IsDefaultFactory $field.HasConstraints }}
+{{$bi}}{{ $field.Name }}: "{{ $field.Type }}" = _Field(
+{{$bi}}    {{ $field.Default }},
+{{- if and (not $config.DisableFieldDescription) (or (ne (len $field.LeadingComments) 0) (ne $field.OneOf nil)) }}
+{{$bi}}    description={{ pyQuote $field.Description }},
+{{- end }}
+{{- if $field.Alias }}
+{{$bi}}    alias="{{ $field.Alias }}",
+{{- end }}
+{{- range $field.ConstraintArgs }}
+{{$bi}}    {{ . }},
+{{- end }}
+{{- range $field.DroppedConstraintComments }}
+{{$bi}}    {{ . }}
+{{- end }}
+{{$bi}})
+{{- else }}
+{{$bi}}{{ $field.Name }}: "{{ $field.Type }}" = _Field({{ $field.Default }})
+{{- end }}
+{{- range $field.TrailingComments }}
+{{$bi}}# {{ . }}
+{{- end }}{{- end }}
+{{- if and (eq (len $m.Fields) 0) (eq (len $m.NestedEnums) 0) (eq (len $m.NestedMessages) 0) }}
+{{$bi}}pass
+{{- end }}
+{{- end -}}
 `
 
 // protoTypesBaseFuncs contains the always-present base function bodies for
@@ -977,6 +1003,8 @@ func (c *FieldConstraints) combinePatternConstraints() {
 type Message struct {
 	Name             string
 	Fields           []Field
+	NestedMessages   []Message
+	NestedEnums      []Enum
 	LeadingComments  []string
 	TrailingComments []string
 }
@@ -1065,6 +1093,25 @@ func (e *generator) runtimeImportLine() string {
 func (e *generator) hasEnumOptions() bool {
 	for _, enum := range e.enums {
 		if enum.HasOptions() {
+			return true
+		}
+	}
+	for _, msg := range e.messages {
+		if messageHasEnumOptions(msg) {
+			return true
+		}
+	}
+	return false
+}
+
+func messageHasEnumOptions(msg Message) bool {
+	for _, enum := range msg.NestedEnums {
+		if enum.HasOptions() {
+			return true
+		}
+	}
+	for _, nested := range msg.NestedMessages {
+		if messageHasEnumOptions(nested) {
 			return true
 		}
 	}
@@ -1292,16 +1339,22 @@ func (e *generator) processFile(file protoreflect.FileDescriptor, fdp *descripto
 		ed := file.Enums().Get(i)
 		ep := fdp.GetEnumType()[i]
 		path := []int32{5, int32(i)}
-		if err := e.processEnum(ed, ep, sourceCodeInfo, path); err != nil {
+		enum, err := e.processEnum(ed, ep, sourceCodeInfo, path)
+		if err != nil {
 			return err
 		}
+		e.enums = append(e.enums, enum)
 	}
 	for i := range file.Messages().Len() {
 		msgd := file.Messages().Get(i)
 		msgp := fdp.GetMessageType()[i]
 		path := []int32{4, int32(i)}
-		if err := e.processMessage(msgd, msgp, sourceCodeInfo, path); err != nil {
+		msg, err := e.processMessage(msgd, msgp, sourceCodeInfo, path)
+		if err != nil {
 			return err
+		}
+		if msg.Name != "" {
+			e.messages = append(e.messages, msg)
 		}
 	}
 	return nil
@@ -1312,9 +1365,9 @@ func (e *generator) processEnum(
 	enumProto *descriptorpb.EnumDescriptorProto,
 	sourceCodeInfo *descriptorpb.SourceCodeInfo,
 	path []int32,
-) error {
+) (Enum, error) {
 	def := Enum{
-		Name:   resolveName(enum),
+		Name:   string(enum.Name()),
 		Values: []EnumValue{},
 	}
 	def.LeadingComments, def.TrailingComments = extractComments(sourceCodeInfo, path)
@@ -1369,8 +1422,7 @@ func (e *generator) processEnum(
 	}
 
 	e.addStdImport("_Enum")
-	e.enums = append(e.enums, def)
-	return nil
+	return def, nil
 }
 
 func (e *generator) processMessage(
@@ -1378,36 +1430,42 @@ func (e *generator) processMessage(
 	msgProto *descriptorpb.DescriptorProto,
 	sourceCodeInfo *descriptorpb.SourceCodeInfo,
 	path []int32,
-) error {
+) (Message, error) {
 	if msg.IsMapEntry() {
-		return nil
-	}
-
-	// NOTE: Process nested enums and messages before the fields.
-	for i, nest := range iter(msg.Enums()) {
-		nestPath := append(append([]int32{}, path...), 4, int32(i))
-		if err := e.processEnum(nest, msgProto.GetEnumType()[i], sourceCodeInfo, nestPath); err != nil {
-			return fmt.Errorf("enum %s: %w", string(nest.Name()), err)
-		}
-	}
-
-	for i, nest := range iter(msg.Messages()) {
-		nestPath := append(append([]int32{}, path...), 3, int32(i))
-		if err := e.processMessage(nest, msgProto.GetNestedType()[i], sourceCodeInfo, nestPath); err != nil {
-			return fmt.Errorf("message %s: %w", string(nest.Name()), err)
-		}
+		return Message{}, nil
 	}
 
 	def := Message{
-		Name:   resolveName(msg),
+		Name:   string(msg.Name()),
 		Fields: []Field{},
 	}
 	def.LeadingComments, def.TrailingComments = extractComments(sourceCodeInfo, path)
 
+	// NOTE: Process nested enums and messages before the fields.
+	for i, nest := range iter(msg.Enums()) {
+		nestPath := append(append([]int32{}, path...), 4, int32(i))
+		nestedEnum, err := e.processEnum(nest, msgProto.GetEnumType()[i], sourceCodeInfo, nestPath)
+		if err != nil {
+			return Message{}, fmt.Errorf("enum %s: %w", string(nest.Name()), err)
+		}
+		def.NestedEnums = append(def.NestedEnums, nestedEnum)
+	}
+
+	for i, nest := range iter(msg.Messages()) {
+		nestPath := append(append([]int32{}, path...), 3, int32(i))
+		nestedMsg, err := e.processMessage(nest, msgProto.GetNestedType()[i], sourceCodeInfo, nestPath)
+		if err != nil {
+			return Message{}, fmt.Errorf("message %s: %w", string(nest.Name()), err)
+		}
+		if nestedMsg.Name != "" {
+			def.NestedMessages = append(def.NestedMessages, nestedMsg)
+		}
+	}
+
 	for i, field := range iter(msg.Fields()) {
 		typ, err := e.resolveType(def.Name, field)
 		if err != nil {
-			return fmt.Errorf("field %s.%s: %w", def.Name, field.Name(), err)
+			return Message{}, fmt.Errorf("field %s.%s: %w", def.Name, field.Name(), err)
 		}
 		fieldPath := append(append([]int32{}, path...), 2, int32(i))
 		var oneOf *OneOf
@@ -1449,8 +1507,7 @@ func (e *generator) processMessage(
 	e.addStdImport("_BaseModel")
 	e.addStdImport("_Field")
 	e.addStdImport("_ConfigDict")
-	e.messages = append(e.messages, def)
-	return nil
+	return def, nil
 }
 
 func (e *generator) addExternalImport(importLine string) {
@@ -1479,15 +1536,20 @@ func (e *generator) addCrossFileImport(sourceFile, targetFile protoreflect.FileD
 	if sourceFile.Path() == targetFile.Path() {
 		return nil
 	}
+	// For nested types (e.g. "Outer.Inner"), import only the top-level class.
+	importName := typeName
+	if dot := strings.Index(typeName, "."); dot >= 0 {
+		importName = typeName[:dot]
+	}
 	targetPath := string(targetFile.Path())
 	moduleName := strings.TrimSuffix(filepath.Base(targetPath), ".proto") + "_pydantic"
 	if string(sourceFile.Package()) == string(targetFile.Package()) {
-		e.addRelativeImport(fmt.Sprintf("from .%s import %s", moduleName, typeName))
+		e.addRelativeImport(fmt.Sprintf("from .%s import %s", moduleName, importName))
 	} else {
 		// Use the file path (not package name) to derive the Python module path.
 		dir := filepath.Dir(targetPath)
 		pyPkg := strings.ReplaceAll(dir, string(filepath.Separator), ".")
-		e.addExternalImport(fmt.Sprintf("from %s.%s import %s", pyPkg, moduleName, typeName))
+		e.addExternalImport(fmt.Sprintf("from %s.%s import %s", pyPkg, moduleName, importName))
 	}
 	return nil
 }
@@ -1524,7 +1586,7 @@ func (e *generator) resolveBaseType(referer string, field protoreflect.FieldDesc
 	case protoreflect.MessageKind:
 	case protoreflect.EnumKind:
 		enum := field.Enum()
-		typeName := resolveName(enum)
+		typeName := resolveQualifiedName(enum)
 		if err := e.addCrossFileImport(field.ParentFile(), enum.ParentFile(), typeName); err != nil {
 			return "", err
 		}
@@ -1561,7 +1623,7 @@ func (e *generator) resolveBaseType(referer string, field protoreflect.FieldDesc
 		return fmt.Sprintf("dict[%s, %s]", key, val), nil
 	}
 
-	typeName := resolveName(msg)
+	typeName := resolveQualifiedName(msg)
 	if err := e.addCrossFileImport(field.ParentFile(), msg.ParentFile(), typeName); err != nil {
 		return "", err
 	}
@@ -1656,12 +1718,12 @@ func equalPath(a, b []int32) bool {
 	return true
 }
 
-func resolveName(d protoreflect.Descriptor) string {
+// resolveQualifiedName returns the dotted path from the file package root
+// (e.g. "Outer.Inner.Deepest"), suitable for use in Python type annotations.
+func resolveQualifiedName(d protoreflect.Descriptor) string {
 	prefix := string(d.ParentFile().FullName()) + "."
 	name := string(d.FullName())
-	name = strings.TrimPrefix(name, prefix)
-	name = strings.ReplaceAll(name, ".", "_")
-	return string(name)
+	return strings.TrimPrefix(name, prefix) // keep dots
 }
 
 func extractComments(sourceCodeInfo *descriptorpb.SourceCodeInfo, path []int32) (leading []string, trailing []string) {

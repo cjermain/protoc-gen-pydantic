@@ -11,8 +11,8 @@ protoc-gen-pydantic is a `protoc` plugin written in Go that generates Pydantic v
 **Single-file Go plugin** (`main.go`):
 - Reads `CodeGeneratorRequest` from stdin, writes `CodeGeneratorResponse` to stdout
 - Uses Go `text/template` to render Python code
-- Key types: `generator`, `Message`, `Field`, `Enum`, `EnumValue`, `CustomOption`, `OneOf`
-- Key functions: `processFile()` → `processMessage()`/`processEnum()` → `resolveType()`/`resolveBaseType()`
+- Key types: `generator`, `Message` (has `NestedMessages []Message`, `NestedEnums []Enum`), `Field`, `Enum`, `EnumValue`, `CustomOption`, `OneOf`
+- Key functions: `processFile()` → `processMessage()`/`processEnum()` → `resolveType()`/`resolveBaseType()`/`resolveQualifiedName()`
 
 **Code generation flow:**
 1. Parse plugin options from protoc/buf
@@ -140,7 +140,9 @@ the directory's proto files are emitted. `protoTypeDirs` in `main()` is
 
 ### Generated Python Conventions
 - Standard library imports are aliased with `_` prefix to avoid conflicts: `_BaseModel`, `_Field`, `_Enum`, `_Optional`, `_Any`
-- Nested types use `Parent_Child` naming: `Foo_NestedMessage`, `Foo_NestedEnum`
+- Nested types are true Python nested classes: `Foo.NestedMessage`, `Foo.NestedEnum` (accessible via dotted attribute access)
+- Cross-file imports name only the top-level class: `from .scalars_pydantic import Scalars`; dotted access (`Scalars.NestedEnum`) resolves at runtime
+- `resolveQualifiedName(d)` returns the dotted path from the file root (e.g. `Outer.Inner.Deepest`) used for type annotations; `string(d.Name())` is the leaf name used for the class definition itself
 - Proto comments become docstrings and `Field(description=...)` values
 - Forward references use string annotations: `"Message"` instead of `Message`
 

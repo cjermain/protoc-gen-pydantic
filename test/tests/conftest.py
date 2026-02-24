@@ -7,7 +7,7 @@ import pytest
 
 from api.v1.enums_pydantic import Enum
 from api.v1.messages_pydantic import Message
-from api.v1.scalars_pydantic import Scalars, Scalars_NestedEnum, Scalars_NestedMessage
+from api.v1.scalars_pydantic import Scalars
 
 # Directory paths relative to the test root (test/)
 _TEST_ROOT = Path(__file__).resolve().parent.parent
@@ -87,9 +87,9 @@ def make_scalars(**overrides):
         string="hello",
         bytes_=b"world",
         enum=Enum.ACTIVE,
-        nested_enum=Scalars_NestedEnum.ACTIVE,
+        nested_enum=Scalars.NestedEnum.ACTIVE,
         message=Message(first_name="John", last_name="Doe"),
-        nested_message=Scalars_NestedMessage(first_name="Jane", last_name="Doe"),
+        nested_message=Scalars.NestedMessage(first_name="Jane", last_name="Doe"),
     )
     return Scalars(**{**defaults, **overrides})
 
@@ -115,10 +115,10 @@ def make_collections(**overrides):
         string_repeated=["a"],
         bytes_repeated=[b"b"],
         enum_repeated=[Enum.INACTIVE],
-        nested_enum_repeated=[Scalars_NestedEnum.INACTIVE],
+        nested_enum_repeated=[Scalars.NestedEnum.INACTIVE],
         message_repeated=[Message(first_name="John", last_name="Doe")],
         nested_message_repeated=[
-            Scalars_NestedMessage(first_name="Jane", last_name="Doe")
+            Scalars.NestedMessage(first_name="Jane", last_name="Doe")
         ],
         int32_map_key={1: "a"},
         int64_map_key={2: "b"},
@@ -148,10 +148,10 @@ def make_collections(**overrides):
         string_map_value={"a": "b"},
         bytes_map_value={"a": b"c"},
         enum_map_value={"a": Enum.ACTIVE},
-        nested_enum_map_value={"a": Scalars_NestedEnum.ACTIVE},
+        nested_enum_map_value={"a": Scalars.NestedEnum.ACTIVE},
         message_map_value={"a": Message(first_name="John", last_name="Doe")},
         nested_message_map_value={
-            "a": Scalars_NestedMessage(first_name="Jane", last_name="Doe")
+            "a": Scalars.NestedMessage(first_name="Jane", last_name="Doe")
         },
     )
     return Collections(**{**defaults, **overrides})
@@ -164,4 +164,4 @@ def message():
 
 @pytest.fixture
 def nested_message():
-    return Scalars_NestedMessage(first_name="Jane", last_name="Doe")
+    return Scalars.NestedMessage(first_name="Jane", last_name="Doe")

@@ -912,7 +912,7 @@ def test_validated_required_plain_scalar_accepts_default():
 def test_validated_required_annotations_in_generated_file():
     text = _GEN_VALIDATE.read_text()
     assert 'required_name: "str"' in text
-    assert 'required_detail: "ValidatedRequired_Detail | None"' in text
+    assert 'required_detail: "ValidatedRequired.Detail | None"' in text
     assert "# buf.validate: required (not translated)" in text
 
 

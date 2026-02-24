@@ -7,11 +7,9 @@ from ._proto_types import ProtoInt64, ProtoUInt64
 
 from .enums_pydantic import Enum
 
-from .scalars_pydantic import Scalars_NestedEnum
+from .scalars_pydantic import Scalars
 
 from .messages_pydantic import Message
-
-from .scalars_pydantic import Scalars_NestedMessage
 
 
 class _ProtoModel(_BaseModel):
@@ -68,9 +66,9 @@ class Collections(_ProtoModel):
       stringRepeated (list[str]):
       bytesRepeated (list[bytes]):
       enumRepeated (list[Enum]):
-      nestedEnumRepeated (list[Scalars_NestedEnum]):
+      nestedEnumRepeated (list[Scalars.NestedEnum]):
       messageRepeated (list[Message]):
-      nestedMessageRepeated (list[Scalars_NestedMessage]):
+      nestedMessageRepeated (list[Scalars.NestedMessage]):
       int32MapKey (dict[int, str]):
       int64MapKey (dict[ProtoInt64, str]):
       uint32MapKey (dict[int, str]):
@@ -99,9 +97,9 @@ class Collections(_ProtoModel):
       stringMapValue (dict[str, str]):
       bytesMapValue (dict[str, bytes]):
       enumMapValue (dict[str, Enum]):
-      nestedEnumMapValue (dict[str, Scalars_NestedEnum]):
+      nestedEnumMapValue (dict[str, Scalars.NestedEnum]):
       messageMapValue (dict[str, Message]):
-      nestedMessageMapValue (dict[str, Scalars_NestedMessage]):
+      nestedMessageMapValue (dict[str, Scalars.NestedMessage]):
     """
 
     model_config = _ConfigDict(
@@ -174,7 +172,7 @@ class Collections(_ProtoModel):
         default_factory=list,
     )
 
-    nestedEnumRepeated: "list[Scalars_NestedEnum]" = _Field(
+    nestedEnumRepeated: "list[Scalars.NestedEnum]" = _Field(
         default_factory=list,
     )
 
@@ -182,7 +180,7 @@ class Collections(_ProtoModel):
         default_factory=list,
     )
 
-    nestedMessageRepeated: "list[Scalars_NestedMessage]" = _Field(
+    nestedMessageRepeated: "list[Scalars.NestedMessage]" = _Field(
         default_factory=list,
     )
 
@@ -298,7 +296,7 @@ class Collections(_ProtoModel):
         default_factory=dict,
     )
 
-    nestedEnumMapValue: "dict[str, Scalars_NestedEnum]" = _Field(
+    nestedEnumMapValue: "dict[str, Scalars.NestedEnum]" = _Field(
         default_factory=dict,
     )
 
@@ -306,6 +304,6 @@ class Collections(_ProtoModel):
         default_factory=dict,
     )
 
-    nestedMessageMapValue: "dict[str, Scalars_NestedMessage]" = _Field(
+    nestedMessageMapValue: "dict[str, Scalars.NestedMessage]" = _Field(
         default_factory=dict,
     )

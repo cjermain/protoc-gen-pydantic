@@ -1,13 +1,4 @@
-from api.v1.comments_pydantic import (
-    CommentedMessage,
-    CommentedMessage_NestedEnum,
-    CommentedMessage_NestedMessage,
-    Outer,
-    Outer_Inner,
-    Outer_Inner_Deepest,
-    Outer_Inner_InnerEnum,
-    Outer_OuterEnum,
-)
+from api.v1.comments_pydantic import CommentedMessage, Outer
 
 
 # --- CommentedMessage (top-level) ---
@@ -33,13 +24,13 @@ def test_commented_message_field_descriptions():
 
 
 def test_nested_message_docstring():
-    doc = CommentedMessage_NestedMessage.__doc__
+    doc = CommentedMessage.NestedMessage.__doc__
     assert "Leading comment on NestedMessage." in doc
     assert "A message nested inside CommentedMessage." in doc
 
 
 def test_nested_message_field_descriptions():
-    first = CommentedMessage_NestedMessage.model_fields["first_name"].description
+    first = CommentedMessage.NestedMessage.model_fields["first_name"].description
     assert "Leading comment on nested first_name." in first
     assert "The given name in the nested message." in first
 
@@ -48,7 +39,7 @@ def test_nested_message_field_descriptions():
 
 
 def test_nested_enum_docstring():
-    doc = CommentedMessage_NestedEnum.__doc__
+    doc = CommentedMessage.NestedEnum.__doc__
     assert "Leading comment on NestedEnum." in doc
     assert "An enum nested inside CommentedMessage." in doc
 
@@ -62,21 +53,21 @@ def test_outer_message_comments():
 
 
 def test_inner_message_comments():
-    assert "Inner message comment." in Outer_Inner.__doc__
-    assert "Inner field comment." in Outer_Inner.model_fields["inner_field"].description
+    assert "Inner message comment." in Outer.Inner.__doc__
+    assert "Inner field comment." in Outer.Inner.model_fields["inner_field"].description
 
 
 def test_deepest_message_comments():
-    assert "Deepest message comment." in Outer_Inner_Deepest.__doc__
+    assert "Deepest message comment." in Outer.Inner.Deepest.__doc__
     assert (
         "Deepest field comment."
-        in Outer_Inner_Deepest.model_fields["deepest_field"].description
+        in Outer.Inner.Deepest.model_fields["deepest_field"].description
     )
 
 
 def test_outer_enum_comments():
-    assert "Outer enum comment." in Outer_OuterEnum.__doc__
+    assert "Outer enum comment." in Outer.OuterEnum.__doc__
 
 
 def test_inner_enum_comments():
-    assert "Inner enum comment." in Outer_Inner_InnerEnum.__doc__
+    assert "Inner enum comment." in Outer.Inner.InnerEnum.__doc__
