@@ -1,6 +1,7 @@
 # protoc-gen-pydantic
 
 [![CI](https://github.com/cjermain/protoc-gen-pydantic/actions/workflows/ci.yml/badge.svg)](https://github.com/cjermain/protoc-gen-pydantic/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/cjermain/protoc-gen-pydantic/branch/main/graph/badge.svg)](https://codecov.io/gh/cjermain/protoc-gen-pydantic)
 [![Go Reference](https://pkg.go.dev/badge/github.com/cjermain/protoc-gen-pydantic.svg)](https://pkg.go.dev/github.com/cjermain/protoc-gen-pydantic)
 [![Release](https://img.shields.io/github/v/release/cjermain/protoc-gen-pydantic)](https://github.com/cjermain/protoc-gen-pydantic/releases/latest)
 
