@@ -1,8 +1,15 @@
 # protoc-gen-pydantic
 
 [![CI](https://github.com/cjermain/protoc-gen-pydantic/actions/workflows/ci.yml/badge.svg)](https://github.com/cjermain/protoc-gen-pydantic/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/cjermain/protoc-gen-pydantic/branch/main/graph/badge.svg)](https://codecov.io/gh/cjermain/protoc-gen-pydantic)
+[![Go Report Card](https://goreportcard.com/badge/github.com/cjermain/protoc-gen-pydantic)](https://goreportcard.com/report/github.com/cjermain/protoc-gen-pydantic)
 [![Go Reference](https://pkg.go.dev/badge/github.com/cjermain/protoc-gen-pydantic.svg)](https://pkg.go.dev/github.com/cjermain/protoc-gen-pydantic)
 [![Release](https://img.shields.io/github/v/release/cjermain/protoc-gen-pydantic)](https://github.com/cjermain/protoc-gen-pydantic/releases/latest)
+[![Go version](https://img.shields.io/github/go-mod/go-version/cjermain/protoc-gen-pydantic)](go.mod)
+[![License](https://img.shields.io/github/license/cjermain/protoc-gen-pydantic)](LICENSE)
+[![Pydantic v2](https://img.shields.io/badge/pydantic-v2-blue)](https://docs.pydantic.dev/)
+[![buf](https://img.shields.io/badge/buf-compatible-blue)](https://buf.build/)
+[![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit)](https://pre-commit.com/)
 
 `protoc-gen-pydantic` is a `protoc` plugin that generates [Pydantic v2](https://docs.pydantic.dev/) model definitions from `.proto` files.
 
