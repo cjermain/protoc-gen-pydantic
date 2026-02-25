@@ -1,4 +1,6 @@
 name: coverage
+permissions:
+  contents: read
 
 on:
   push:
@@ -27,3 +29,4 @@ jobs:
       - uses: codecov/codecov-action@v5
         with:
           files: coverage.out
+          token: ${{ secrets.CODECOV_TOKEN }}
