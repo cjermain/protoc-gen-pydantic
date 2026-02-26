@@ -11,6 +11,10 @@ repos:
         files: ^test/tests/
       - id: ruff-format
         files: ^test/tests/
+      - id: ruff-format
+        name: ruff-format-docs
+        args: [--preview]
+        files: ^docs/.*\.md$
   - repo: local
     hooks:
       - id: check-generated-files

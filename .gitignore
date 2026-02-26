@@ -20,6 +20,11 @@ test/gen_pb2/
 # OS
 .DS_Store
 
+# Docs (VitePress)
+docs/node_modules/
+docs/.vitepress/dist/
+docs/.vitepress/cache/
+
 # IDEs
 .idea/
 .vscode/

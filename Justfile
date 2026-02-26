@@ -5,7 +5,7 @@ init:
     #!/usr/bin/env bash
     set -euo pipefail
     missing=()
-    for cmd in go buf protoc uv golangci-lint pre-commit; do
+    for cmd in go buf protoc uv golangci-lint pre-commit node npm; do
         if ! command -v "$cmd" &>/dev/null; then
             missing+=("$cmd")
         fi
@@ -20,7 +20,9 @@ init:
     echo "uv:             $(uv --version | awk '{print $2}')"
     echo "golangci-lint:  $(golangci-lint --version | awk '{print $4}')"
     echo "pre-commit:     $(pre-commit --version | awk '{print $2}')"
+    echo "node:           $(node --version)"
     cd test && uv sync
+    cd docs && npm install
     pre-commit install
     echo "Ready to go."
 
@@ -49,17 +51,46 @@ lint-python:
     cd test && uv run ruff check tests/
     cd test && uv run ruff format --check tests/
 
+# Check Python code blocks in docs are ruff-formatted
+lint-docs:
+    cd test && uv run ruff format --preview --check ../docs/**/*.md ../docs/*.md
+
 # Run type checker on test suite code
 lint-types:
     cd test && uv run ty check tests/
 
 # Run all linters
-lint: lint-go lint-python lint-types
+lint: lint-go lint-python lint-docs lint-types
 
 # Auto-fix Python lint issues
 fix-python:
     cd test && uv run ruff check --fix tests/
     cd test && uv run ruff format tests/
+
+# Auto-fix Python code blocks in docs
+fix-docs:
+    cd test && uv run ruff format --preview ../docs/**/*.md ../docs/*.md
+
+# Install docs npm dependencies (local dev)
+docs-install:
+    cd docs && npm install
+
+# Install deps (npm ci) and build docs — matches CI
+docs-ci:
+    cd docs && npm ci
+    cd docs && npm run docs:build
+
+# Start the VitePress local dev server (hot-reload at http://localhost:5173/protoc-gen-pydantic/)
+docs-dev:
+    cd docs && npm run docs:dev
+
+# Build the docs site to docs/.vitepress/dist/
+docs-build:
+    cd docs && npm run docs:build
+
+# Build and locally preview the production docs site
+docs-preview: docs-build
+    cd docs && npm run docs:preview
 
 # Verify generated files match committed versions
 check-generated: generate
@@ -85,3 +116,4 @@ coverage: generate-cover
 clean:
     rm -f protoc-gen-pydantic protoc-gen-pydantic-cov coverage.out
     rm -rf test/gen test/gen_options covdata
+    rm -rf docs/.vitepress/dist docs/.vitepress/cache
