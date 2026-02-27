@@ -206,6 +206,13 @@ from dataclasses import dataclass as _dataclass
 class _ProtoModel(_BaseModel):
     """Base class for generated Pydantic models with ProtoJSON helpers."""
 
+    model_config = _ConfigDict(
+        use_enum_values=True,
+        ser_json_bytes="base64",
+        val_json_bytes="base64",
+        ser_json_inf_nan="strings",
+    )
+
     def to_proto_dict(self, **kwargs) -> dict:
         """Serialize to a dict using ProtoJSON conventions.
 
@@ -380,16 +387,9 @@ class _ProtoEnum({{ if $config.UseIntegersForEnums }}int{{ else }}str{{ end }}, 
 {{- end }}
 {{- end }}
 {{$bi}}"""
-{{- if $m.HasModelConfig }}
-
-{{$bi}}model_config = _ConfigDict(
 {{- if $m.HasAlias }}
-{{$bi}}    populate_by_name=True,
-{{- end }}
-{{$bi}}    ser_json_bytes="base64",
-{{$bi}}    val_json_bytes="base64",
-{{$bi}}    ser_json_inf_nan="strings",
-{{$bi}})
+
+{{$bi}}model_config = _ConfigDict(populate_by_name=True)
 {{- end }}
 {{- range $m.NestedEnums }}
 
@@ -1022,9 +1022,6 @@ func (m Message) HasAlias() bool {
 	return false
 }
 
-func (m Message) HasModelConfig() bool {
-	return true
-}
 
 type File struct {
 	LeadingComments  []string
@@ -1506,7 +1503,6 @@ func (e *generator) processMessage(
 
 	e.addStdImport("_BaseModel")
 	e.addStdImport("_Field")
-	e.addStdImport("_ConfigDict")
 	return def, nil
 }
 

@@ -8,6 +8,13 @@ from pydantic import BaseModel as _BaseModel, ConfigDict as _ConfigDict, Field a
 class _ProtoModel(_BaseModel):
     """Base class for generated Pydantic models with ProtoJSON helpers."""
 
+    model_config = _ConfigDict(
+        use_enum_values=True,
+        ser_json_bytes="base64",
+        val_json_bytes="base64",
+        ser_json_inf_nan="strings",
+    )
+
     def to_proto_dict(self, **kwargs) -> dict:
         """Serialize to a dict using ProtoJSON conventions.
 
@@ -53,12 +60,6 @@ class CommentedMessage(_ProtoModel):
         The family name of the person.
     """
 
-    model_config = _ConfigDict(
-        ser_json_bytes="base64",
-        val_json_bytes="base64",
-        ser_json_inf_nan="strings",
-    )
-
     class NestedEnum(int, _Enum):
         """
         Leading comment on NestedEnum.
@@ -93,12 +94,6 @@ class CommentedMessage(_ProtoModel):
             Leading comment on nested last_name.
             The family name in the nested message.
         """
-
-        model_config = _ConfigDict(
-            ser_json_bytes="base64",
-            val_json_bytes="base64",
-            ser_json_inf_nan="strings",
-        )
 
         # Trailing comment on NestedMessage.
         # Documents internal structure.
@@ -136,12 +131,6 @@ class Outer(_ProtoModel):
         Outer field comment.
     """
 
-    model_config = _ConfigDict(
-        ser_json_bytes="base64",
-        val_json_bytes="base64",
-        ser_json_inf_nan="strings",
-    )
-
     class OuterEnum(int, _Enum):
         """
         Outer enum comment.
@@ -160,12 +149,6 @@ class Outer(_ProtoModel):
             Inner field comment.
         """
 
-        model_config = _ConfigDict(
-            ser_json_bytes="base64",
-            val_json_bytes="base64",
-            ser_json_inf_nan="strings",
-        )
-
         class InnerEnum(int, _Enum):
             """
             Inner enum comment.
@@ -183,12 +166,6 @@ class Outer(_ProtoModel):
               deepestField (str):
                 Deepest field comment.
             """
-
-            model_config = _ConfigDict(
-                ser_json_bytes="base64",
-                val_json_bytes="base64",
-                ser_json_inf_nan="strings",
-            )
 
             # Deepest field comment.
             deepestField: "str" = _Field(default="")

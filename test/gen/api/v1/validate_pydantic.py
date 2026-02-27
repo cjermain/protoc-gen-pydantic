@@ -31,6 +31,13 @@ from ._proto_types import (
 class _ProtoModel(_BaseModel):
     """Base class for generated Pydantic models with ProtoJSON helpers."""
 
+    model_config = _ConfigDict(
+        use_enum_values=True,
+        ser_json_bytes="base64",
+        val_json_bytes="base64",
+        ser_json_inf_nan="strings",
+    )
+
     def to_proto_dict(self, **kwargs) -> dict:
         """Serialize to a dict using ProtoJSON conventions.
 
@@ -82,12 +89,6 @@ class ValidatedScalars(_ProtoModel):
       offset (int | None):
         Offset must be non-negative (covers sint32 / sfixed32 literal formatting).
     """
-
-    model_config = _ConfigDict(
-        ser_json_bytes="base64",
-        val_json_bytes="base64",
-        ser_json_inf_nan="strings",
-    )
 
     # Age must be between 0 and 150 exclusive of 0.
     age: "int" = _Field(
@@ -158,12 +159,6 @@ class ValidatedStrings(_ProtoModel):
         Tag has only a min length.
     """
 
-    model_config = _ConfigDict(
-        ser_json_bytes="base64",
-        val_json_bytes="base64",
-        ser_json_inf_nan="strings",
-    )
-
     # Name must be between 1 and 100 characters.
     name: "str" = _Field(
         default="",
@@ -205,12 +200,6 @@ class ValidatedRepeated(_ProtoModel):
         Tags must have at least 1 element.
     """
 
-    model_config = _ConfigDict(
-        ser_json_bytes="base64",
-        val_json_bytes="base64",
-        ser_json_inf_nan="strings",
-    )
-
     # Items must have between 1 and 10 elements.
     items: "list[str]" = _Field(
         default_factory=list,
@@ -236,12 +225,6 @@ class ValidatedMap(_ProtoModel):
         Labels must have between 1 and 10 entries.
     """
 
-    model_config = _ConfigDict(
-        ser_json_bytes="base64",
-        val_json_bytes="base64",
-        ser_json_inf_nan="strings",
-    )
-
     # Labels must have between 1 and 10 entries.
     labels: "dict[str, str]" = _Field(
         default_factory=dict,
@@ -262,12 +245,7 @@ class ValidatedReserved(_ProtoModel):
         Score must be positive.
     """
 
-    model_config = _ConfigDict(
-        populate_by_name=True,
-        ser_json_bytes="base64",
-        val_json_bytes="base64",
-        ser_json_inf_nan="strings",
-    )
+    model_config = _ConfigDict(populate_by_name=True)
 
     # Score must be positive.
     float_: "float" = _Field(
@@ -288,12 +266,6 @@ class ValidatedOneof(_ProtoModel):
       large (ProtoInt64 | None):
         Must be positive when set.
     """
-
-    model_config = _ConfigDict(
-        ser_json_bytes="base64",
-        val_json_bytes="base64",
-        ser_json_inf_nan="strings",
-    )
 
     # Must be positive when set.
     small: "int | None" = _Field(
@@ -321,12 +293,6 @@ class ValidatedDuration(_ProtoModel):
         Timeout must be positive and at most one hour.
     """
 
-    model_config = _ConfigDict(
-        ser_json_bytes="base64",
-        val_json_bytes="base64",
-        ser_json_inf_nan="strings",
-    )
-
     # Timeout must be positive and at most one hour.
     timeout: "ProtoDuration | None" = _Field(
         default=None,
@@ -346,12 +312,6 @@ class ValidatedTimestamp(_ProtoModel):
         CreatedAt must be after the Unix epoch.
     """
 
-    model_config = _ConfigDict(
-        ser_json_bytes="base64",
-        val_json_bytes="base64",
-        ser_json_inf_nan="strings",
-    )
-
     # CreatedAt must be after the Unix epoch.
     created_at: "ProtoTimestamp | None" = _Field(
         default=None,
@@ -368,12 +328,6 @@ class ValidatedStringLen(_ProtoModel):
       code (str):
         Code must be exactly 5 characters.
     """
-
-    model_config = _ConfigDict(
-        ser_json_bytes="base64",
-        val_json_bytes="base64",
-        ser_json_inf_nan="strings",
-    )
 
     # Code must be exactly 5 characters.
     code: "str" = _Field(
@@ -398,12 +352,6 @@ class ValidatedStringAffix(_ProtoModel):
       content (str):
         Content must match a pattern; prefix is also set (conflict → prefix dropped).
     """
-
-    model_config = _ConfigDict(
-        ser_json_bytes="base64",
-        val_json_bytes="base64",
-        ser_json_inf_nan="strings",
-    )
 
     # Url must start with "https://".
     url: "str" = _Field(
@@ -446,12 +394,6 @@ class ValidatedExamples(_ProtoModel):
         Name with string examples.
     """
 
-    model_config = _ConfigDict(
-        ser_json_bytes="base64",
-        val_json_bytes="base64",
-        ser_json_inf_nan="strings",
-    )
-
     # Count with integer examples.
     count: "int" = _Field(
         default=0,
@@ -490,12 +432,6 @@ class ValidatedFormats(_ProtoModel):
       host_v6 (_Annotated[str, _AfterValidator(_validate_ipv6)]):
         Host must be a valid IPv6 address.
     """
-
-    model_config = _ConfigDict(
-        ser_json_bytes="base64",
-        val_json_bytes="base64",
-        ser_json_inf_nan="strings",
-    )
 
     # Email must be a valid email address.
     email: "_Annotated[str, _AfterValidator(_validate_email)]" = _Field(
@@ -553,12 +489,6 @@ class ValidatedDropped(_ProtoModel):
         Score must be positive; required is also set but not translated.
     """
 
-    model_config = _ConfigDict(
-        ser_json_bytes="base64",
-        val_json_bytes="base64",
-        ser_json_inf_nan="strings",
-    )
-
     # Name is required; the required constraint is not translated.
     name: "str" = _Field(
         default="",
@@ -593,12 +523,6 @@ class ValidatedConst(_ProtoModel):
       score (_Annotated[float, _AfterValidator(_make_const_validator(3.14))]):
     """
 
-    model_config = _ConfigDict(
-        ser_json_bytes="base64",
-        val_json_bytes="base64",
-        ser_json_inf_nan="strings",
-    )
-
     tag: "_Literal['fixed']" = _Field(
         default="fixed",
     )
@@ -626,12 +550,6 @@ class ValidatedIn(_ProtoModel):
       priority (_Annotated[int, _AfterValidator(_make_in_validator(frozenset({1, 2, 3})))]):
     """
 
-    model_config = _ConfigDict(
-        ser_json_bytes="base64",
-        val_json_bytes="base64",
-        ser_json_inf_nan="strings",
-    )
-
     status: "_Annotated[str, _AfterValidator(_make_in_validator(frozenset({'active', 'inactive'})))]" = _Field(
         default="",
     )
@@ -653,12 +571,6 @@ class ValidatedUnique(_ProtoModel):
       tags (_Annotated[list[str], _AfterValidator(_require_unique)]):
       scores (_Annotated[list[int], _AfterValidator(_require_unique)]):
     """
-
-    model_config = _ConfigDict(
-        ser_json_bytes="base64",
-        val_json_bytes="base64",
-        ser_json_inf_nan="strings",
-    )
 
     tags: "_Annotated[list[str], _AfterValidator(_require_unique)]" = _Field(
         default_factory=list,
@@ -682,12 +594,7 @@ class ValidatedBytes(_ProtoModel):
         Payload must be at most 1024 bytes.
     """
 
-    model_config = _ConfigDict(
-        populate_by_name=True,
-        ser_json_bytes="base64",
-        val_json_bytes="base64",
-        ser_json_inf_nan="strings",
-    )
+    model_config = _ConfigDict(populate_by_name=True)
 
     # Token must be at least 16 bytes.
     token: "bytes" = _Field(
@@ -725,12 +632,6 @@ class ValidatedStringContains(_ProtoModel):
         The contains conflicts with prefix so contains is dropped.
     """
 
-    model_config = _ConfigDict(
-        ser_json_bytes="base64",
-        val_json_bytes="base64",
-        ser_json_inf_nan="strings",
-    )
-
     # Topic must contain "protobuf".
     topic: "str" = _Field(
         default="",
@@ -764,12 +665,6 @@ class ValidatedRequired(_ProtoModel):
         required on plain proto3 scalar: not translated, emits dropped comment.
     """
 
-    model_config = _ConfigDict(
-        ser_json_bytes="base64",
-        val_json_bytes="base64",
-        ser_json_inf_nan="strings",
-    )
-
     class Detail(_ProtoModel):
         """
         Detail is a nested message used to test message-typed required handling.
@@ -777,12 +672,6 @@ class ValidatedRequired(_ProtoModel):
         Attributes:
           value (str):
         """
-
-        model_config = _ConfigDict(
-            ser_json_bytes="base64",
-            val_json_bytes="base64",
-            ser_json_inf_nan="strings",
-        )
 
         value: "str" = _Field(default="")
 

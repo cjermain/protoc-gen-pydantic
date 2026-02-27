@@ -15,6 +15,13 @@ from .messages_pydantic import Message
 class _ProtoModel(_BaseModel):
     """Base class for generated Pydantic models with ProtoJSON helpers."""
 
+    model_config = _ConfigDict(
+        use_enum_values=True,
+        ser_json_bytes="base64",
+        val_json_bytes="base64",
+        ser_json_inf_nan="strings",
+    )
+
     def to_proto_dict(self, **kwargs) -> dict:
         """Serialize to a dict using ProtoJSON conventions.
 
@@ -90,12 +97,7 @@ class Scalars(_ProtoModel):
       nestedMessageOptional (_Optional[Scalars.NestedMessage]):
     """
 
-    model_config = _ConfigDict(
-        populate_by_name=True,
-        ser_json_bytes="base64",
-        val_json_bytes="base64",
-        ser_json_inf_nan="strings",
-    )
+    model_config = _ConfigDict(populate_by_name=True)
 
     class NestedEnum(int, _Enum):
         """ """
@@ -113,12 +115,6 @@ class Scalars(_ProtoModel):
           firstName (str):
           lastName (str):
         """
-
-        model_config = _ConfigDict(
-            ser_json_bytes="base64",
-            val_json_bytes="base64",
-            ser_json_inf_nan="strings",
-        )
 
         firstName: "str" = _Field(default="")
 
