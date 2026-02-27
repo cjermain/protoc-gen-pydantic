@@ -11,6 +11,13 @@ from api.v1.scalars_pydantic import Scalars
 class _ProtoModel(_BaseModel):
     """Base class for generated Pydantic models with ProtoJSON helpers."""
 
+    model_config = _ConfigDict(
+        use_enum_values=True,
+        ser_json_bytes="base64",
+        val_json_bytes="base64",
+        ser_json_inf_nan="strings",
+    )
+
     def to_proto_dict(self, **kwargs) -> dict:
         """Serialize to a dict using ProtoJSON conventions.
 
@@ -51,12 +58,7 @@ class CrossRefMessage(_ProtoModel):
       scalars_list (list[Scalars]):
     """
 
-    model_config = _ConfigDict(
-        populate_by_name=True,
-        ser_json_bytes="base64",
-        val_json_bytes="base64",
-        ser_json_inf_nan="strings",
-    )
+    model_config = _ConfigDict(populate_by_name=True)
 
     id_: "str" = _Field(
         default="",
