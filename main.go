@@ -1022,7 +1022,6 @@ func (m Message) HasAlias() bool {
 	return false
 }
 
-
 type File struct {
 	LeadingComments  []string
 	TrailingComments []string
