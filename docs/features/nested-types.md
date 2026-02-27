@@ -1,3 +1,7 @@
+---
+icon: lucide/folder-tree
+---
+
 # Nested Types
 
 Proto3 allows messages and enums to be defined inside other messages. `protoc-gen-pydantic`
@@ -6,7 +10,7 @@ access — exactly as you would expect from idiomatic Python.
 
 ## Nested messages
 
-=== "order.proto"
+=== ":lucide-file-code: order.proto"
 
     ```proto
     message Order {
@@ -21,7 +25,7 @@ access — exactly as you would expect from idiomatic Python.
     }
     ```
 
-=== "order_pydantic.py"
+=== ":simple-python: order_pydantic.py"
 
     ```python
     class Order(_ProtoModel):
@@ -50,7 +54,7 @@ print(order.items[0].sku)  # ABC
 
 Enums nested inside a message become nested classes of that message:
 
-=== "order.proto"
+=== ":lucide-file-code: order.proto"
 
     ```proto
     message Order {
@@ -66,7 +70,7 @@ Enums nested inside a message become nested classes of that message:
     }
     ```
 
-=== "order_pydantic.py"
+=== ":simple-python: order_pydantic.py"
 
     ```python
     class Order(_ProtoModel):
@@ -90,7 +94,7 @@ print(order.status)  # Status.PENDING
 
 Nesting can go arbitrarily deep:
 
-=== "deep.proto"
+=== ":lucide-file-code: deep.proto"
 
     ```proto
     message Outer {
@@ -104,7 +108,7 @@ Nesting can go arbitrarily deep:
     }
     ```
 
-=== "deep_pydantic.py"
+=== ":simple-python: deep_pydantic.py"
 
     ```python
     class Outer(_ProtoModel):

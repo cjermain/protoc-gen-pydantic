@@ -1,20 +1,12 @@
+---
+icon: lucide/package
+---
+
 # Using with buf
 
-[buf](https://buf.build/) is the recommended way to use `protoc-gen-pydantic`. It handles
-dependency management, linting, and code generation configuration in a declarative way.
-
-## Installation
-
-```sh
-# macOS / Linux
-brew install bufbuild/buf/buf
-
-# or download directly
-curl -sSL https://github.com/bufbuild/buf/releases/latest/download/buf-Linux-x86_64 -o buf
-chmod +x buf && mv buf /usr/local/bin/
-```
-
-See the [buf installation docs](https://buf.build/docs/installation) for all platforms.
+[buf](https://buf.build/) is the recommended way to use `protoc-gen-pydantic`. The
+[quickstart](./quickstart) covers the basic setup. This page documents additional patterns
+for buf users.
 
 ## Project layout
 
@@ -58,29 +50,15 @@ Then run `buf dep update` to lock the dependency:
 buf dep update
 ```
 
-## buf.gen.yaml (minimal)
-
-```yaml
-# buf.gen.yaml
-version: v2
-plugins:
-  - local: protoc-gen-pydantic
-    opt:
-      - paths=source_relative
-    out: gen
-inputs:
-  - directory: proto
-```
-
-`paths=source_relative` ensures output mirrors your proto directory structure.
-
 ## buf.gen.yaml (with options)
 
+Pass plugin options via the `opt` list:
+
 ```yaml
 # buf.gen.yaml
 version: v2
 plugins:
-  - local: protoc-gen-pydantic
+  - local: go run github.com/cjermain/protoc-gen-pydantic@latest
     opt:
       - paths=source_relative
       - preserving_proto_field_name=false
@@ -92,12 +70,6 @@ inputs:
 ```
 
 See [Plugin Options](../options) for the full list.
-
-## Generating
-
-```sh
-buf generate
-```
 
 ## Watching for changes
 
@@ -116,11 +88,11 @@ To generate for both default and non-default options in the same run:
 # buf.gen.yaml
 version: v2
 plugins:
-  - local: protoc-gen-pydantic
+  - local: go run github.com/cjermain/protoc-gen-pydantic@latest
     opt:
       - paths=source_relative
     out: gen
-  - local: protoc-gen-pydantic
+  - local: go run github.com/cjermain/protoc-gen-pydantic@latest
     opt:
       - paths=source_relative
       - use_integers_for_enums=true

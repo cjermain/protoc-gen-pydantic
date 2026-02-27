@@ -1,7 +1,11 @@
+---
+icon: lucide/download
+---
+
 # Installation
 
-`protoc-gen-pydantic` is a single statically-linked binary with no runtime dependencies.
-Choose the method that fits your workflow.
+The [quickstart](./quickstart) uses `buf` with `go run` — no binary install required. If you
+need a standalone binary for other workflows, choose from the methods below.
 
 ## Pre-built binaries
 

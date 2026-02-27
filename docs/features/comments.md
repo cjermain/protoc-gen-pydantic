@@ -1,3 +1,7 @@
+---
+icon: lucide/message-square-text
+---
+
 # Comments & Descriptions
 
 Proto file comments are preserved in the generated Python output in two ways:
@@ -9,7 +13,7 @@ Proto file comments are preserved in the generated Python output in two ways:
 
 Leading comments on a message become its Python docstring:
 
-=== "comments.proto"
+=== ":lucide-file-code: comments.proto"
 
     ```proto
     // A user account in the system.
@@ -19,7 +23,7 @@ Leading comments on a message become its Python docstring:
     }
     ```
 
-=== "comments_pydantic.py"
+=== ":simple-python: comments_pydantic.py"
 
     ```python
     class User(_ProtoModel):
@@ -35,7 +39,7 @@ Leading comments on a message become its Python docstring:
 
 Field comments become both an inline Python comment and a `description=` argument on `_Field()`:
 
-=== "comments.proto"
+=== ":lucide-file-code: comments.proto"
 
     ```proto
     message User {
@@ -47,7 +51,7 @@ Field comments become both an inline Python comment and a `description=` argumen
     }
     ```
 
-=== "comments_pydantic.py"
+=== ":simple-python: comments_pydantic.py"
 
     ```python
     class User(_ProtoModel):
@@ -88,7 +92,7 @@ class User(_ProtoModel):
 
 Leading comments on enum types and values are preserved the same way:
 
-=== "comments.proto"
+=== ":lucide-file-code: comments.proto"
 
     ```proto
     // The current lifecycle status of a task.
@@ -102,7 +106,7 @@ Leading comments on enum types and values are preserved the same way:
     }
     ```
 
-=== "comments_pydantic.py"
+=== ":simple-python: comments_pydantic.py"
 
     ```python
     class TaskStatus(str, _Enum):

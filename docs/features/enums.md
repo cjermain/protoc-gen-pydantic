@@ -1,3 +1,7 @@
+---
+icon: lucide/list-tree
+---
+
 # Enums
 
 Proto3 enums become Python `Enum` subclasses. The generator supports string-valued enums
@@ -8,7 +12,7 @@ Proto3 enums become Python `Enum` subclasses. The generator supports string-valu
 
 By default, enums use `str` as the mixin type and string names as values:
 
-=== "status.proto"
+=== ":lucide-file-code: status.proto"
 
     ```proto
     enum Status {
@@ -18,7 +22,7 @@ By default, enums use `str` as the mixin type and string names as values:
     }
     ```
 
-=== "status_pydantic.py"
+=== ":simple-python: status_pydantic.py"
 
     ```python
     class Status(str, _Enum):
@@ -66,7 +70,7 @@ See [Plugin Options](../options#use-integers-for-enums) for details.
 Enums defined at the file level become top-level classes. Enums defined inside a message
 become nested classes of that message:
 
-=== "mixed.proto"
+=== ":lucide-file-code: mixed.proto"
 
     ```proto
     // Top-level enum
@@ -89,7 +93,7 @@ become nested classes of that message:
     }
     ```
 
-=== "mixed_pydantic.py"
+=== ":simple-python: mixed_pydantic.py"
 
     ```python
     class Color(str, _Enum):

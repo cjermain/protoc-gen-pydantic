@@ -1,3 +1,7 @@
+---
+icon: lucide/sliders
+---
+
 # Plugin Options
 
 Options control how `protoc-gen-pydantic` generates Python output. They are passed via:
@@ -23,7 +27,7 @@ Controls whether field names use the proto snake_case name or the camelCase JSON
 
 **Default:** `true` (snake_case)
 
-=== "user.proto"
+=== ":lucide-file-code: user.proto"
 
     ```proto
     message User {
@@ -67,7 +71,7 @@ Removes the enum type name prefix (case-insensitive, with trailing `_`) from val
 
 **Default:** `true` (trim prefix)
 
-=== "status.proto"
+=== ":lucide-file-code: status.proto"
 
     ```proto
     enum Status {
@@ -109,7 +113,7 @@ When enabled, enums use `int` as the mixin type and integer values instead of st
 
 **Default:** `false` (string values)
 
-=== "status.proto"
+=== ":lucide-file-code: status.proto"
 
     ```proto
     enum Status {
@@ -152,7 +156,7 @@ has a comment. The inline Python comment is still emitted.
 
 **Default:** `false` (include descriptions)
 
-=== "user.proto"
+=== ":lucide-file-code: user.proto"
 
     ```proto
     message User {
@@ -191,7 +195,7 @@ Controls how nullable types are expressed in annotations.
 
 **Default:** `true` (`T | None` union syntax)
 
-=== "user.proto"
+=== ":lucide-file-code: user.proto"
 
     ```proto
     message User {

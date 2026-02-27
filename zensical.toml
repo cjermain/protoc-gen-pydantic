@@ -11,10 +11,10 @@ edit_uri = "https://github.com/cjermain/protoc-gen-pydantic/edit/main/docs"
 nav = [
   {"Home" = "index.md"},
   {"Getting Started" = [
-    {"Installation" = "guide/installation.md"},
     {"Quickstart" = "guide/quickstart.md"},
-    {"Using with protoc" = "guide/with-protoc.md"},
     {"Using with buf" = "guide/with-buf.md"},
+    {"Using with protoc" = "guide/with-protoc.md"},
+    {"Installation" = "guide/installation.md"},
   ]},
   {"Features" = [
     {"Field Types" = "features/field-types.md"},

@@ -1,3 +1,7 @@
+---
+icon: lucide/star
+---
+
 # Well-Known Types
 
 Google's Protocol Buffers ships with a set of "well-known types" (WKTs) for common value
@@ -28,7 +32,7 @@ wrapping raw `_pb2` objects.
 
 ## Example
 
-=== "event.proto"
+=== ":lucide-file-code: event.proto"
 
     ```proto
     syntax = "proto3";
@@ -49,7 +53,7 @@ wrapping raw `_pb2` objects.
     }
     ```
 
-=== "event_pydantic.py"
+=== ":simple-python: event_pydantic.py"
 
     ```python
     from typing import Any as _Any

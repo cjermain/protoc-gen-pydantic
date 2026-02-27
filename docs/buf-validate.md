@@ -1,3 +1,7 @@
+---
+icon: lucide/shield-check
+---
+
 # buf.validate
 
 [buf.validate (protovalidate)](https://github.com/bufbuild/protovalidate) lets you annotate
@@ -67,7 +71,7 @@ import "buf/validate/validate.proto";
 
 ### Numeric bounds
 
-=== "validated.proto"
+=== ":lucide-file-code: validated.proto"
 
     ```proto
     message ValidatedScalars {
@@ -84,7 +88,7 @@ import "buf/validate/validate.proto";
     }
     ```
 
-=== "validated_pydantic.py"
+=== ":simple-python: validated_pydantic.py"
 
     ```python
     class ValidatedScalars(_ProtoModel):
@@ -107,7 +111,7 @@ import "buf/validate/validate.proto";
 
 ### String constraints
 
-=== "validated.proto"
+=== ":lucide-file-code: validated.proto"
 
     ```proto
     message ValidatedStrings {
@@ -124,7 +128,7 @@ import "buf/validate/validate.proto";
     }
     ```
 
-=== "validated_pydantic.py"
+=== ":simple-python: validated_pydantic.py"
 
     ```python
     class ValidatedStrings(_ProtoModel):
@@ -138,7 +142,7 @@ import "buf/validate/validate.proto";
 Format validators are translated to `AfterValidator` wrappers. The validators are
 generated into `_proto_types.py` alongside the model files.
 
-=== "validated.proto"
+=== ":lucide-file-code: validated.proto"
 
     ```proto
     message ValidatedFormats {
@@ -149,7 +153,7 @@ generated into `_proto_types.py` alongside the model files.
     }
     ```
 
-=== "validated_pydantic.py"
+=== ":simple-python: validated_pydantic.py"
 
     ```python
     from ._proto_types import _validate_email, _validate_ip, _validate_uri, _validate_uuid
@@ -170,7 +174,7 @@ package (`pip install email-validator` or add to your project dependencies).
 
 ### Set membership (`in` / `not_in`)
 
-=== "validated.proto"
+=== ":lucide-file-code: validated.proto"
 
     ```proto
     message ValidatedIn {
@@ -180,7 +184,7 @@ package (`pip install email-validator` or add to your project dependencies).
     }
     ```
 
-=== "validated_pydantic.py"
+=== ":simple-python: validated_pydantic.py"
 
     ```python
     class ValidatedIn(_ProtoModel):
@@ -197,7 +201,7 @@ package (`pip install email-validator` or add to your project dependencies).
 
 ### Unique elements in repeated fields
 
-=== "validated.proto"
+=== ":lucide-file-code: validated.proto"
 
     ```proto
     message ValidatedUnique {
@@ -206,7 +210,7 @@ package (`pip install email-validator` or add to your project dependencies).
     }
     ```
 
-=== "validated_pydantic.py"
+=== ":simple-python: validated_pydantic.py"
 
     ```python
     class ValidatedUnique(_ProtoModel):
@@ -223,7 +227,7 @@ package (`pip install email-validator` or add to your project dependencies).
 `string.const`, `int.const`, and `bool.const` translate to `Literal[value]` type with a
 matching default — the field is essentially fixed at that value:
 
-=== "validated.proto"
+=== ":lucide-file-code: validated.proto"
 
     ```proto
     message ValidatedConst {
@@ -233,7 +237,7 @@ matching default — the field is essentially fixed at that value:
     }
     ```
 
-=== "validated_pydantic.py"
+=== ":simple-python: validated_pydantic.py"
 
     ```python
     class ValidatedConst(_ProtoModel):
@@ -250,7 +254,7 @@ matching default — the field is essentially fixed at that value:
 `required = true` on a `proto3 optional` scalar field strips `| None` from the type,
 making the field required at the Pydantic level:
 
-=== "validated.proto"
+=== ":lucide-file-code: validated.proto"
 
     ```proto
     message ValidatedRequired {
@@ -262,7 +266,7 @@ making the field required at the Pydantic level:
     }
     ```
 
-=== "validated_pydantic.py"
+=== ":simple-python: validated_pydantic.py"
 
     ```python
     class ValidatedRequired(_ProtoModel):

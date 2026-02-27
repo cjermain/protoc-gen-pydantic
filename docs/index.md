@@ -1,7 +1,7 @@
 ---
-hide:
-  - navigation
-  - toc
+icon: lucide/home
+---
+
 ---
 
 <div align="center" markdown>
@@ -10,54 +10,58 @@ hide:
 
 # protoc-gen-pydantic
 
-**Protobuf → Pydantic** · A protoc plugin that generates type-safe Pydantic v2
-models from `.proto` files — with full proto3 support, nested classes,
-well-known types, and buf.validate integration.
+Define your data schema once in Protobuf. Get validated, type-safe Python models automatically.
 
-[Get Started](guide/installation.md){ .md-button .md-button--primary }
+[Get Started](guide/quickstart.md){ .md-button .md-button--primary }
 [View on GitHub](https://github.com/cjermain/protoc-gen-pydantic){ .md-button }
 
 </div>
 
 ---
 
-<div class="grid cards" markdown>
+If you work with Protobuf APIs in Python, you face a familiar tradeoff: use the raw `_pb2`
+classes — no validation, no editor support — or hand-write parallel Pydantic models and keep
+them in sync forever. protoc-gen-pydantic generates Pydantic v2 models directly from your
+`.proto` files, so your schema stays the single source of truth.
 
-- 🔷 **Full proto3 Support**
+## Basic usage
 
-    Scalars, optional, repeated, map, oneof — all field types generate correct
-    Pydantic annotations with proper defaults.
+A single `protoc` command turns any `.proto` file into a ready-to-use Pydantic model:
 
-- 🪆 **True Nested Classes**
+=== ":lucide-file-code: item.proto"
 
-    Nested messages and enums become real Python nested classes
-    (e.g. `Order.Item`, `Order.Status`) — no name mangling, no flat namespace.
+    ```proto
+    syntax = "proto3";
 
-- 🕐 **Well-Known Types**
+    package example;
 
-    `Timestamp` → `datetime`, `Duration` → `timedelta`, `Struct` → `dict[str, Any]`,
-    wrapper types → native Python equivalents.
+    message Item {
+      string name = 1;
+      int32 quantity = 2;
+      double price = 3;
+    }
+    ```
 
-- ✅ **buf.validate Integration**
+=== ":simple-python: item_pydantic.py (generated)"
 
-    Field constraints translate automatically to Pydantic `Field()` kwargs —
-    bounds, lengths, patterns, `Literal[]`, `AfterValidator`, and more.
+    ```python
+    from pydantic import BaseModel as _BaseModel, Field as _Field
 
-- 💬 **Comment Preservation**
 
-    Proto comments become Python docstrings and `Field(description=...)` values,
-    keeping documentation close to the data.
+    class Item(_BaseModel):
+        name: "str" = _Field("")
+        quantity: "int" = _Field(0)
+        price: "float" = _Field(0.0)
+    ```
 
-- 🔗 **Cross-Package References**
+The generated model validates inputs immediately — no extra setup, no runtime surprises.
 
-    Messages from other `.proto` packages are imported correctly. Nested types
-    are resolved via dotted attribute access.
+## With validation constraints
 
-</div>
+Add `buf.validate` constraints to your proto fields, and the generator translates them
+directly into Pydantic validation:
 
-## Quick look
-
-=== "user.proto"
+=== ":lucide-file-code: user.proto"
 
     ```proto
     syntax = "proto3";
@@ -91,7 +95,7 @@ well-known types, and buf.validate integration.
     }
     ```
 
-=== "user_pydantic.py (generated)"
+=== ":simple-python: user_pydantic.py (generated)"
 
     ```python
     from enum import Enum as _Enum
@@ -135,7 +139,7 @@ well-known types, and buf.validate integration.
         role: "User.Role | None" = _Field(None)
     ```
 
-=== "usage.py"
+=== ":simple-python: usage.py"
 
     ```python
     from gen.user_pydantic import User
@@ -150,3 +154,5 @@ well-known types, and buf.validate integration.
     # Validation errors are raised immediately
     User(name="", age=-1)  # ValidationError: name too short, age below 0
     ```
+
+[Get started →](guide/quickstart.md){ .md-button .md-button--primary }

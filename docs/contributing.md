@@ -1,3 +1,7 @@
+---
+icon: lucide/git-pull-request
+---
+
 # Contributing
 
 Contributions are welcome! This page describes how to set up the development environment,

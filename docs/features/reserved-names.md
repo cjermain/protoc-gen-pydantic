@@ -1,3 +1,7 @@
+---
+icon: lucide/shield
+---
+
 # Reserved Names
 
 Proto field names can clash with Python builtins, keywords, and Pydantic `BaseModel`
@@ -14,7 +18,7 @@ When a proto field name is a reserved word in Python, the generator:
 3. Adds `populate_by_name=True` to `model_config` so you can pass either the alias or
    the Python name when constructing the model
 
-=== "reserved.proto"
+=== ":lucide-file-code: reserved.proto"
 
     ```proto
     message Scalars {
@@ -25,7 +29,7 @@ When a proto field name is a reserved word in Python, the generator:
     }
     ```
 
-=== "reserved_pydantic.py"
+=== ":simple-python: reserved_pydantic.py"
 
     ```python
     class Scalars(_ProtoModel):

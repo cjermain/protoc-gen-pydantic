@@ -1,3 +1,7 @@
+---
+icon: lucide/terminal
+---
+
 # Using with protoc
 
 If you prefer to drive code generation directly with `protoc` rather than `buf`, this page covers the details.

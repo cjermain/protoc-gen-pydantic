@@ -1,3 +1,7 @@
+---
+icon: lucide/table
+---
+
 # Field Types
 
 `protoc-gen-pydantic` supports all standard proto3 field types and generates correct Pydantic
@@ -22,7 +26,7 @@ All proto3 scalar types map to native Python types:
 `ProtoInt64` and `ProtoUInt64` are type aliases for `int` that carry JSON serialization semantics
 (proto3 encodes 64-bit integers as strings in JSON).
 
-=== "scalars.proto"
+=== ":lucide-file-code: scalars.proto"
 
     ```proto
     message Person {
@@ -34,7 +38,7 @@ All proto3 scalar types map to native Python types:
     }
     ```
 
-=== "scalars_pydantic.py"
+=== ":simple-python: scalars_pydantic.py"
 
     ```python
     class Person(_ProtoModel):
@@ -50,7 +54,7 @@ All proto3 scalar types map to native Python types:
 `optional` fields use `T | None` with a default of `None`, distinguishing "field not set"
 from the zero value:
 
-=== "optional.proto"
+=== ":lucide-file-code: optional.proto"
 
     ```proto
     message SearchRequest {
@@ -60,7 +64,7 @@ from the zero value:
     }
     ```
 
-=== "optional_pydantic.py"
+=== ":simple-python: optional_pydantic.py"
 
     ```python
     class SearchRequest(_ProtoModel):
@@ -73,7 +77,7 @@ from the zero value:
 
 `repeated` fields generate `list[T]` with `default_factory=list`:
 
-=== "repeated.proto"
+=== ":lucide-file-code: repeated.proto"
 
     ```proto
     message TaggedItem {
@@ -83,7 +87,7 @@ from the zero value:
     }
     ```
 
-=== "repeated_pydantic.py"
+=== ":simple-python: repeated_pydantic.py"
 
     ```python
     class TaggedItem(_ProtoModel):
@@ -96,7 +100,7 @@ from the zero value:
 
 `map<K, V>` fields generate `dict[K, V]` with `default_factory=dict`:
 
-=== "map.proto"
+=== ":lucide-file-code: map.proto"
 
     ```proto
     message Config {
@@ -105,7 +109,7 @@ from the zero value:
     }
     ```
 
-=== "map_pydantic.py"
+=== ":simple-python: map_pydantic.py"
 
     ```python
     class Config(_ProtoModel):
@@ -118,7 +122,7 @@ from the zero value:
 `oneof` groups generate one field per variant, all typed as `T | None = None`.
 At most one may be non-`None` at a time (proto3 semantics).
 
-=== "oneof.proto"
+=== ":lucide-file-code: oneof.proto"
 
     ```proto
     message Payment {
@@ -130,7 +134,7 @@ At most one may be non-`None` at a time (proto3 semantics).
     }
     ```
 
-=== "oneof_pydantic.py"
+=== ":simple-python: oneof_pydantic.py"
 
     ```python
     class Payment(_ProtoModel):
@@ -143,7 +147,7 @@ At most one may be non-`None` at a time (proto3 semantics).
 
 Message-typed fields default to `None` (not an empty sub-message):
 
-=== "message_field.proto"
+=== ":lucide-file-code: message_field.proto"
 
     ```proto
     message Order {
@@ -157,7 +161,7 @@ Message-typed fields default to `None` (not an empty sub-message):
     }
     ```
 
-=== "message_field_pydantic.py"
+=== ":simple-python: message_field_pydantic.py"
 
     ```python
     class Order(_ProtoModel):
@@ -174,7 +178,7 @@ Message-typed fields default to `None` (not an empty sub-message):
 
 Enum-typed fields also default to `None`. See the [Enums page](./enums) for full details.
 
-=== "enum_field.proto"
+=== ":lucide-file-code: enum_field.proto"
 
     ```proto
     message Task {
@@ -189,7 +193,7 @@ Enum-typed fields also default to `None`. See the [Enums page](./enums) for full
     }
     ```
 
-=== "enum_field_pydantic.py"
+=== ":simple-python: enum_field_pydantic.py"
 
     ```python
     class Task(_ProtoModel):
