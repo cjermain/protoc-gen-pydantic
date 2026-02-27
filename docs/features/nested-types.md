@@ -6,33 +6,33 @@ access — exactly as you would expect from idiomatic Python.
 
 ## Nested messages
 
-::: code-group
+=== "order.proto"
 
-```proto [order.proto]
-message Order {
-  message Item {
-    string sku      = 1;
-    int32  quantity = 2;
-    double price    = 3;
-  }
+    ```proto
+    message Order {
+      message Item {
+        string sku      = 1;
+        int32  quantity = 2;
+        double price    = 3;
+      }
 
-  string        order_id = 1;
-  repeated Item items    = 2;
-}
-```
+      string        order_id = 1;
+      repeated Item items    = 2;
+    }
+    ```
 
-```python [order_pydantic.py]
-class Order(_ProtoModel):
-    class Item(_ProtoModel):
-        sku: "str" = _Field("")
-        quantity: "int" = _Field(0)
-        price: "float" = _Field(0.0)
+=== "order_pydantic.py"
 
-    order_id: "str" = _Field("")
-    items: "list[Order.Item]" = _Field(default_factory=list)
-```
+    ```python
+    class Order(_ProtoModel):
+        class Item(_ProtoModel):
+            sku: "str" = _Field("")
+            quantity: "int" = _Field(0)
+            price: "float" = _Field(0.0)
 
-:::
+        order_id: "str" = _Field("")
+        items: "list[Order.Item]" = _Field(default_factory=list)
+    ```
 
 ```python
 # Usage
@@ -50,35 +50,35 @@ print(order.items[0].sku)  # ABC
 
 Enums nested inside a message become nested classes of that message:
 
-::: code-group
+=== "order.proto"
 
-```proto [order.proto]
-message Order {
-  enum Status {
-    STATUS_UNSPECIFIED = 0;
-    STATUS_PENDING     = 1;
-    STATUS_SHIPPED     = 2;
-    STATUS_DELIVERED   = 3;
-  }
+    ```proto
+    message Order {
+      enum Status {
+        STATUS_UNSPECIFIED = 0;
+        STATUS_PENDING     = 1;
+        STATUS_SHIPPED     = 2;
+        STATUS_DELIVERED   = 3;
+      }
 
-  string status_note = 1;
-  Status status      = 2;
-}
-```
+      string status_note = 1;
+      Status status      = 2;
+    }
+    ```
 
-```python [order_pydantic.py]
-class Order(_ProtoModel):
-    class Status(str, _Enum):
-        UNSPECIFIED = "UNSPECIFIED"
-        PENDING = "PENDING"
-        SHIPPED = "SHIPPED"
-        DELIVERED = "DELIVERED"
+=== "order_pydantic.py"
 
-    status_note: "str" = _Field("")
-    status: "Order.Status | None" = _Field(None)
-```
+    ```python
+    class Order(_ProtoModel):
+        class Status(str, _Enum):
+            UNSPECIFIED = "UNSPECIFIED"
+            PENDING = "PENDING"
+            SHIPPED = "SHIPPED"
+            DELIVERED = "DELIVERED"
 
-:::
+        status_note: "str" = _Field("")
+        status: "Order.Status | None" = _Field(None)
+    ```
 
 ```python
 # Usage
@@ -90,32 +90,32 @@ print(order.status)  # Status.PENDING
 
 Nesting can go arbitrarily deep:
 
-::: code-group
+=== "deep.proto"
 
-```proto [deep.proto]
-message Outer {
-  message Inner {
-    message Deepest {
-      string value = 1;
+    ```proto
+    message Outer {
+      message Inner {
+        message Deepest {
+          string value = 1;
+        }
+        Deepest data = 1;
+      }
+      Inner inner = 1;
     }
-    Deepest data = 1;
-  }
-  Inner inner = 1;
-}
-```
+    ```
 
-```python [deep_pydantic.py]
-class Outer(_ProtoModel):
-    class Inner(_ProtoModel):
-        class Deepest(_ProtoModel):
-            value: "str" = _Field("")
+=== "deep_pydantic.py"
 
-        data: "Outer.Inner.Deepest | None" = _Field(None)
+    ```python
+    class Outer(_ProtoModel):
+        class Inner(_ProtoModel):
+            class Deepest(_ProtoModel):
+                value: "str" = _Field("")
 
-    inner: "Outer.Inner | None" = _Field(None)
-```
+            data: "Outer.Inner.Deepest | None" = _Field(None)
 
-:::
+        inner: "Outer.Inner | None" = _Field(None)
+    ```
 
 ```python
 obj = Outer(inner=Outer.Inner(data=Outer.Inner.Deepest(value="hello")))

@@ -14,28 +14,28 @@ When a proto field name is a reserved word in Python, the generator:
 3. Adds `populate_by_name=True` to `model_config` so you can pass either the alias or
    the Python name when constructing the model
 
-::: code-group
+=== "reserved.proto"
 
-```proto [reserved.proto]
-message Scalars {
-  bool  bool  = 1;
-  float float = 2;
-  bytes bytes = 3;
-  int   int   = 4;   // 'int' is also reserved
-}
-```
+    ```proto
+    message Scalars {
+      bool  bool  = 1;
+      float float = 2;
+      bytes bytes = 3;
+      int   int   = 4;   // 'int' is also reserved
+    }
+    ```
 
-```python [reserved_pydantic.py]
-class Scalars(_ProtoModel):
-    model_config = _ConfigDict(populate_by_name=True, ...)
+=== "reserved_pydantic.py"
 
-    bool_: "bool" = _Field(False, alias="bool")
-    float_: "float" = _Field(0.0, alias="float")
-    bytes_: "bytes" = _Field(b"", alias="bytes")
-    int_: "int" = _Field(0, alias="int")
-```
+    ```python
+    class Scalars(_ProtoModel):
+        model_config = _ConfigDict(populate_by_name=True, ...)
 
-:::
+        bool_: "bool" = _Field(False, alias="bool")
+        float_: "float" = _Field(0.0, alias="float")
+        bytes_: "bytes" = _Field(b"", alias="bytes")
+        int_: "int" = _Field(0, alias="int")
+    ```
 
 ## Reserved name categories
 

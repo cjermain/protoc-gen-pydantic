@@ -5,7 +5,7 @@ init:
     #!/usr/bin/env bash
     set -euo pipefail
     missing=()
-    for cmd in go buf protoc uv golangci-lint pre-commit node npm; do
+    for cmd in go buf protoc uv golangci-lint pre-commit zensical; do
         if ! command -v "$cmd" &>/dev/null; then
             missing+=("$cmd")
         fi
@@ -20,9 +20,8 @@ init:
     echo "uv:             $(uv --version | awk '{print $2}')"
     echo "golangci-lint:  $(golangci-lint --version | awk '{print $4}')"
     echo "pre-commit:     $(pre-commit --version | awk '{print $2}')"
-    echo "node:           $(node --version)"
+    echo "zensical:       $(zensical --version)"
     cd test && uv sync
-    cd docs && npm install
     pre-commit install
     echo "Ready to go."
 
@@ -71,26 +70,25 @@ fix-python:
 fix-docs:
     cd test && uv run ruff format --preview ../docs/**/*.md ../docs/*.md
 
-# Install docs npm dependencies (local dev)
+# Verify zensical is available
 docs-install:
-    cd docs && npm install
+    zensical --version
 
-# Install deps (npm ci) and build docs — matches CI
+# Install deps and build docs — matches CI
 docs-ci:
-    cd docs && npm ci
-    cd docs && npm run docs:build
+    zensical build --clean
 
-# Start the VitePress local dev server (hot-reload at http://localhost:5173/protoc-gen-pydantic/)
+# Start the Zensical local dev server (hot-reload at http://localhost:8000/)
 docs-dev:
-    cd docs && npm run docs:dev
+    zensical serve
 
-# Build the docs site to docs/.vitepress/dist/
+# Build the docs site to site/
 docs-build:
-    cd docs && npm run docs:build
+    zensical build
 
 # Build and locally preview the production docs site
 docs-preview: docs-build
-    cd docs && npm run docs:preview
+    zensical serve
 
 # Verify generated files match committed versions
 check-generated: generate
@@ -116,4 +114,4 @@ coverage: generate-cover
 clean:
     rm -f protoc-gen-pydantic protoc-gen-pydantic-cov coverage.out
     rm -rf test/gen test/gen_options covdata
-    rm -rf docs/.vitepress/dist docs/.vitepress/cache
+    rm -rf site

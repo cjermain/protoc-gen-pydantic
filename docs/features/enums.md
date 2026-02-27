@@ -8,24 +8,24 @@ Proto3 enums become Python `Enum` subclasses. The generator supports string-valu
 
 By default, enums use `str` as the mixin type and string names as values:
 
-::: code-group
+=== "status.proto"
 
-```proto [status.proto]
-enum Status {
-  STATUS_UNSPECIFIED = 0;
-  STATUS_ACTIVE      = 1;
-  STATUS_INACTIVE    = 2;
-}
-```
+    ```proto
+    enum Status {
+      STATUS_UNSPECIFIED = 0;
+      STATUS_ACTIVE      = 1;
+      STATUS_INACTIVE    = 2;
+    }
+    ```
 
-```python [status_pydantic.py]
-class Status(str, _Enum):
-    UNSPECIFIED = "UNSPECIFIED"
-    ACTIVE = "ACTIVE"
-    INACTIVE = "INACTIVE"
-```
+=== "status_pydantic.py"
 
-:::
+    ```python
+    class Status(str, _Enum):
+        UNSPECIFIED = "UNSPECIFIED"
+        ACTIVE = "ACTIVE"
+        INACTIVE = "INACTIVE"
+    ```
 
 ## Prefix trimming (`auto_trim_enum_prefix`)
 
@@ -66,47 +66,47 @@ See [Plugin Options](../options#use-integers-for-enums) for details.
 Enums defined at the file level become top-level classes. Enums defined inside a message
 become nested classes of that message:
 
-::: code-group
+=== "mixed.proto"
 
-```proto [mixed.proto]
-// Top-level enum
-enum Color {
-  COLOR_UNSPECIFIED = 0;
-  COLOR_RED         = 1;
-  COLOR_BLUE        = 2;
-}
+    ```proto
+    // Top-level enum
+    enum Color {
+      COLOR_UNSPECIFIED = 0;
+      COLOR_RED         = 1;
+      COLOR_BLUE        = 2;
+    }
 
-message Shape {
-  // Nested enum
-  enum Kind {
-    KIND_UNSPECIFIED = 0;
-    KIND_CIRCLE      = 1;
-    KIND_SQUARE      = 2;
-  }
+    message Shape {
+      // Nested enum
+      enum Kind {
+        KIND_UNSPECIFIED = 0;
+        KIND_CIRCLE      = 1;
+        KIND_SQUARE      = 2;
+      }
 
-  Color color = 1;
-  Kind  kind  = 2;
-}
-```
+      Color color = 1;
+      Kind  kind  = 2;
+    }
+    ```
 
-```python [mixed_pydantic.py]
-class Color(str, _Enum):
-    UNSPECIFIED = "UNSPECIFIED"
-    RED = "RED"
-    BLUE = "BLUE"
+=== "mixed_pydantic.py"
 
-
-class Shape(_ProtoModel):
-    class Kind(str, _Enum):
+    ```python
+    class Color(str, _Enum):
         UNSPECIFIED = "UNSPECIFIED"
-        CIRCLE = "CIRCLE"
-        SQUARE = "SQUARE"
+        RED = "RED"
+        BLUE = "BLUE"
 
-    color: "Color | None" = _Field(None)
-    kind: "Shape.Kind | None" = _Field(None)
-```
 
-:::
+    class Shape(_ProtoModel):
+        class Kind(str, _Enum):
+            UNSPECIFIED = "UNSPECIFIED"
+            CIRCLE = "CIRCLE"
+            SQUARE = "SQUARE"
+
+        color: "Color | None" = _Field(None)
+        kind: "Shape.Kind | None" = _Field(None)
+    ```
 
 ## Enum value options
 

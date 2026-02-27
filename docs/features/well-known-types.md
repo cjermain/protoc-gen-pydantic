@@ -28,45 +28,45 @@ wrapping raw `_pb2` objects.
 
 ## Example
 
-::: code-group
+=== "event.proto"
 
-```proto [event.proto]
-syntax = "proto3";
+    ```proto
+    syntax = "proto3";
 
-import "google/protobuf/duration.proto";
-import "google/protobuf/field_mask.proto";
-import "google/protobuf/struct.proto";
-import "google/protobuf/timestamp.proto";
-import "google/protobuf/wrappers.proto";
+    import "google/protobuf/duration.proto";
+    import "google/protobuf/field_mask.proto";
+    import "google/protobuf/struct.proto";
+    import "google/protobuf/timestamp.proto";
+    import "google/protobuf/wrappers.proto";
 
-message Event {
-  string                    id          = 1;
-  google.protobuf.Timestamp occurred    = 2;
-  google.protobuf.Duration  duration    = 3;
-  google.protobuf.Struct    metadata    = 4;
-  google.protobuf.FieldMask update_mask = 5;
-  google.protobuf.Int32Value retry_count = 6;
-}
-```
+    message Event {
+      string                    id          = 1;
+      google.protobuf.Timestamp occurred    = 2;
+      google.protobuf.Duration  duration    = 3;
+      google.protobuf.Struct    metadata    = 4;
+      google.protobuf.FieldMask update_mask = 5;
+      google.protobuf.Int32Value retry_count = 6;
+    }
+    ```
 
-```python [event_pydantic.py]
-from typing import Any as _Any
+=== "event_pydantic.py"
 
-from pydantic import Field as _Field
+    ```python
+    from typing import Any as _Any
 
-from ._proto_types import ProtoDuration, ProtoTimestamp
+    from pydantic import Field as _Field
+
+    from ._proto_types import ProtoDuration, ProtoTimestamp
 
 
-class Event(_ProtoModel):
-    id: "str" = _Field("")
-    occurred: "ProtoTimestamp | None" = _Field(None)
-    duration: "ProtoDuration | None" = _Field(None)
-    metadata: "dict[str, _Any] | None" = _Field(None)
-    update_mask: "list[str] | None" = _Field(None)
-    retry_count: "int | None" = _Field(None)
-```
-
-:::
+    class Event(_ProtoModel):
+        id: "str" = _Field("")
+        occurred: "ProtoTimestamp | None" = _Field(None)
+        duration: "ProtoDuration | None" = _Field(None)
+        metadata: "dict[str, _Any] | None" = _Field(None)
+        update_mask: "list[str] | None" = _Field(None)
+        retry_count: "int | None" = _Field(None)
+    ```
 
 ## Timestamp and Duration
 

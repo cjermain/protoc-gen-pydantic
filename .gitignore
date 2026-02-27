@@ -20,10 +20,8 @@ test/gen_pb2/
 # OS
 .DS_Store
 
-# Docs (VitePress)
-docs/node_modules/
-docs/.vitepress/dist/
-docs/.vitepress/cache/
+# Docs (Zensical)
+site/
 
 # IDEs
 .idea/

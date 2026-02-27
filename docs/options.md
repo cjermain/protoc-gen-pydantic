@@ -23,28 +23,30 @@ Controls whether field names use the proto snake_case name or the camelCase JSON
 
 **Default:** `true` (snake_case)
 
-::: code-group
+=== "user.proto"
 
-```proto [user.proto]
-message User {
-  bool   is_active  = 1;
-  string first_name = 2;
-}
-```
+    ```proto
+    message User {
+      bool   is_active  = 1;
+      string first_name = 2;
+    }
+    ```
 
-```python [true (default)]
-class User(_ProtoModel):
-    is_active: "bool" = _Field(False)
-    first_name: "str" = _Field("")
-```
+=== "true (default)"
 
-```python [false]
-class User(_ProtoModel):
-    isActive: "bool" = _Field(False)
-    firstName: "str" = _Field("")
-```
+    ```python
+    class User(_ProtoModel):
+        is_active: "bool" = _Field(False)
+        first_name: "str" = _Field("")
+    ```
 
-:::
+=== "false"
+
+    ```python
+    class User(_ProtoModel):
+        isActive: "bool" = _Field(False)
+        firstName: "str" = _Field("")
+    ```
 
 **buf.gen.yaml:**
 ```yaml
@@ -65,31 +67,33 @@ Removes the enum type name prefix (case-insensitive, with trailing `_`) from val
 
 **Default:** `true` (trim prefix)
 
-::: code-group
+=== "status.proto"
 
-```proto [status.proto]
-enum Status {
-  STATUS_UNSPECIFIED = 0;
-  STATUS_OK          = 1;
-  STATUS_ERROR       = 2;
-}
-```
+    ```proto
+    enum Status {
+      STATUS_UNSPECIFIED = 0;
+      STATUS_OK          = 1;
+      STATUS_ERROR       = 2;
+    }
+    ```
 
-```python [true (default)]
-class Status(str, _Enum):
-    UNSPECIFIED = "UNSPECIFIED"
-    OK = "OK"
-    ERROR = "ERROR"
-```
+=== "true (default)"
 
-```python [false]
-class Status(str, _Enum):
-    STATUS_UNSPECIFIED = "STATUS_UNSPECIFIED"
-    STATUS_OK = "STATUS_OK"
-    STATUS_ERROR = "STATUS_ERROR"
-```
+    ```python
+    class Status(str, _Enum):
+        UNSPECIFIED = "UNSPECIFIED"
+        OK = "OK"
+        ERROR = "ERROR"
+    ```
 
-:::
+=== "false"
+
+    ```python
+    class Status(str, _Enum):
+        STATUS_UNSPECIFIED = "STATUS_UNSPECIFIED"
+        STATUS_OK = "STATUS_OK"
+        STATUS_ERROR = "STATUS_ERROR"
+    ```
 
 **buf.gen.yaml:**
 ```yaml
@@ -105,31 +109,33 @@ When enabled, enums use `int` as the mixin type and integer values instead of st
 
 **Default:** `false` (string values)
 
-::: code-group
+=== "status.proto"
 
-```proto [status.proto]
-enum Status {
-  STATUS_UNSPECIFIED = 0;
-  STATUS_OK          = 1;
-  STATUS_ERROR       = 2;
-}
-```
+    ```proto
+    enum Status {
+      STATUS_UNSPECIFIED = 0;
+      STATUS_OK          = 1;
+      STATUS_ERROR       = 2;
+    }
+    ```
 
-```python [false (default)]
-class Status(str, _Enum):
-    UNSPECIFIED = "UNSPECIFIED"
-    OK = "OK"
-    ERROR = "ERROR"
-```
+=== "false (default)"
 
-```python [true]
-class Status(int, _Enum):
-    UNSPECIFIED = 0
-    OK = 1
-    ERROR = 2
-```
+    ```python
+    class Status(str, _Enum):
+        UNSPECIFIED = "UNSPECIFIED"
+        OK = "OK"
+        ERROR = "ERROR"
+    ```
 
-:::
+=== "true"
+
+    ```python
+    class Status(int, _Enum):
+        UNSPECIFIED = 0
+        OK = 1
+        ERROR = 2
+    ```
 
 **buf.gen.yaml:**
 ```yaml
@@ -146,28 +152,30 @@ has a comment. The inline Python comment is still emitted.
 
 **Default:** `false` (include descriptions)
 
-::: code-group
+=== "user.proto"
 
-```proto [user.proto]
-message User {
-  // The user's display name.
-  string name = 1;
-}
-```
+    ```proto
+    message User {
+      // The user's display name.
+      string name = 1;
+    }
+    ```
 
-```python [false (default)]
-class User(_ProtoModel):
-    # The user's display name.
-    name: "str" = _Field("", description="The user's display name.")
-```
+=== "false (default)"
 
-```python [true]
-class User(_ProtoModel):
-    # The user's display name.
-    name: "str" = _Field("")
-```
+    ```python
+    class User(_ProtoModel):
+        # The user's display name.
+        name: "str" = _Field("", description="The user's display name.")
+    ```
 
-:::
+=== "true"
+
+    ```python
+    class User(_ProtoModel):
+        # The user's display name.
+        name: "str" = _Field("")
+    ```
 
 **buf.gen.yaml:**
 ```yaml
@@ -183,28 +191,30 @@ Controls how nullable types are expressed in annotations.
 
 **Default:** `true` (`T | None` union syntax)
 
-::: code-group
+=== "user.proto"
 
-```proto [user.proto]
-message User {
-  optional string nickname = 1;
-}
-```
+    ```proto
+    message User {
+      optional string nickname = 1;
+    }
+    ```
 
-```python [true (default)]
-class User(_ProtoModel):
-    nickname: "str | None" = _Field(None)
-```
+=== "true (default)"
 
-```python [false]
-from typing import Optional as _Optional
+    ```python
+    class User(_ProtoModel):
+        nickname: "str | None" = _Field(None)
+    ```
+
+=== "false"
+
+    ```python
+    from typing import Optional as _Optional
 
 
-class User(_ProtoModel):
-    nickname: "_Optional[str]" = _Field(None)
-```
-
-:::
+    class User(_ProtoModel):
+        nickname: "_Optional[str]" = _Field(None)
+    ```
 
 > The `T | None` syntax requires Python 3.10+ for runtime evaluation. Generated files use
 > string annotations (`"T | None"`) so they are forward-compatible with Python 3.9.

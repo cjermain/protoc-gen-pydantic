@@ -22,12 +22,12 @@ jobs:
 
       - uses: jdx/mise-action@v3
 
-      - name: Install and build docs
+      - name: Build docs
         run: just docs-ci
 
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: docs/.vitepress/dist
+          path: site
 
   deploy:
     environment:

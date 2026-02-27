@@ -207,8 +207,8 @@ Format/type issues in generated files are caught by `just test`, not `just lint`
 
 ## Documentation Site
 
-The docs site lives in `docs/` and is built with [VitePress](https://vitepress.dev/).
-Use `just docs-dev` to develop locally and `just docs-build` to verify a production build.
+The docs site lives in `docs/` and is built with [Zensical](https://zensical.org/) (config: `zensical.toml` at project root, `docs_dir` defaults to `docs/`, output goes to `site/`).
+Use `just docs-dev` to develop locally at `http://localhost:8000/` and `just docs-build` to verify a production build.
 Deployed automatically to GitHub Pages on push to `main` via `.github/workflows/docs.yml`.
 
 Python code blocks in docs pages are checked and auto-fixed with `just lint-docs` / `just fix-docs`.
