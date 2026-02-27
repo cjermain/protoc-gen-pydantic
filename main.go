@@ -1210,7 +1210,7 @@ func (e *generator) applyConstraintTypeOverrides(f *Field) {
 			} else {
 				f.Type = f.Type[len("_Optional[") : len(f.Type)-1]
 			}
-			f.Default = "..."
+			f.Default = "default=..."
 		} else {
 			fc.DroppedConstraints = append(fc.DroppedConstraints, "required")
 			sort.Strings(fc.DroppedConstraints)
@@ -1227,7 +1227,7 @@ func (e *generator) applyConstraintTypeOverrides(f *Field) {
 			f.Type = "_Optional[" + litType + "]"
 		default:
 			f.Type = litType
-			f.Default = *fc.ConstDefault
+			f.Default = "default=" + *fc.ConstDefault
 		}
 	}
 
@@ -1263,7 +1263,7 @@ func (e *generator) applyConstraintTypeOverrides(f *Field) {
 		if fc.ConstDefault != nil &&
 			!strings.HasSuffix(f.Type, " | None") &&
 			!strings.HasPrefix(f.Type, "_Optional[") {
-			f.Default = *fc.ConstDefault
+			f.Default = "default=" + *fc.ConstDefault
 		}
 	}
 	if len(validators) > 0 {
@@ -1668,7 +1668,7 @@ func (e *generator) resolveType(referer string, field protoreflect.FieldDescript
 func (e *generator) resolveDefault(field protoreflect.FieldDescriptor) string {
 	// Optional keyword and oneof fields default to None.
 	if field.HasOptionalKeyword() || field.ContainingOneof() != nil {
-		return "None"
+		return "default=None"
 	}
 
 	// Repeated fields use default_factory.
@@ -1683,26 +1683,26 @@ func (e *generator) resolveDefault(field protoreflect.FieldDescriptor) string {
 
 	// Message/enum fields default to None (wrapped in Optional by resolveType).
 	if field.Kind() == protoreflect.MessageKind || field.Kind() == protoreflect.EnumKind {
-		return "None"
+		return "default=None"
 	}
 
 	// Scalar defaults.
 	switch field.Kind() {
 	case protoreflect.BoolKind:
-		return "False"
+		return "default=False"
 	case protoreflect.Int32Kind, protoreflect.Uint32Kind, protoreflect.Fixed32Kind,
 		protoreflect.Sint32Kind, protoreflect.Sfixed32Kind,
 		protoreflect.Int64Kind, protoreflect.Sint64Kind, protoreflect.Sfixed64Kind,
 		protoreflect.Uint64Kind, protoreflect.Fixed64Kind:
-		return "0"
+		return "default=0"
 	case protoreflect.DoubleKind, protoreflect.FloatKind:
-		return "0.0"
+		return "default=0.0"
 	case protoreflect.StringKind:
-		return `""`
+		return `default=""`
 	case protoreflect.BytesKind:
-		return `b""`
+		return `default=b""`
 	default:
-		return "None"
+		return "default=None"
 	}
 }
 

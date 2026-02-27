@@ -53,11 +53,11 @@ class Oneofs(_ProtoModel):
     )
 
     a: "int | None" = _Field(
-        None,
+        default=None,
         description="Only one of the fields can be specified with: [a b] (oneof union)",
     )
 
     b: "str | None" = _Field(
-        None,
+        default=None,
         description="Only one of the fields can be specified with: [a b] (oneof union)",
     )

@@ -59,11 +59,11 @@ class CrossRefMessage(_ProtoModel):
     )
 
     id_: "str" = _Field(
-        "",
+        default="",
         alias="id",
     )
 
-    referenced_message: "Message | None" = _Field(None)
+    referenced_message: "Message | None" = _Field(default=None)
 
     scalars_list: "list[Scalars]" = _Field(
         default_factory=list,
