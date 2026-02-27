@@ -52,9 +52,9 @@ class Message(_ProtoModel):
         ser_json_inf_nan="strings",
     )
 
-    first_name: "str" = _Field("")
+    first_name: "str" = _Field(default="")
 
-    last_name: "str" = _Field("")
+    last_name: "str" = _Field(default="")
 
 
 class Empty(_ProtoModel):

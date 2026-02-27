@@ -63,7 +63,7 @@ class ValidatedEmail(_ProtoModel):
 
     # Address must be a valid email address.
     address: "_Annotated[str, _AfterValidator(_validate_email)]" = _Field(
-        "",
+        default="",
         description="Address must be a valid email address.",
     )
 
@@ -86,7 +86,7 @@ class ValidatedUUID(_ProtoModel):
 
     # Id must be a valid UUID.
     id_: "_Annotated[str, _AfterValidator(_validate_uuid)]" = _Field(
-        "",
+        default="",
         description="Id must be a valid UUID.",
         alias="id",
     )

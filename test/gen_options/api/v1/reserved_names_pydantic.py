@@ -53,8 +53,8 @@ class ReservedFieldNames(_ProtoModel):
         ser_json_inf_nan="strings",
     )
 
-    modelConfig: "str" = _Field("")
+    modelConfig: "str" = _Field(default="")
 
-    modelFields: "str" = _Field("")
+    modelFields: "str" = _Field(default="")
 
-    modelDump: "str" = _Field("")
+    modelDump: "str" = _Field(default="")

@@ -54,10 +54,10 @@ class TreeNode(_ProtoModel):
         ser_json_inf_nan="strings",
     )
 
-    name: "str" = _Field("")
+    name: "str" = _Field(default="")
 
     children: "list[TreeNode]" = _Field(
         default_factory=list,
     )
 
-    parent: "_Optional[TreeNode]" = _Field(None)
+    parent: "_Optional[TreeNode]" = _Field(default=None)

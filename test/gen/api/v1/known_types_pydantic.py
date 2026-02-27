@@ -70,36 +70,36 @@ class WellKnownTypes(_ProtoModel):
         ser_json_inf_nan="strings",
     )
 
-    wkt_timestamp: "ProtoTimestamp | None" = _Field(None)
+    wkt_timestamp: "ProtoTimestamp | None" = _Field(default=None)
 
-    wkt_duration: "ProtoDuration | None" = _Field(None)
+    wkt_duration: "ProtoDuration | None" = _Field(default=None)
 
-    wkt_struct: "dict[str, _Any] | None" = _Field(None)
+    wkt_struct: "dict[str, _Any] | None" = _Field(default=None)
 
-    wkt_value: "_Any | None" = _Field(None)
+    wkt_value: "_Any | None" = _Field(default=None)
 
-    wkt_list_value: "list[_Any] | None" = _Field(None)
+    wkt_list_value: "list[_Any] | None" = _Field(default=None)
 
-    wkt_any: "_Any | None" = _Field(None)
+    wkt_any: "_Any | None" = _Field(default=None)
 
-    wkt_field_mask: "list[str] | None" = _Field(None)
+    wkt_field_mask: "list[str] | None" = _Field(default=None)
 
-    wkt_bool: "bool | None" = _Field(None)
+    wkt_bool: "bool | None" = _Field(default=None)
 
-    wkt_int32: "int | None" = _Field(None)
+    wkt_int32: "int | None" = _Field(default=None)
 
-    wkt_int64: "ProtoInt64 | None" = _Field(None)
+    wkt_int64: "ProtoInt64 | None" = _Field(default=None)
 
-    wkt_uint32: "int | None" = _Field(None)
+    wkt_uint32: "int | None" = _Field(default=None)
 
-    wkt_uint64: "ProtoUInt64 | None" = _Field(None)
+    wkt_uint64: "ProtoUInt64 | None" = _Field(default=None)
 
-    wkt_float: "float | None" = _Field(None)
+    wkt_float: "float | None" = _Field(default=None)
 
-    wkt_double: "float | None" = _Field(None)
+    wkt_double: "float | None" = _Field(default=None)
 
-    wkt_string: "str | None" = _Field(None)
+    wkt_string: "str | None" = _Field(default=None)
 
-    wkt_bytes: "bytes | None" = _Field(None)
+    wkt_bytes: "bytes | None" = _Field(default=None)
 
-    wkt_empty: "None" = _Field(None)
+    wkt_empty: "None" = _Field(default=None)

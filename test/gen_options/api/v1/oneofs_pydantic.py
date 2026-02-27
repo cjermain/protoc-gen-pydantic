@@ -53,6 +53,6 @@ class Oneofs(_ProtoModel):
         ser_json_inf_nan="strings",
     )
 
-    a: "_Optional[int]" = _Field(None)
+    a: "_Optional[int]" = _Field(default=None)
 
-    b: "_Optional[str]" = _Field(None)
+    b: "_Optional[str]" = _Field(default=None)
