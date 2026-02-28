@@ -175,7 +175,7 @@ Because enum values default to string names (with `auto_trim_enum_prefix=true`),
 to ProtoJSON-compatible strings:
 
 ```python
-from gen.status_pydantic import Status
+from status_pydantic import Status
 
 msg = MyMessage(status=Status.ACTIVE)
 print(msg.model_dump_json())  # {"status": "ACTIVE"}

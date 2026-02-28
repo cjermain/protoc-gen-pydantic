@@ -81,7 +81,7 @@ alongside format validators.
 ```python
 import datetime
 
-from gen.event_pydantic import Event
+from event_pydantic import Event
 
 event = Event(
     id="evt-123",

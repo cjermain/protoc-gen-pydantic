@@ -123,7 +123,7 @@ Both are annotated `int` in Python — arithmetic works normally. The string ser
 applies in JSON:
 
 ```python
-from gen.api.v1.scalars_pydantic import Scalars
+from api.v1.scalars_pydantic import Scalars
 
 s = Scalars(int64=9007199254740993)  # larger than JS MAX_SAFE_INTEGER
 s.to_proto_json()
@@ -143,7 +143,7 @@ and `datetime.timedelta` respectively, with proto-wire-format JSON serialization
 
 ```python
 import datetime
-from gen.api.v1.event_pydantic import Event
+from api.v1.event_pydantic import Event
 
 event = Event(
     occurred=datetime.datetime.now(datetime.timezone.utc),

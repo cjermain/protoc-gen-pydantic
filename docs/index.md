@@ -160,7 +160,7 @@ directly into Pydantic validation:
 === ":simple-python: usage.py"
 
     ```python
-    from gen.user_pydantic import User
+    from user_pydantic import User
 
     # Construct and validate
     user = User(name="Alice", age=30, email="alice@example.com", role=User.Role.EDITOR)
