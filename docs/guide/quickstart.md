@@ -124,7 +124,7 @@ so `user_pydantic` is importable directly without a `gen.` prefix.
 >>> user.name
 'Alice'
 >>> user.role
-<Role.ADMIN: 'ADMIN'>
+'ADMIN'
 >>> user.to_proto_json()
 '{"name":"Alice","age":30,"active":true,"role":"ADMIN"}'
 >>> User(name=123)  # wrong type raises immediately

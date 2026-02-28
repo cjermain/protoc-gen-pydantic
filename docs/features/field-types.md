@@ -46,7 +46,7 @@ All proto3 scalar types map to native Python types:
         age: "int" = _Field(0)
         active: "bool" = _Field(False)
         score: "float" = _Field(0.0)
-        bytes_: "bytes" = _Field(b"", alias="bytes")
+        avatar: "bytes" = _Field(b"")
     ```
 
 ## Optional fields

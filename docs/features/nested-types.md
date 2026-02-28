@@ -87,7 +87,7 @@ Enums nested inside a message become nested classes of that message:
 ```python
 # Usage
 order = Order(status=Order.Status.PENDING)
-print(order.status)  # Status.PENDING
+print(order.status)  # 'PENDING'
 ```
 
 ## Deeply nested types

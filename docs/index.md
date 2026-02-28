@@ -42,7 +42,7 @@ ProtoJSON-aware serialization helpers on top of standard Pydantic. See
 
 ## Basic usage
 
-A single `protoc` command turns any `.proto` file into a ready-to-use Pydantic model:
+A single `buf generate` command turns any `.proto` file into a ready-to-use Pydantic model:
 
 === ":lucide-file-code: item.proto"
 
@@ -61,10 +61,10 @@ A single `protoc` command turns any `.proto` file into a ready-to-use Pydantic m
 === ":simple-python: item_pydantic.py (generated)"
 
     ```python
-    from pydantic import BaseModel as _BaseModel, Field as _Field
+    from pydantic import Field as _Field
 
 
-    class Item(_BaseModel):
+    class Item(_ProtoModel):
         name: "str" = _Field("")
         quantity: "int" = _Field(0)
         price: "float" = _Field(0.0)
@@ -119,14 +119,13 @@ directly into Pydantic validation:
 
     from pydantic import (
         AfterValidator as _AfterValidator,
-        BaseModel as _BaseModel,
         Field as _Field,
     )
 
     from ._proto_types import _validate_email
 
 
-    class User(_BaseModel):
+    class User(_ProtoModel):
         """A user account."""
 
         class Role(str, _Enum):
@@ -163,7 +162,7 @@ directly into Pydantic validation:
     # Construct and validate
     user = User(name="Alice", age=30, email="alice@example.com", role=User.Role.EDITOR)
 
-    # Serialize (ProtoJSON — omits zero values, uses camelCase aliases)
+    # Serialize (ProtoJSON — omits zero values, uses original proto field names)
     print(user.to_proto_json())
     # {"name": "Alice", "age": 30, "email": "alice@example.com", "role": "EDITOR"}
 

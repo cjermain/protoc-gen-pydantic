@@ -111,13 +111,13 @@ gen/
 
 ### 64-bit integer types
 
-Proto3 encodes `int64`, `sint64`, `sfixed64`, `uint64`, `fixed64`, and `uint64` as **strings**
+Proto3 encodes `int64`, `sint64`, `sfixed64`, `uint64`, and `fixed64` as **strings**
 in JSON (to avoid JavaScript integer overflow). The generated aliases handle this automatically:
 
 | Type alias | Proto types | JSON representation |
 |---|---|---|
 | `ProtoInt64` | `int64`, `sint64`, `sfixed64` | `"123"` (string) |
-| `ProtoUInt64` | `uint64`, `fixed64`, `uint64` | `"123"` (string) |
+| `ProtoUInt64` | `uint64`, `fixed64` | `"123"` (string) |
 
 Both are annotated `int` in Python — arithmetic works normally. The string serialization only
 applies in JSON:
