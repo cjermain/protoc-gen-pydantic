@@ -81,7 +81,7 @@ markdown_extensions:
       emoji_generator: !!python/name:material.extensions.emoji.to_svg
       options:
         custom_icons:
-          - overrides/.icons   # enables lucide/* and :lucide-xxx: syntax
+          - docs/overrides/.icons   # enables lucide/* and :lucide-xxx: syntax
   - pymdownx.highlight:
       anchor_linenums: true
   - pymdownx.superfences
