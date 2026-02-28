@@ -5,4 +5,4 @@ uv            = "0.10.4"
 protoc        = "27.5"
 golangci-lint = "2.9.0"
 pre-commit    = "4.5.1"
-"pipx:zensical" = "0.0.24"
+"pipx:mkdocs" = {version = "1.6.1", uvx_args = "--with mkdocs-material==9.5.47"}

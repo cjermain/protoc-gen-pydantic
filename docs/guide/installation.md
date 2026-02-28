@@ -4,7 +4,7 @@ icon: lucide/download
 
 # Installation
 
-The [quickstart](./quickstart) uses `buf` with `go run` — no binary install required. If you
+The [quickstart](./quickstart.md) uses `buf` with `go run` — no binary install required. If you
 need a standalone binary for other workflows, choose from the methods below.
 
 ## Pre-built binaries
@@ -52,4 +52,4 @@ To use the plugin you also need one of:
 - **[protoc](https://github.com/protocolbuffers/protobuf/releases)** — the Protocol Buffers compiler
 - **[buf](https://buf.build/docs/installation)** — recommended; handles dependency management and code generation configuration automatically
 
-For most projects, `buf` is the simpler choice. See [Using with buf](./with-buf) for details.
+For most projects, `buf` is the simpler choice. See [Using with buf](./with-buf.md) for details.

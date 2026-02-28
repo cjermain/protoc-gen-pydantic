@@ -50,7 +50,7 @@ class Status(str, _Enum):
     STATUS_INACTIVE = "STATUS_INACTIVE"
 ```
 
-See [Plugin Options](../options#auto-trim-enum-prefix) for details.
+See [Plugin Options](../options.md#auto-trim-enum-prefix) for details.
 
 ## Integer enums (`use_integers_for_enums`)
 
@@ -63,7 +63,7 @@ class Status(int, _Enum):
     INACTIVE = 2
 ```
 
-See [Plugin Options](../options#use-integers-for-enums) for details.
+See [Plugin Options](../options.md#use-integers-for-enums) for details.
 
 ## Top-level vs. nested enums
 

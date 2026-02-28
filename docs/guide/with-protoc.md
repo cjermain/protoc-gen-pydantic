@@ -48,7 +48,7 @@ protoc --pydantic_out=./gen \
        ./proto/user.proto
 ```
 
-See [Plugin Options](../options) for the full list.
+See [Plugin Options](../options.md) for the full list.
 
 ## Generating multiple files
 
@@ -110,5 +110,5 @@ protoc --pydantic_out=./gen \
        ./proto/user.proto
 ```
 
-> **Tip:** `buf` handles dependency management automatically. Consider [using buf](./with-buf)
+> **Tip:** `buf` handles dependency management automatically. Consider [using buf](./with-buf.md)
 > if you use buf.validate or need to import external packages.

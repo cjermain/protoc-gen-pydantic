@@ -207,9 +207,11 @@ Format/type issues in generated files are caught by `just test`, not `just lint`
 
 ## Documentation Site
 
-The docs site lives in `docs/` and is built with [Zensical](https://zensical.org/) (config: `zensical.toml` at project root, `docs_dir` defaults to `docs/`, output goes to `site/`).
+The docs site lives in `docs/` and is built with [Material for MkDocs](https://squidfunk.github.io/mkdocs-material/) (config: `mkdocs.yml` at project root, `docs_dir: docs`, output goes to `site/`).
 Use `just docs-dev` to develop locally at `http://localhost:8000/` and `just docs-build` to verify a production build.
 Deployed automatically to GitHub Pages on push to `main` via `.github/workflows/docs.yml`.
+
+Lucide icons used in frontmatter and content tabs are committed as SVG files in `overrides/.icons/lucide/` (fetched from `https://unpkg.com/lucide-static@latest/icons/<name>.svg`). When new Lucide icons are needed, download and commit the SVG the same way.
 
 Python code blocks in docs pages are checked and auto-fixed with `just lint-docs` / `just fix-docs`.
 The pre-commit hook `ruff-format-docs` runs this automatically on staged docs files.

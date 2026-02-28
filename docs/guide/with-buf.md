@@ -5,7 +5,7 @@ icon: lucide/package
 # Using with buf
 
 [buf](https://buf.build/) is the recommended way to use `protoc-gen-pydantic`. The
-[quickstart](./quickstart) covers the basic setup. This page documents additional patterns
+[quickstart](./quickstart.md) covers the basic setup. This page documents additional patterns
 for buf users.
 
 ## Project layout
@@ -69,7 +69,7 @@ inputs:
   - directory: proto
 ```
 
-See [Plugin Options](../options) for the full list.
+See [Plugin Options](../options.md) for the full list.
 
 ## Watching for changes
 

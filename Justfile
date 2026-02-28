@@ -5,7 +5,7 @@ init:
     #!/usr/bin/env bash
     set -euo pipefail
     missing=()
-    for cmd in go buf protoc uv golangci-lint pre-commit zensical; do
+    for cmd in go buf protoc uv golangci-lint pre-commit mkdocs; do
         if ! command -v "$cmd" &>/dev/null; then
             missing+=("$cmd")
         fi
@@ -20,7 +20,7 @@ init:
     echo "uv:             $(uv --version | awk '{print $2}')"
     echo "golangci-lint:  $(golangci-lint --version | awk '{print $4}')"
     echo "pre-commit:     $(pre-commit --version | awk '{print $2}')"
-    echo "zensical:       $(zensical --version)"
+    echo "mkdocs:         $(mkdocs --version)"
     cd test && uv sync
     pre-commit install
     echo "Ready to go."
@@ -70,25 +70,25 @@ fix-python:
 fix-docs:
     cd test && uv run ruff format --preview ../docs/**/*.md ../docs/*.md
 
-# Verify zensical is available
+# Verify mkdocs is available
 docs-install:
-    zensical --version
+    mkdocs --version
 
 # Install deps and build docs — matches CI
 docs-ci:
-    zensical build --clean
+    mkdocs build --clean
 
-# Start the Zensical local dev server (hot-reload at http://localhost:8000/)
+# Start the MkDocs local dev server (hot-reload at http://localhost:8000/)
 docs-dev:
-    zensical serve
+    mkdocs serve
 
 # Build the docs site to site/
 docs-build:
-    zensical build
+    mkdocs build
 
 # Build and locally preview the production docs site
 docs-preview: docs-build
-    zensical serve
+    mkdocs serve
 
 # Verify generated files match committed versions
 check-generated: generate

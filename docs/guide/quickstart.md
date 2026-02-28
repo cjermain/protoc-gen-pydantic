@@ -132,7 +132,7 @@ name
 
 ## What's next?
 
-- Explore [advanced buf patterns](./with-buf) — multiple outputs, watching for changes, CI verification
-- Add [buf.validate constraints](../buf-validate) to enforce field rules at the proto level
-- Learn about [well-known type mappings](../features/well-known-types) (Timestamp, Duration, …)
-- Configure [plugin options](../options) to adjust naming conventions
+- Explore [advanced buf patterns](./with-buf.md) — multiple outputs, watching for changes, CI verification
+- Add [buf.validate constraints](../buf-validate.md) to enforce field rules at the proto level
+- Learn about [well-known type mappings](../features/well-known-types.md) (Timestamp, Duration, …)
+- Configure [plugin options](../options.md) to adjust naming conventions

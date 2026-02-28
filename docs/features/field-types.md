@@ -176,7 +176,7 @@ Message-typed fields default to `None` (not an empty sub-message):
 
 ## Enum fields
 
-Enum-typed fields also default to `None`. See the [Enums page](./enums) for full details.
+Enum-typed fields also default to `None`. See the [Enums page](./enums.md) for full details.
 
 === ":lucide-file-code: enum_field.proto"
 

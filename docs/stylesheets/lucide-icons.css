@@ -1,0 +1,6 @@
+/* Lucide icons are stroke-based (fill="none", stroke="currentColor").
+   Material for MkDocs sets fill: currentColor on all SVGs, which turns
+   stroke-based icons into solid silhouettes. Restore the correct rendering. */
+svg.lucide {
+  fill: none !important;
+}
