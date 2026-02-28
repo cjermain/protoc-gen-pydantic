@@ -30,12 +30,10 @@ them in sync forever. protoc-gen-pydantic generates Pydantic v2 models directly 
 once, and the plugin reads your `.proto` files and writes ready-to-use Python files alongside
 them. After that, code generation is the only step — no runtime dependency on the plugin itself.
 
-```
-proto/user.proto  ──►  buf generate  ──►  gen/user_pydantic.py
-                                               gen/_proto_types.py
-                         (one-time,
-                          re-run when
-                          .proto changes)
+```mermaid
+flowchart LR
+    A["proto/user.proto"] -->|buf generate| B["gen/user_pydantic.py<br/>gen/_proto_types.py"]
+    B --> C["from user_pydantic import User"]
 ```
 
 Every generated message class inherits from `_ProtoModel`, a thin base class that adds
