@@ -5,7 +5,7 @@ init:
     #!/usr/bin/env bash
     set -euo pipefail
     missing=()
-    for cmd in go buf protoc uv golangci-lint pre-commit; do
+    for cmd in go buf protoc uv golangci-lint pre-commit mkdocs; do
         if ! command -v "$cmd" &>/dev/null; then
             missing+=("$cmd")
         fi
@@ -20,6 +20,7 @@ init:
     echo "uv:             $(uv --version | awk '{print $2}')"
     echo "golangci-lint:  $(golangci-lint --version | awk '{print $4}')"
     echo "pre-commit:     $(pre-commit --version | awk '{print $2}')"
+    echo "mkdocs:         $(mkdocs --version)"
     cd test && uv sync
     pre-commit install
     echo "Ready to go."
@@ -49,17 +50,45 @@ lint-python:
     cd test && uv run ruff check tests/
     cd test && uv run ruff format --check tests/
 
+# Check Python code blocks in docs are ruff-formatted
+lint-docs:
+    cd test && uv run ruff format --preview --check ../docs/**/*.md ../docs/*.md
+
 # Run type checker on test suite code
 lint-types:
     cd test && uv run ty check tests/
 
 # Run all linters
-lint: lint-go lint-python lint-types
+lint: lint-go lint-python lint-docs lint-types
 
 # Auto-fix Python lint issues
 fix-python:
     cd test && uv run ruff check --fix tests/
     cd test && uv run ruff format tests/
+
+# Auto-fix Python code blocks in docs
+fix-docs:
+    cd test && uv run ruff format --preview ../docs/**/*.md ../docs/*.md
+
+# Verify mkdocs is available
+docs-install:
+    mkdocs --version
+
+# Install deps and build docs — matches CI
+docs-ci:
+    mkdocs build --clean
+
+# Start the MkDocs local dev server (hot-reload at http://localhost:8000/)
+docs-dev:
+    mkdocs serve
+
+# Build the docs site to site/
+docs-build:
+    mkdocs build
+
+# Build and locally preview the production docs site
+docs-preview: docs-build
+    mkdocs serve
 
 # Verify generated files match committed versions
 check-generated: generate
@@ -85,3 +114,4 @@ coverage: generate-cover
 clean:
     rm -f protoc-gen-pydantic protoc-gen-pydantic-cov coverage.out
     rm -rf test/gen test/gen_options covdata
+    rm -rf site

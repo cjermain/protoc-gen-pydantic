@@ -1,0 +1,21 @@
+/* Lucide icons are stroke-based (fill="none", stroke="currentColor").
+   Material for MkDocs sets fill: currentColor on all SVGs, which turns
+   stroke-based icons into solid silhouettes. Restore the correct rendering. */
+svg.lucide {
+  fill: none !important;
+}
+
+/* Pill-shaped buttons — needs .md-typeset prefix to match Material's specificity */
+.md-typeset .md-button {
+  border-radius: 100px;
+}
+
+/* Nav item spacing — Material default is .625em; increase to match Zensical */
+.md-nav__link {
+  margin-top: 0.8em;
+}
+
+/* Hero title — ensure full contrast */
+.md-content h1 {
+  color: var(--md-default-fg-color);
+}

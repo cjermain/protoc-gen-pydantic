@@ -20,6 +20,9 @@ test/gen_pb2/
 # OS
 .DS_Store
 
+# Docs (Zensical)
+site/
+
 # IDEs
 .idea/
 .vscode/

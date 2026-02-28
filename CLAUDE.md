@@ -26,19 +26,25 @@ protoc-gen-pydantic is a `protoc` plugin written in Go that generates Pydantic v
 This project uses [mise](https://mise.jdx.dev/) to manage tool versions and [just](https://github.com/casey/just) as a command runner. Run `mise install` first, then `just --list` to see all recipes.
 
 ```bash
-mise install            # Install all pinned tools (buf, just, uv, protoc, golangci-lint, pre-commit)
-just init               # Check dependencies, install pre-commit hooks, sync Python venv
+mise install            # Install all pinned tools (buf, just, uv, protoc, golangci-lint, pre-commit, node)
+just init               # Check dependencies, install pre-commit hooks, sync Python venv + docs npm deps
 just build              # Build the Go binary
 just generate           # Build + generate Python models from test protos
 just test               # Run Python tests
 just dev                # Full rebuild + generate + test cycle
-just lint               # Run all linters (Go + Python + type check)
+just lint               # Run all linters (Go + Python + docs + type check)
 just lint-go            # Run Go linter
 just lint-python        # Run Python linters on test suite
+just lint-docs          # Check Python code blocks in docs/*.md pass ruff format
 just lint-types         # Run ty type checker on test suite code (tests/ only)
 just fix-python         # Auto-fix Python lint issues
+just fix-docs           # Auto-fix Python code blocks in docs/*.md
 just check-generated    # Verify generated files match committed versions
-just clean              # Remove build artifacts and generated files
+just clean              # Remove build artifacts and generated files (incl. docs dist/cache)
+just docs-install       # Install VitePress npm dependencies (docs/node_modules)
+just docs-dev           # Local dev server at http://localhost:5173/protoc-gen-pydantic/
+just docs-build         # Production build → docs/.vitepress/dist/
+just docs-preview       # Build then preview production site locally
 ```
 
 ## Project Structure
@@ -53,8 +59,18 @@ just clean              # Remove build artifacts and generated files
 ├── buf.gen.yaml                     # Buf code generation config
 ├── .goreleaser.yaml                 # Release automation
 ├── .pre-commit-config.yaml          # Pre-commit hook config
+├── docs/                            # VitePress documentation site
+│   ├── .vitepress/config.mts        # Nav, sidebar, search config
+│   ├── index.md                     # Landing page
+│   ├── guide/                       # Getting-started guides
+│   ├── features/                    # Feature reference pages
+│   ├── options.md                   # Plugin options reference
+│   ├── buf-validate.md              # buf.validate guide
+│   ├── contributing.md              # Developer guide
+│   └── package.json                 # VitePress dependency
 ├── .github/
 │   ├── workflows/ci.yml             # CI: lint, check-generated, test
+│   ├── workflows/docs.yml           # Deploy docs to GitHub Pages
 │   ├── workflows/release.yml        # Release via goreleaser on tag push
 │   └── dependabot.yml               # Dependency update automation
 └── test/
@@ -188,3 +204,14 @@ Format/type issues in generated files are caught by `just test`, not `just lint`
 - Generated code must pass `ruff format --check` (enforced by `test_ruff_format` in the test suite)
 - All tests use modern pytest style: plain functions, fixtures, parametrize. Do not use test classes (`class Test...`)
 - Python package management uses uv (not pip/rye)
+
+## Documentation Site
+
+The docs site lives in `docs/` and is built with [Material for MkDocs](https://squidfunk.github.io/mkdocs-material/) (config: `mkdocs.yml` at project root, `docs_dir: docs`, output goes to `site/`).
+Use `just docs-dev` to develop locally at `http://localhost:8000/` and `just docs-build` to verify a production build.
+Deployed automatically to GitHub Pages on push to `main` via `.github/workflows/docs.yml`.
+
+Lucide icons used in frontmatter and content tabs are committed as SVG files in `overrides/.icons/lucide/` (fetched from `https://unpkg.com/lucide-static@latest/icons/<name>.svg`). When new Lucide icons are needed, download and commit the SVG the same way.
+
+Python code blocks in docs pages are checked and auto-fixed with `just lint-docs` / `just fix-docs`.
+The pre-commit hook `ruff-format-docs` runs this automatically on staged docs files.

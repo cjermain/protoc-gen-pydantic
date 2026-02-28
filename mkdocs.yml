@@ -1,0 +1,97 @@
+site_name: protoc-gen-pydantic
+site_url: https://cjermain.github.io/protoc-gen-pydantic/
+site_description: A protoc plugin that generates type-safe Pydantic v2 models from .proto files
+copyright: "Copyright &copy; 2024–present protoc-gen-pydantic contributors"
+
+repo_name: cjermain/protoc-gen-pydantic
+repo_url: https://github.com/cjermain/protoc-gen-pydantic
+edit_uri: https://github.com/cjermain/protoc-gen-pydantic/edit/main/docs
+
+docs_dir: docs
+exclude_docs: overrides/
+
+nav:
+  - Home: index.md
+  - Getting Started:
+    - Installation: guide/installation.md
+    - Quickstart: guide/quickstart.md
+    - Using with buf: guide/with-buf.md
+    - Using with protoc: guide/with-protoc.md
+  - Features:
+    - Field Types: features/field-types.md
+    - Enums: features/enums.md
+    - Nested Types: features/nested-types.md
+    - Well-Known Types: features/well-known-types.md
+    - Comments & Descriptions: features/comments.md
+    - Reserved Names: features/reserved-names.md
+    - Generated Model API: features/generated-model-api.md
+  - Reference:
+    - buf.validate: buf-validate.md
+    - Plugin Options: options.md
+  - Contributing: contributing.md
+
+theme:
+  name: material
+  custom_dir: docs/overrides
+  language: en
+  logo: assets/protoc-gen-pydantic.png
+  favicon: assets/favicon.ico
+  features:
+    - content.code.annotate
+    - content.code.copy
+    - content.tabs.link
+    - content.tooltips
+    - navigation.footer
+    - navigation.indexes
+    - navigation.instant
+    - navigation.instant.prefetch
+    - navigation.path
+    - navigation.sections
+    - navigation.top
+    - navigation.tracking
+    - search.highlight
+  palette:
+    - scheme: default
+      toggle:
+        icon: lucide/sun
+        name: Switch to dark mode
+    - scheme: slate
+      toggle:
+        icon: lucide/moon
+        name: Switch to light mode
+
+extra_css:
+  - stylesheets/lucide-icons.css
+
+extra_javascript:
+  - https://unpkg.com/mermaid@11/dist/mermaid.min.js
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/cjermain/protoc-gen-pydantic
+
+plugins:
+  - search
+
+markdown_extensions:
+  - attr_list        # { .md-button } classes, { width="280" } image sizing
+  - md_in_html       # <div align="center" markdown>
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+      options:
+        custom_icons:
+          - docs/overrides/.icons   # enables lucide/* and :lucide-xxx: syntax
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true   # required for === tabs
