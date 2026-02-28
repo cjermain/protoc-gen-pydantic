@@ -25,7 +25,7 @@ When a proto field name is a reserved word in Python, the generator:
       bool  bool  = 1;
       float float = 2;
       bytes bytes = 3;
-      int   int   = 4;   // 'int' is also reserved
+      int32 int   = 4;   // 'int' is also reserved
     }
     ```
 
