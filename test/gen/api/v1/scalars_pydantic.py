@@ -14,6 +14,13 @@ from .messages_pydantic import Message
 class _ProtoModel(_BaseModel):
     """Base class for generated Pydantic models with ProtoJSON helpers."""
 
+    model_config = _ConfigDict(
+        use_enum_values=True,
+        ser_json_bytes="base64",
+        val_json_bytes="base64",
+        ser_json_inf_nan="strings",
+    )
+
     def to_proto_dict(self, **kwargs) -> dict:
         """Serialize to a dict using ProtoJSON conventions.
 
@@ -89,12 +96,7 @@ class Scalars(_ProtoModel):
       nested_message_optional (Scalars.NestedMessage | None):
     """
 
-    model_config = _ConfigDict(
-        populate_by_name=True,
-        ser_json_bytes="base64",
-        val_json_bytes="base64",
-        ser_json_inf_nan="strings",
-    )
+    model_config = _ConfigDict(populate_by_name=True)
 
     class NestedEnum(str, _Enum):
         """ """
@@ -113,97 +115,91 @@ class Scalars(_ProtoModel):
           last_name (str):
         """
 
-        model_config = _ConfigDict(
-            ser_json_bytes="base64",
-            val_json_bytes="base64",
-            ser_json_inf_nan="strings",
-        )
+        first_name: "str" = _Field(default="")
 
-        first_name: "str" = _Field("")
+        last_name: "str" = _Field(default="")
 
-        last_name: "str" = _Field("")
+    int32: "int" = _Field(default=0)
 
-    int32: "int" = _Field(0)
+    int64: "ProtoInt64" = _Field(default=0)
 
-    int64: "ProtoInt64" = _Field(0)
+    uint32: "int" = _Field(default=0)
 
-    uint32: "int" = _Field(0)
+    uint64: "ProtoUInt64" = _Field(default=0)
 
-    uint64: "ProtoUInt64" = _Field(0)
+    fixed32: "int" = _Field(default=0)
 
-    fixed32: "int" = _Field(0)
+    fixed64: "ProtoUInt64" = _Field(default=0)
 
-    fixed64: "ProtoUInt64" = _Field(0)
+    sint32: "int" = _Field(default=0)
 
-    sint32: "int" = _Field(0)
+    sint64: "ProtoInt64" = _Field(default=0)
 
-    sint64: "ProtoInt64" = _Field(0)
+    sfixed32: "int" = _Field(default=0)
 
-    sfixed32: "int" = _Field(0)
-
-    sfixed64: "ProtoInt64" = _Field(0)
+    sfixed64: "ProtoInt64" = _Field(default=0)
 
     bool_: "bool" = _Field(
-        False,
+        default=False,
         alias="bool",
     )
 
     float_: "float" = _Field(
-        0.0,
+        default=0.0,
         alias="float",
     )
 
-    double: "float" = _Field(0.0)
+    double: "float" = _Field(default=0.0)
 
-    string: "str" = _Field("")
+    string: "str" = _Field(default="")
 
     bytes_: "bytes" = _Field(
-        b"",
+        default=b"",
         alias="bytes",
     )
 
-    enum: "Enum | None" = _Field(None)
+    enum: "Enum | None" = _Field(default=None)
 
-    nested_enum: "Scalars.NestedEnum | None" = _Field(None)
+    nested_enum: "Scalars.NestedEnum | None" = _Field(default=None)
 
-    message: "Message | None" = _Field(None)
+    message: "Message | None" = _Field(default=None)
 
-    nested_message: "Scalars.NestedMessage | None" = _Field(None)
+    nested_message: "Scalars.NestedMessage | None" = _Field(default=None)
 
-    int32_optional: "int | None" = _Field(None)
+    int32_optional: "int | None" = _Field(default=None)
 
-    int64_optional: "ProtoInt64 | None" = _Field(None)
+    int64_optional: "ProtoInt64 | None" = _Field(default=None)
 
-    uint32_optional: "int | None" = _Field(None)
+    uint32_optional: "int | None" = _Field(default=None)
 
-    uint64_optional: "ProtoUInt64 | None" = _Field(None)
+    uint64_optional: "ProtoUInt64 | None" = _Field(default=None)
 
-    fixed32_optional: "int | None" = _Field(None)
+    fixed32_optional: "int | None" = _Field(default=None)
 
-    fixed64_optional: "ProtoUInt64 | None" = _Field(None)
+    fixed64_optional: "ProtoUInt64 | None" = _Field(default=None)
 
-    sint32_optional: "int | None" = _Field(None)
+    sint32_optional: "int | None" = _Field(default=None)
 
-    sint64_optional: "ProtoInt64 | None" = _Field(None)
+    sint64_optional: "ProtoInt64 | None" = _Field(default=None)
 
-    sfixed32_optional: "int | None" = _Field(None)
+    sfixed32_optional: "int | None" = _Field(default=None)
 
-    sfixed64_optional: "ProtoInt64 | None" = _Field(None)
+    sfixed64_optional: "ProtoInt64 | None" = _Field(default=None)
 
-    bool_optional: "bool | None" = _Field(None)
+    bool_optional: "bool | None" = _Field(default=None)
 
-    float_optional: "float | None" = _Field(None)
+    float_optional: "float | None" = _Field(default=None)
 
-    double_optional: "float | None" = _Field(None)
+    double_optional: "float | None" = _Field(default=None)
 
-    string_optional: "str | None" = _Field(None)
+    string_optional: "str | None" = _Field(default=None)
 
-    bytes_optional: "bytes | None" = _Field(None)
+    bytes_optional: "bytes | None" = _Field(default=None)
 
-    enum_optional: "Enum | None" = _Field(None)
+    enum_optional: "Enum | None" = _Field(default=None)
 
-    nested_enum_optional: "Scalars.NestedEnum | None" = _Field(None)
+    nested_enum_optional: "Scalars.NestedEnum | None" = _Field(default=None)
 
-    message_optional: "Message | None" = _Field(None)
+    message_optional: "Message | None" = _Field(default=None)
 
-    nested_message_optional: "Scalars.NestedMessage | None" = _Field(None)
+    nested_message_optional: "Scalars.NestedMessage | None" = _Field(default=None)

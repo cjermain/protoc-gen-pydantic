@@ -7,6 +7,13 @@ from pydantic import BaseModel as _BaseModel, ConfigDict as _ConfigDict, Field a
 class _ProtoModel(_BaseModel):
     """Base class for generated Pydantic models with ProtoJSON helpers."""
 
+    model_config = _ConfigDict(
+        use_enum_values=True,
+        ser_json_bytes="base64",
+        val_json_bytes="base64",
+        ser_json_inf_nan="strings",
+    )
+
     def to_proto_dict(self, **kwargs) -> dict:
         """Serialize to a dict using ProtoJSON conventions.
 
@@ -46,15 +53,9 @@ class Message(_ProtoModel):
       last_name (str):
     """
 
-    model_config = _ConfigDict(
-        ser_json_bytes="base64",
-        val_json_bytes="base64",
-        ser_json_inf_nan="strings",
-    )
+    first_name: "str" = _Field(default="")
 
-    first_name: "str" = _Field("")
-
-    last_name: "str" = _Field("")
+    last_name: "str" = _Field(default="")
 
 
 class Empty(_ProtoModel):
@@ -62,11 +63,5 @@ class Empty(_ProtoModel):
 
     Attributes:
     """
-
-    model_config = _ConfigDict(
-        ser_json_bytes="base64",
-        val_json_bytes="base64",
-        ser_json_inf_nan="strings",
-    )
 
     pass

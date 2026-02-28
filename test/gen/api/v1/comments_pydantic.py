@@ -8,6 +8,13 @@ from pydantic import BaseModel as _BaseModel, ConfigDict as _ConfigDict, Field a
 class _ProtoModel(_BaseModel):
     """Base class for generated Pydantic models with ProtoJSON helpers."""
 
+    model_config = _ConfigDict(
+        use_enum_values=True,
+        ser_json_bytes="base64",
+        val_json_bytes="base64",
+        ser_json_inf_nan="strings",
+    )
+
     def to_proto_dict(self, **kwargs) -> dict:
         """Serialize to a dict using ProtoJSON conventions.
 
@@ -53,12 +60,6 @@ class CommentedMessage(_ProtoModel):
         The family name of the person.
     """
 
-    model_config = _ConfigDict(
-        ser_json_bytes="base64",
-        val_json_bytes="base64",
-        ser_json_inf_nan="strings",
-    )
-
     class NestedEnum(str, _Enum):
         """
         Leading comment on NestedEnum.
@@ -94,19 +95,13 @@ class CommentedMessage(_ProtoModel):
             The family name in the nested message.
         """
 
-        model_config = _ConfigDict(
-            ser_json_bytes="base64",
-            val_json_bytes="base64",
-            ser_json_inf_nan="strings",
-        )
-
         # Trailing comment on NestedMessage.
         # Documents internal structure.
 
         # Leading comment on nested first_name.
         # The given name in the nested message.
         first_name: "str" = _Field(
-            "",
+            default="",
             description="Leading comment on nested first_name.\nThe given name in the nested message.",
         )
         # Right comment on nested first_name.
@@ -114,7 +109,7 @@ class CommentedMessage(_ProtoModel):
         # Leading comment on nested last_name.
         # The family name in the nested message.
         last_name: "str" = _Field(
-            "",
+            default="",
             description="Leading comment on nested last_name.\nThe family name in the nested message.",
         )
         # Right comment on nested last_name.
@@ -125,7 +120,7 @@ class CommentedMessage(_ProtoModel):
     # Leading comment on first_name.
     # The given name of the person.
     first_name: "str" = _Field(
-        "",
+        default="",
         description="Leading comment on first_name.\nThe given name of the person.",
     )
     # Right comment on first_name.
@@ -133,7 +128,7 @@ class CommentedMessage(_ProtoModel):
     # Leading comment on last_name.
     # The family name of the person.
     last_name: "str" = _Field(
-        "",
+        default="",
         description="Leading comment on last_name.\nThe family name of the person.",
     )
     # Right comment on last_name.
@@ -147,12 +142,6 @@ class Outer(_ProtoModel):
       outer_field (str):
         Outer field comment.
     """
-
-    model_config = _ConfigDict(
-        ser_json_bytes="base64",
-        val_json_bytes="base64",
-        ser_json_inf_nan="strings",
-    )
 
     class OuterEnum(str, _Enum):
         """
@@ -172,12 +161,6 @@ class Outer(_ProtoModel):
             Inner field comment.
         """
 
-        model_config = _ConfigDict(
-            ser_json_bytes="base64",
-            val_json_bytes="base64",
-            ser_json_inf_nan="strings",
-        )
-
         class InnerEnum(str, _Enum):
             """
             Inner enum comment.
@@ -196,26 +179,20 @@ class Outer(_ProtoModel):
                 Deepest field comment.
             """
 
-            model_config = _ConfigDict(
-                ser_json_bytes="base64",
-                val_json_bytes="base64",
-                ser_json_inf_nan="strings",
-            )
-
             # Deepest field comment.
             deepest_field: "str" = _Field(
-                "",
+                default="",
                 description="Deepest field comment.",
             )
 
         # Inner field comment.
         inner_field: "str" = _Field(
-            "",
+            default="",
             description="Inner field comment.",
         )
 
     # Outer field comment.
     outer_field: "str" = _Field(
-        "",
+        default="",
         description="Outer field comment.",
     )

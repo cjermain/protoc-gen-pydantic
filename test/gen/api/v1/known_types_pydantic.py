@@ -10,6 +10,13 @@ from ._proto_types import ProtoDuration, ProtoInt64, ProtoTimestamp, ProtoUInt64
 class _ProtoModel(_BaseModel):
     """Base class for generated Pydantic models with ProtoJSON helpers."""
 
+    model_config = _ConfigDict(
+        use_enum_values=True,
+        ser_json_bytes="base64",
+        val_json_bytes="base64",
+        ser_json_inf_nan="strings",
+    )
+
     def to_proto_dict(self, **kwargs) -> dict:
         """Serialize to a dict using ProtoJSON conventions.
 
@@ -64,42 +71,36 @@ class WellKnownTypes(_ProtoModel):
       wkt_empty (None):
     """
 
-    model_config = _ConfigDict(
-        ser_json_bytes="base64",
-        val_json_bytes="base64",
-        ser_json_inf_nan="strings",
-    )
+    wkt_timestamp: "ProtoTimestamp | None" = _Field(default=None)
 
-    wkt_timestamp: "ProtoTimestamp | None" = _Field(None)
+    wkt_duration: "ProtoDuration | None" = _Field(default=None)
 
-    wkt_duration: "ProtoDuration | None" = _Field(None)
+    wkt_struct: "dict[str, _Any] | None" = _Field(default=None)
 
-    wkt_struct: "dict[str, _Any] | None" = _Field(None)
+    wkt_value: "_Any | None" = _Field(default=None)
 
-    wkt_value: "_Any | None" = _Field(None)
+    wkt_list_value: "list[_Any] | None" = _Field(default=None)
 
-    wkt_list_value: "list[_Any] | None" = _Field(None)
+    wkt_any: "_Any | None" = _Field(default=None)
 
-    wkt_any: "_Any | None" = _Field(None)
+    wkt_field_mask: "list[str] | None" = _Field(default=None)
 
-    wkt_field_mask: "list[str] | None" = _Field(None)
+    wkt_bool: "bool | None" = _Field(default=None)
 
-    wkt_bool: "bool | None" = _Field(None)
+    wkt_int32: "int | None" = _Field(default=None)
 
-    wkt_int32: "int | None" = _Field(None)
+    wkt_int64: "ProtoInt64 | None" = _Field(default=None)
 
-    wkt_int64: "ProtoInt64 | None" = _Field(None)
+    wkt_uint32: "int | None" = _Field(default=None)
 
-    wkt_uint32: "int | None" = _Field(None)
+    wkt_uint64: "ProtoUInt64 | None" = _Field(default=None)
 
-    wkt_uint64: "ProtoUInt64 | None" = _Field(None)
+    wkt_float: "float | None" = _Field(default=None)
 
-    wkt_float: "float | None" = _Field(None)
+    wkt_double: "float | None" = _Field(default=None)
 
-    wkt_double: "float | None" = _Field(None)
+    wkt_string: "str | None" = _Field(default=None)
 
-    wkt_string: "str | None" = _Field(None)
+    wkt_bytes: "bytes | None" = _Field(default=None)
 
-    wkt_bytes: "bytes | None" = _Field(None)
-
-    wkt_empty: "None" = _Field(None)
+    wkt_empty: "None" = _Field(default=None)

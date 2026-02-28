@@ -10,6 +10,13 @@ from ._proto_types import ProtoDuration, ProtoInt64, ProtoTimestamp, ProtoUInt64
 class _ProtoModel(_BaseModel):
     """Base class for generated Pydantic models with ProtoJSON helpers."""
 
+    model_config = _ConfigDict(
+        use_enum_values=True,
+        ser_json_bytes="base64",
+        val_json_bytes="base64",
+        ser_json_inf_nan="strings",
+    )
+
     def to_proto_dict(self, **kwargs) -> dict:
         """Serialize to a dict using ProtoJSON conventions.
 
@@ -64,42 +71,36 @@ class WellKnownTypes(_ProtoModel):
       wktEmpty (None):
     """
 
-    model_config = _ConfigDict(
-        ser_json_bytes="base64",
-        val_json_bytes="base64",
-        ser_json_inf_nan="strings",
-    )
+    wktTimestamp: "_Optional[ProtoTimestamp]" = _Field(default=None)
 
-    wktTimestamp: "_Optional[ProtoTimestamp]" = _Field(None)
+    wktDuration: "_Optional[ProtoDuration]" = _Field(default=None)
 
-    wktDuration: "_Optional[ProtoDuration]" = _Field(None)
+    wktStruct: "_Optional[dict[str, _Any]]" = _Field(default=None)
 
-    wktStruct: "_Optional[dict[str, _Any]]" = _Field(None)
+    wktValue: "_Optional[_Any]" = _Field(default=None)
 
-    wktValue: "_Optional[_Any]" = _Field(None)
+    wktListValue: "_Optional[list[_Any]]" = _Field(default=None)
 
-    wktListValue: "_Optional[list[_Any]]" = _Field(None)
+    wktAny: "_Optional[_Any]" = _Field(default=None)
 
-    wktAny: "_Optional[_Any]" = _Field(None)
+    wktFieldMask: "_Optional[list[str]]" = _Field(default=None)
 
-    wktFieldMask: "_Optional[list[str]]" = _Field(None)
+    wktBool: "_Optional[bool]" = _Field(default=None)
 
-    wktBool: "_Optional[bool]" = _Field(None)
+    wktInt32: "_Optional[int]" = _Field(default=None)
 
-    wktInt32: "_Optional[int]" = _Field(None)
+    wktInt64: "_Optional[ProtoInt64]" = _Field(default=None)
 
-    wktInt64: "_Optional[ProtoInt64]" = _Field(None)
+    wktUint32: "_Optional[int]" = _Field(default=None)
 
-    wktUint32: "_Optional[int]" = _Field(None)
+    wktUint64: "_Optional[ProtoUInt64]" = _Field(default=None)
 
-    wktUint64: "_Optional[ProtoUInt64]" = _Field(None)
+    wktFloat: "_Optional[float]" = _Field(default=None)
 
-    wktFloat: "_Optional[float]" = _Field(None)
+    wktDouble: "_Optional[float]" = _Field(default=None)
 
-    wktDouble: "_Optional[float]" = _Field(None)
+    wktString: "_Optional[str]" = _Field(default=None)
 
-    wktString: "_Optional[str]" = _Field(None)
+    wktBytes: "_Optional[bytes]" = _Field(default=None)
 
-    wktBytes: "_Optional[bytes]" = _Field(None)
-
-    wktEmpty: "None" = _Field(None)
+    wktEmpty: "None" = _Field(default=None)
