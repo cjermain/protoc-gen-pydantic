@@ -24,6 +24,24 @@ classes — no validation, no editor support — or hand-write parallel Pydantic
 them in sync forever. protoc-gen-pydantic generates Pydantic v2 models directly from your
 `.proto` files, so your schema stays the single source of truth.
 
+## How it works
+
+`protoc-gen-pydantic` is a `protoc` plugin written in Go. You run `buf generate` (or `protoc`)
+once, and the plugin reads your `.proto` files and writes ready-to-use Python files alongside
+them. After that, code generation is the only step — no runtime dependency on the plugin itself.
+
+```
+proto/user.proto  ──►  buf generate  ──►  gen/user_pydantic.py
+                                               gen/_proto_types.py
+                         (one-time,
+                          re-run when
+                          .proto changes)
+```
+
+Every generated message class inherits from `_ProtoModel`, a thin base class that adds
+ProtoJSON-aware serialization helpers on top of standard Pydantic. See
+[Generated Model API](features/generated-model-api.md) for the full interface.
+
 ## Basic usage
 
 A single `protoc` command turns any `.proto` file into a ready-to-use Pydantic model:

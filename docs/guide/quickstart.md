@@ -115,6 +115,9 @@ This creates `gen/user_pydantic.py`.
 uv run python
 ```
 
+Because `pyproject.toml` sets `module-root = "gen"`, uv treats `gen/` as the package root —
+so `user_pydantic` is importable directly without a `gen.` prefix.
+
 ```python
 >>> from user_pydantic import User
 >>> user = User(name="Alice", age=30, active=True, role=User.Role.ADMIN)
@@ -122,13 +125,17 @@ uv run python
 'Alice'
 >>> user.role
 <Role.ADMIN: 'ADMIN'>
->>> user.model_dump_json()
+>>> user.to_proto_json()
 '{"name":"Alice","age":30,"active":true,"role":"ADMIN"}'
 >>> User(name=123)  # wrong type raises immediately
 ValidationError: 1 validation error for User
 name
   Input should be a valid string [type=string_type, ...]
 ```
+
+`to_proto_json()` follows ProtoJSON conventions: it omits fields at their default (zero) values
+and uses the original proto field names. See [Generated Model API](../features/generated-model-api.md)
+for the full serialization interface.
 
 ## What's next?
 

@@ -13,20 +13,21 @@ exclude_docs: overrides/
 nav:
   - Home: index.md
   - Getting Started:
+    - Installation: guide/installation.md
     - Quickstart: guide/quickstart.md
     - Using with buf: guide/with-buf.md
     - Using with protoc: guide/with-protoc.md
-    - Installation: guide/installation.md
   - Features:
     - Field Types: features/field-types.md
-    - Well-Known Types: features/well-known-types.md
-    - Nested Types: features/nested-types.md
     - Enums: features/enums.md
+    - Nested Types: features/nested-types.md
+    - Well-Known Types: features/well-known-types.md
     - Comments & Descriptions: features/comments.md
     - Reserved Names: features/reserved-names.md
+    - Generated Model API: features/generated-model-api.md
   - Reference:
-    - Plugin Options: options.md
     - buf.validate: buf-validate.md
+    - Plugin Options: options.md
   - Contributing: contributing.md
 
 theme:

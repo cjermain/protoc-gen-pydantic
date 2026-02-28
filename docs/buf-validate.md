@@ -45,6 +45,7 @@ import "buf/validate/validate.proto";
 | `string.max_len` | `Field(max_length=...)` |
 | `string.len` | `Field(min_length=N, max_length=N)` |
 | `string.pattern` | `Field(pattern=...)` |
+| `string.contains` | `Field(pattern=<substring>)` |
 | `string.prefix` | `Field(pattern=^prefix.*)` |
 | `string.suffix` | `Field(pattern=.*suffix$)` |
 | `string.prefix` + `string.suffix` | `Field(pattern=^prefix.*suffix$)` |
@@ -57,6 +58,8 @@ import "buf/validate/validate.proto";
 | `bytes.len` | `Field(min_length=N, max_length=N)` |
 | `field.example` | `Field(examples=[...])` |
 | `string.const` / `int.const` / `bool.const` | `Literal[value]` type + matching default |
+| `float.const` / `double.const` | `Annotated[float, AfterValidator(_make_const_validator(value))]` |
+| `float.finite` / `double.finite` | `Annotated[float, AfterValidator(_require_finite)]` |
 | `string.in` / `int.in` / etc. | `Annotated[T, AfterValidator(_make_in_validator(frozenset({...})))]` |
 | `string.not_in` / etc. | `Annotated[T, AfterValidator(_make_not_in_validator(frozenset({...})))]` |
 | `repeated.unique` | `Annotated[list[T], AfterValidator(_require_unique)]` |
@@ -125,6 +128,8 @@ import "buf/validate/validate.proto";
       string country_code = 2 [(buf.validate.field).string.len = 2];
       // URL must start with https://.
       string website = 3 [(buf.validate.field).string.prefix = "https://"];
+      // Topic must contain the word "protobuf".
+      string topic = 4 [(buf.validate.field).string.contains = "protobuf"];
     }
     ```
 
@@ -135,6 +140,7 @@ import "buf/validate/validate.proto";
         username: "str" = _Field("", min_length=1, max_length=50, pattern="^[a-zA-Z0-9_]+$")
         country_code: "str" = _Field("", min_length=2, max_length=2)
         website: "str" = _Field("", pattern="^https://.*")
+        topic: "str" = _Field("", pattern="protobuf")
     ```
 
 ### Format validators (email, URI, IP, UUID)
@@ -171,6 +177,25 @@ generated into `_proto_types.py` alongside the model files.
 
 The `string.email` validator requires the [`email-validator`](https://pypi.org/project/email-validator/)
 package (`pip install email-validator` or add to your project dependencies).
+
+### Finite float / double
+
+`float.finite = true` and `double.finite = true` reject `inf` and `NaN` values:
+
+=== ":lucide-file-code: validated.proto"
+
+    ```proto
+    message ValidatedFinite {
+      float ratio = 1 [(buf.validate.field).float.finite = true];
+    }
+    ```
+
+=== ":simple-python: validated_pydantic.py"
+
+    ```python
+    class ValidatedFinite(_ProtoModel):
+        ratio: "_Annotated[float, _AfterValidator(_require_finite)]" = _Field(0.0)
+    ```
 
 ### Set membership (`in` / `not_in`)
 
@@ -225,15 +250,18 @@ package (`pip install email-validator` or add to your project dependencies).
 ### Const (fixed values)
 
 `string.const`, `int.const`, and `bool.const` translate to `Literal[value]` type with a
-matching default — the field is essentially fixed at that value:
+matching default — the field is essentially fixed at that value. `float.const` and
+`double.const` use `AfterValidator(_make_const_validator(value))` since `Literal[float]`
+is invalid per PEP 586:
 
 === ":lucide-file-code: validated.proto"
 
     ```proto
     message ValidatedConst {
-      string tag    = 1 [(buf.validate.field).string.const = "fixed"];
-      int32  count  = 2 [(buf.validate.field).int32.const  = 42];
-      bool   active = 3 [(buf.validate.field).bool.const   = true];
+      string tag    = 1 [(buf.validate.field).string.const  = "fixed"];
+      int32  count  = 2 [(buf.validate.field).int32.const   = 42];
+      bool   active = 3 [(buf.validate.field).bool.const    = true];
+      double score  = 4 [(buf.validate.field).double.const  = 3.14];
     }
     ```
 
@@ -244,10 +272,10 @@ matching default — the field is essentially fixed at that value:
         tag: "_Literal['fixed']" = _Field("fixed")
         count: "_Literal[42]" = _Field(42)
         active: "_Literal[True]" = _Field(True)
+        score: "_Annotated[float, _AfterValidator(_make_const_validator(3.14))]" = _Field(
+            3.14
+        )
     ```
-
-> `float.const` and `double.const` are **not** translated — `Literal[float]` is invalid per
-> PEP 586. They emit a `# buf.validate: float.const (not translated)` comment instead.
 
 ### Required (proto3 optional + required)
 
@@ -277,9 +305,10 @@ making the field required at the Pydantic level:
 
 ## The `_proto_types.py` file
 
-Format validators (`_validate_email`, `_validate_uri`, etc.) and set validators
-(`_make_in_validator`, `_make_not_in_validator`, `_require_unique`) live in a generated
-`_proto_types.py` file that is placed alongside the model files.
+Format validators (`_validate_email`, `_validate_uri`, etc.), set validators
+(`_make_in_validator`, `_make_not_in_validator`, `_require_unique`), and other helpers
+(`_require_finite`, `_make_const_validator`) live in a generated `_proto_types.py` file
+that is placed alongside the model files.
 
 This file is **conditional** — only helpers actually used by the proto files in that
 directory are included. Unused imports (e.g. `ipaddress`, `AnyUrl`) are omitted.
@@ -301,7 +330,6 @@ inside `_Field()` so they remain visible to developers:
 |---|---|
 | `required` on message-typed or plain scalar fields | No Pydantic equivalent for proto3 plain scalars |
 | CEL expressions | Arbitrary CEL cannot be expressed as a Pydantic validator |
-| `float.const` / `double.const` | `Literal[float]` is invalid per PEP 586 |
 | `bytes.const` | `Literal[bytes]` is not supported |
 | `duration.gt` / `timestamp.lte` / etc. | Message-typed bounds have no Field() equivalent |
 
