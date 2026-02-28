@@ -128,24 +128,38 @@ enum Status {
 ```
 
 ```python
-class Status(str, _Enum):
-    UNSPECIFIED = "UNSPECIFIED"
-    ACTIVE = "ACTIVE"
-    LEGACY = "LEGACY"
+class Status(_ProtoEnum):
+    UNSPECIFIED = ("UNSPECIFIED", _EnumValueOptions(number=0))
+    ACTIVE = ("ACTIVE", _EnumValueOptions(number=1))
+    LEGACY = ("LEGACY", _EnumValueOptions(number=2, deprecated=True))
 
 
 # Access the deprecated option
-print(Status.LEGACY.deprecated)  # True
+print(Status.LEGACY.options.deprecated)  # True
 ```
+
+When any enum value in a file carries options, the generator switches from plain `str, _Enum`
+to `_ProtoEnum` (a thin subclass) and stores options as a second tuple element. Each member's
+options are accessible via the `.options` property.
 
 ### Built-in: `debug_redact`
 
 ```proto
-enum Sensitivity {
-  SENSITIVITY_UNSPECIFIED = 0;
-  SENSITIVITY_PUBLIC      = 1;
-  SENSITIVITY_SECRET      = 2 [(google.api.field_behavior) = OUTPUT_ONLY];
+enum Status {
+  STATUS_UNSPECIFIED = 0;
+  STATUS_ACTIVE      = 1;
+  STATUS_SECRET      = 2 [debug_redact = true];
 }
+```
+
+```python
+class Status(_ProtoEnum):
+    UNSPECIFIED = ("UNSPECIFIED", _EnumValueOptions(number=0))
+    ACTIVE = ("ACTIVE", _EnumValueOptions(number=1))
+    SECRET = ("SECRET", _EnumValueOptions(number=2, debug_redact=True))
+
+
+print(Status.SECRET.options.debug_redact)  # True
 ```
 
 ### Custom extensions
@@ -165,8 +179,8 @@ enum Color {
 ```
 
 ```python
-print(Color.RED.display_name)  # Red
-print(Color.BLUE.display_name)  # Blue
+print(Color.RED.options.display_name)  # Red
+print(Color.BLUE.options.display_name)  # Blue
 ```
 
 ## Enum in JSON / dict
@@ -175,8 +189,10 @@ Because enum values default to string names (with `auto_trim_enum_prefix=true`),
 to ProtoJSON-compatible strings:
 
 ```python
+import json
+
 from status_pydantic import Status
 
-msg = MyMessage(status=Status.ACTIVE)
-print(msg.model_dump_json())  # {"status": "ACTIVE"}
+print(json.dumps({"status": Status.ACTIVE}))
+# {"status": "ACTIVE"}
 ```

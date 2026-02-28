@@ -39,7 +39,7 @@ with proto-aware consumers.
 Serialize to a JSON string using ProtoJSON conventions:
 
 - Omits fields at their **default (zero) value** (`exclude_defaults=True`)
-- Uses **original proto field names** / camelCase aliases (`by_alias=True`)
+- Uses **original proto field names** (`by_alias=True`)
 
 ```python
 user = User(name="Alice", age=30, active=False)
@@ -86,7 +86,7 @@ Both methods produce valid JSON, but they differ in defaults:
 | | `to_proto_json()` | `model_dump_json()` |
 |---|---|---|
 | Zero-value fields | **omitted** | included |
-| Field names | **proto / camelCase aliases** | Python attribute names |
+| Field names | **original proto field names** | Python attribute names |
 | Proto compatibility | ✓ | requires `by_alias=True, exclude_defaults=True` |
 
 Use `to_proto_json()` when the JSON will be consumed by a proto-aware service or stored in a
