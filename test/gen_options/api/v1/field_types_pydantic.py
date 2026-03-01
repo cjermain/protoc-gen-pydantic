@@ -48,16 +48,6 @@ class _ProtoModel(_BaseModel):
 
 
 class Person(_ProtoModel):
-    """
-
-    Attributes:
-      name (str):
-      age (int):
-      active (bool):
-      score (float):
-      avatar (bytes):
-    """
-
     name: "str" = _Field(default="")
 
     age: "int" = _Field(default=0)
@@ -70,14 +60,6 @@ class Person(_ProtoModel):
 
 
 class SearchRequest(_ProtoModel):
-    """
-
-    Attributes:
-      query (_Optional[str]):
-      pageSize (_Optional[int]):
-      includeDeleted (_Optional[bool]):
-    """
-
     query: "_Optional[str]" = _Field(default=None)
 
     pageSize: "_Optional[int]" = _Field(default=None)
@@ -86,14 +68,6 @@ class SearchRequest(_ProtoModel):
 
 
 class TaggedItem(_ProtoModel):
-    """
-
-    Attributes:
-      name (str):
-      tags (list[str]):
-      scores (list[int]):
-    """
-
     name: "str" = _Field(default="")
 
     tags: "list[str]" = _Field(
@@ -106,13 +80,6 @@ class TaggedItem(_ProtoModel):
 
 
 class Config(_ProtoModel):
-    """
-
-    Attributes:
-      labels (dict[str, str]):
-      counters (dict[str, int]):
-    """
-
     labels: "dict[str, str]" = _Field(
         default_factory=dict,
     )
@@ -123,14 +90,6 @@ class Config(_ProtoModel):
 
 
 class Payment(_ProtoModel):
-    """
-
-    Attributes:
-      creditCard (_Optional[str]):
-      paypal (_Optional[str]):
-      bankIban (_Optional[str]):
-    """
-
     creditCard: "_Optional[str]" = _Field(default=None)
 
     paypal: "_Optional[str]" = _Field(default=None)
@@ -139,39 +98,18 @@ class Payment(_ProtoModel):
 
 
 class Address(_ProtoModel):
-    """
-
-    Attributes:
-      street (str):
-      city (str):
-    """
-
     street: "str" = _Field(default="")
 
     city: "str" = _Field(default="")
 
 
 class Order(_ProtoModel):
-    """
-
-    Attributes:
-      orderId (str):
-      address (_Optional[Address]):
-    """
-
     orderId: "str" = _Field(default="")
 
     address: "_Optional[Address]" = _Field(default=None)
 
 
 class Task(_ProtoModel):
-    """
-
-    Attributes:
-      statusLabel (str):
-      status (_Optional[Task.Status]):
-    """
-
     class Status(int, _Enum):
         """ """
 

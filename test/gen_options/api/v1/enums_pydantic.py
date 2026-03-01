@@ -70,13 +70,6 @@ class Hue(int, _Enum):
 
 
 class Shape(_ProtoModel):
-    """
-
-    Attributes:
-      color (_Optional[Hue]):
-      kind (_Optional[Shape.Kind]):
-    """
-
     class Kind(int, _Enum):
         """ """
 

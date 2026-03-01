@@ -69,13 +69,6 @@ class Hue(str, _Enum):
 
 
 class Shape(_ProtoModel):
-    """
-
-    Attributes:
-      color (Hue | None):
-      kind (Shape.Kind | None):
-    """
-
     class Kind(str, _Enum):
         """ """
 

@@ -56,10 +56,6 @@ class _ProtoModel(_BaseModel):
 class ValidatedEmail(_ProtoModel):
     """
     ValidatedEmail exercises the string.email format constraint.
-
-    Attributes:
-      address (_Annotated[str, _AfterValidator(_validate_email)]):
-        Address must be a valid email address.
     """
 
     # Address must be a valid email address.
@@ -71,10 +67,6 @@ class ValidatedEmail(_ProtoModel):
 class ValidatedUUID(_ProtoModel):
     """
     ValidatedUUID exercises the string.uuid format constraint.
-
-    Attributes:
-      id_ (_Annotated[str, _AfterValidator(_validate_uuid)]):
-        Id must be a valid UUID.
     """
 
     model_config = _ConfigDict(populate_by_name=True, protected_namespaces=())

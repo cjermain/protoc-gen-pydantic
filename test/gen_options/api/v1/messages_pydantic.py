@@ -46,22 +46,10 @@ class _ProtoModel(_BaseModel):
 
 
 class Message(_ProtoModel):
-    """
-
-    Attributes:
-      firstName (str):
-      lastName (str):
-    """
-
     firstName: "str" = _Field(default="")
 
     lastName: "str" = _Field(default="")
 
 
 class Empty(_ProtoModel):
-    """
-
-    Attributes:
-    """
-
     pass

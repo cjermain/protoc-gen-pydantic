@@ -54,49 +54,6 @@ class _ProtoModel(_BaseModel):
 
 
 class Scalars(_ProtoModel):
-    """
-
-    Attributes:
-      int32 (int):
-      int64 (ProtoInt64):
-      uint32 (int):
-      uint64 (ProtoUInt64):
-      fixed32 (int):
-      fixed64 (ProtoUInt64):
-      sint32 (int):
-      sint64 (ProtoInt64):
-      sfixed32 (int):
-      sfixed64 (ProtoInt64):
-      bool_ (bool):
-      float_ (float):
-      double (float):
-      string (str):
-      bytes_ (bytes):
-      enum (_Optional[Enum]):
-      nestedEnum (_Optional[Scalars.NestedEnum]):
-      message (_Optional[Message]):
-      nestedMessage (_Optional[Scalars.NestedMessage]):
-      int32Optional (_Optional[int]):
-      int64Optional (_Optional[ProtoInt64]):
-      uint32Optional (_Optional[int]):
-      uint64Optional (_Optional[ProtoUInt64]):
-      fixed32Optional (_Optional[int]):
-      fixed64Optional (_Optional[ProtoUInt64]):
-      sint32Optional (_Optional[int]):
-      sint64Optional (_Optional[ProtoInt64]):
-      sfixed32Optional (_Optional[int]):
-      sfixed64Optional (_Optional[ProtoInt64]):
-      boolOptional (_Optional[bool]):
-      floatOptional (_Optional[float]):
-      doubleOptional (_Optional[float]):
-      stringOptional (_Optional[str]):
-      bytesOptional (_Optional[bytes]):
-      enumOptional (_Optional[Enum]):
-      nestedEnumOptional (_Optional[Scalars.NestedEnum]):
-      messageOptional (_Optional[Message]):
-      nestedMessageOptional (_Optional[Scalars.NestedMessage]):
-    """
-
     model_config = _ConfigDict(populate_by_name=True, protected_namespaces=())
 
     class NestedEnum(int, _Enum):
@@ -109,13 +66,6 @@ class Scalars(_ProtoModel):
         NESTED_ENUM_INACTIVE = 2  # NESTED_ENUM_INACTIVE
 
     class NestedMessage(_ProtoModel):
-        """
-
-        Attributes:
-          firstName (str):
-          lastName (str):
-        """
-
         firstName: "str" = _Field(default="")
 
         lastName: "str" = _Field(default="")

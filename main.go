@@ -374,33 +374,29 @@ class _ProtoEnum({{ if $config.UseIntegersForEnums }}int{{ else }}str{{ end }}, 
 {{- $hasEnumOptions := index . "HasEnumOptions" -}}
 {{- $customOptionFields := index . "CustomOptionFields" -}}
 {{$indent}}class {{ $m.Name }}(_ProtoModel):
+{{- if $m.LeadingComments }}
 {{$bi}}"""
 {{- range $m.LeadingComments }}
 {{$bi}}{{ . }}
 {{- end }}
-{{$bi}}
-{{$bi}}Attributes:
-{{- range $m.Fields }}
-{{$bi}}  {{ .Name }} ({{ .Type }}):
-{{- range .LeadingComments }}
-{{$bi}}    {{ . }}
-{{- end }}
-{{- end }}
-{{$bi}}"""
-{{- if $m.HasAlias }}
-
+{{$bi}}"""{{- end }}
+{{- if and $m.LeadingComments $m.HasAlias }}
+{{ end }}{{- if $m.HasAlias }}
 {{$bi}}model_config = _ConfigDict(populate_by_name=True, protected_namespaces=())
 {{- end }}
-{{- range $m.NestedEnums }}
-
-{{template "renderEnum" (dict "Enum" . "Indent" $bi "Config" $config "HasEnumOptions" $hasEnumOptions "CustomOptionFields" $customOptionFields)}}{{- end }}{{- range $m.NestedMessages }}
-
-{{template "renderMessage" (dict "Message" . "Indent" $bi "Config" $config "HasEnumOptions" $hasEnumOptions "CustomOptionFields" $customOptionFields)}}{{- end }}
+{{- if and (or $m.LeadingComments $m.HasAlias) $m.NestedEnums }}
+{{ end }}{{- range $i, $e := $m.NestedEnums }}{{ if $i }}
+{{ end }}
+{{template "renderEnum" (dict "Enum" $e "Indent" $bi "Config" $config "HasEnumOptions" $hasEnumOptions "CustomOptionFields" $customOptionFields)}}{{- end }}{{- if and (or $m.LeadingComments $m.HasAlias $m.NestedEnums) $m.NestedMessages }}
+{{ end }}{{- range $i, $nm := $m.NestedMessages }}{{ if $i }}
+{{ end }}
+{{template "renderMessage" (dict "Message" $nm "Indent" $bi "Config" $config "HasEnumOptions" $hasEnumOptions "CustomOptionFields" $customOptionFields)}}{{- end }}
 {{- range $i, $v := $m.TrailingComments }}{{ if eq $i 0 }}
 {{ end }}
 {{$bi}}# {{ $v }}
 {{- end }}
-{{ range $i, $field := $m.Fields }}{{ if $i }}
+{{- if or $m.LeadingComments $m.HasAlias $m.NestedEnums $m.NestedMessages $m.TrailingComments }}
+{{ end }}{{- range $i, $field := $m.Fields }}{{ if $i }}
 {{ end }}{{- range $field.LeadingComments }}
 {{$bi}}# {{ . }}
 {{- end }}

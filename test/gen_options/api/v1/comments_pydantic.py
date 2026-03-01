@@ -50,14 +50,6 @@ class CommentedMessage(_ProtoModel):
     """
     Leading comment on CommentedMessage.
     CommentedMessage exercises all comment positions.
-
-    Attributes:
-      firstName (str):
-        Leading comment on first_name.
-        The given name of the person.
-      lastName (str):
-        Leading comment on last_name.
-        The family name of the person.
     """
 
     class NestedEnum(int, _Enum):
@@ -85,14 +77,6 @@ class CommentedMessage(_ProtoModel):
         """
         Leading comment on NestedMessage.
         A message nested inside CommentedMessage.
-
-        Attributes:
-          firstName (str):
-            Leading comment on nested first_name.
-            The given name in the nested message.
-          lastName (str):
-            Leading comment on nested last_name.
-            The family name in the nested message.
         """
 
         # Trailing comment on NestedMessage.
@@ -125,10 +109,6 @@ class CommentedMessage(_ProtoModel):
 class Outer(_ProtoModel):
     """
     Outer message comment.
-
-    Attributes:
-      outerField (str):
-        Outer field comment.
     """
 
     class OuterEnum(int, _Enum):
@@ -143,10 +123,6 @@ class Outer(_ProtoModel):
     class Inner(_ProtoModel):
         """
         Inner message comment.
-
-        Attributes:
-          innerField (str):
-            Inner field comment.
         """
 
         class InnerEnum(int, _Enum):
@@ -161,10 +137,6 @@ class Outer(_ProtoModel):
         class Deepest(_ProtoModel):
             """
             Deepest message comment.
-
-            Attributes:
-              deepestField (str):
-                Deepest field comment.
             """
 
             # Deepest field comment.

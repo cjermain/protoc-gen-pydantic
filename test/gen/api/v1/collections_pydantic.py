@@ -54,61 +54,6 @@ class _ProtoModel(_BaseModel):
 
 
 class Collections(_ProtoModel):
-    """
-
-    Attributes:
-      int32_repeated (list[int]):
-      int64_repeated (list[ProtoInt64]):
-      uint32_repeated (list[int]):
-      uint64_repeated (list[ProtoUInt64]):
-      fixed32_repeated (list[int]):
-      fixed64_repeated (list[ProtoUInt64]):
-      sint32_repeated (list[int]):
-      sint64_repeated (list[ProtoInt64]):
-      sfixed32_repeated (list[int]):
-      sfixed64_repeated (list[ProtoInt64]):
-      bool_repeated (list[bool]):
-      float_repeated (list[float]):
-      double_repeated (list[float]):
-      string_repeated (list[str]):
-      bytes_repeated (list[bytes]):
-      enum_repeated (list[Enum]):
-      nested_enum_repeated (list[Scalars.NestedEnum]):
-      message_repeated (list[Message]):
-      nested_message_repeated (list[Scalars.NestedMessage]):
-      int32_map_key (dict[int, str]):
-      int64_map_key (dict[ProtoInt64, str]):
-      uint32_map_key (dict[int, str]):
-      uint64_map_key (dict[ProtoUInt64, str]):
-      fixed32_map_key (dict[int, str]):
-      fixed64_map_key (dict[ProtoUInt64, str]):
-      sint32_map_key (dict[int, str]):
-      sint64_map_key (dict[ProtoInt64, str]):
-      sfixed32_map_key (dict[int, str]):
-      sfixed64_map_key (dict[ProtoInt64, str]):
-      bool_map_key (dict[bool, str]):
-      string_map_key (dict[str, str]):
-      int32_map_value (dict[str, int]):
-      int64_map_value (dict[str, ProtoInt64]):
-      uint32_map_value (dict[str, int]):
-      uint64_map_value (dict[str, ProtoUInt64]):
-      fixed32_map_value (dict[str, int]):
-      fixed64_map_value (dict[str, ProtoUInt64]):
-      sint32_map_value (dict[str, int]):
-      sint64_map_value (dict[str, ProtoInt64]):
-      sfixed32_map_value (dict[str, int]):
-      sfixed64_map_value (dict[str, ProtoInt64]):
-      bool_map_value (dict[str, bool]):
-      float_map_value (dict[str, float]):
-      double_map_value (dict[str, float]):
-      string_map_value (dict[str, str]):
-      bytes_map_value (dict[str, bytes]):
-      enum_map_value (dict[str, Enum]):
-      nested_enum_map_value (dict[str, Scalars.NestedEnum]):
-      message_map_value (dict[str, Message]):
-      nested_message_map_value (dict[str, Scalars.NestedMessage]):
-    """
-
     int32_repeated: "list[int]" = _Field(
         default_factory=list,
     )

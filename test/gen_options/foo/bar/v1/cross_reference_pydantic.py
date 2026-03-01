@@ -51,14 +51,6 @@ class _ProtoModel(_BaseModel):
 
 
 class CrossRefMessage(_ProtoModel):
-    """
-
-    Attributes:
-      id_ (str):
-      referencedMessage (_Optional[Message]):
-      scalarsList (list[Scalars]):
-    """
-
     model_config = _ConfigDict(populate_by_name=True, protected_namespaces=())
 
     id_: "str" = _Field(

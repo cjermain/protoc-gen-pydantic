@@ -49,28 +49,6 @@ class _ProtoModel(_BaseModel):
 
 
 class WellKnownTypes(_ProtoModel):
-    """
-
-    Attributes:
-      wktTimestamp (_Optional[ProtoTimestamp]):
-      wktDuration (_Optional[ProtoDuration]):
-      wktStruct (_Optional[dict[str, _Any]]):
-      wktValue (_Optional[_Any]):
-      wktListValue (_Optional[list[_Any]]):
-      wktAny (_Optional[_Any]):
-      wktFieldMask (_Optional[list[str]]):
-      wktBool (_Optional[bool]):
-      wktInt32 (_Optional[int]):
-      wktInt64 (_Optional[ProtoInt64]):
-      wktUint32 (_Optional[int]):
-      wktUint64 (_Optional[ProtoUInt64]):
-      wktFloat (_Optional[float]):
-      wktDouble (_Optional[float]):
-      wktString (_Optional[str]):
-      wktBytes (_Optional[bytes]):
-      wktEmpty (None):
-    """
-
     wktTimestamp: "_Optional[ProtoTimestamp]" = _Field(default=None)
 
     wktDuration: "_Optional[ProtoDuration]" = _Field(default=None)
@@ -107,17 +85,6 @@ class WellKnownTypes(_ProtoModel):
 
 
 class Event(_ProtoModel):
-    """
-
-    Attributes:
-      id_ (str):
-      occurred (_Optional[ProtoTimestamp]):
-      duration (_Optional[ProtoDuration]):
-      metadata (_Optional[dict[str, _Any]]):
-      updateMask (_Optional[list[str]]):
-      retryCount (_Optional[int]):
-    """
-
     model_config = _ConfigDict(populate_by_name=True, protected_namespaces=())
 
     id_: "str" = _Field(

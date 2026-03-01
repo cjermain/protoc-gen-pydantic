@@ -47,16 +47,6 @@ class _ProtoModel(_BaseModel):
 
 
 class Person(_ProtoModel):
-    """
-
-    Attributes:
-      name (str):
-      age (int):
-      active (bool):
-      score (float):
-      avatar (bytes):
-    """
-
     name: "str" = _Field(default="")
 
     age: "int" = _Field(default=0)
@@ -69,14 +59,6 @@ class Person(_ProtoModel):
 
 
 class SearchRequest(_ProtoModel):
-    """
-
-    Attributes:
-      query (str | None):
-      page_size (int | None):
-      include_deleted (bool | None):
-    """
-
     query: "str | None" = _Field(default=None)
 
     page_size: "int | None" = _Field(default=None)
@@ -85,14 +67,6 @@ class SearchRequest(_ProtoModel):
 
 
 class TaggedItem(_ProtoModel):
-    """
-
-    Attributes:
-      name (str):
-      tags (list[str]):
-      scores (list[int]):
-    """
-
     name: "str" = _Field(default="")
 
     tags: "list[str]" = _Field(
@@ -105,13 +79,6 @@ class TaggedItem(_ProtoModel):
 
 
 class Config(_ProtoModel):
-    """
-
-    Attributes:
-      labels (dict[str, str]):
-      counters (dict[str, int]):
-    """
-
     labels: "dict[str, str]" = _Field(
         default_factory=dict,
     )
@@ -122,14 +89,6 @@ class Config(_ProtoModel):
 
 
 class Payment(_ProtoModel):
-    """
-
-    Attributes:
-      credit_card (str | None):
-      paypal (str | None):
-      bank_iban (str | None):
-    """
-
     credit_card: "str | None" = _Field(
         default=None,
         description="Only one of the fields can be specified with: [credit_card paypal bank_iban] (oneof method)",
@@ -147,39 +106,18 @@ class Payment(_ProtoModel):
 
 
 class Address(_ProtoModel):
-    """
-
-    Attributes:
-      street (str):
-      city (str):
-    """
-
     street: "str" = _Field(default="")
 
     city: "str" = _Field(default="")
 
 
 class Order(_ProtoModel):
-    """
-
-    Attributes:
-      order_id (str):
-      address (Address | None):
-    """
-
     order_id: "str" = _Field(default="")
 
     address: "Address | None" = _Field(default=None)
 
 
 class Task(_ProtoModel):
-    """
-
-    Attributes:
-      status_label (str):
-      status (Task.Status | None):
-    """
-
     class Status(str, _Enum):
         """ """
 

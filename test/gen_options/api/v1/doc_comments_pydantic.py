@@ -65,12 +65,6 @@ class User(_ProtoModel):
     """
     A user account in the system.
     Represents a single registered user.
-
-    Attributes:
-      name (str):
-        The user's display name.
-      age (int):
-        Age in full years.
     """
 
     # The user's display name.

@@ -47,15 +47,6 @@ class _ProtoModel(_BaseModel):
 
 
 class Shipment(_ProtoModel):
-    """
-
-    Attributes:
-      order_id (str):
-      items (list[Shipment.Item]):
-      status_note (str):
-      status (Shipment.Status | None):
-    """
-
     class Status(str, _Enum):
         """ """
 
@@ -68,14 +59,6 @@ class Shipment(_ProtoModel):
         DELIVERED = "DELIVERED"  # 3
 
     class Item(_ProtoModel):
-        """
-
-        Attributes:
-          sku (str):
-          quantity (int):
-          price (float):
-        """
-
         sku: "str" = _Field(default="")
 
         quantity: "int" = _Field(default=0)

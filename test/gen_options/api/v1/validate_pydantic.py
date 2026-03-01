@@ -72,22 +72,6 @@ class _ProtoModel(_BaseModel):
 class ValidatedScalars(_ProtoModel):
     """
     ValidatedScalars exercises numeric bound constraints.
-
-    Attributes:
-      age (int):
-        Age must be between 0 and 150 exclusive of 0.
-      score (float):
-        Score must be in [0.0, 100.0].
-      priority (ProtoInt64):
-        Priority must be positive.
-      ratio (float):
-        Ratio must be non-negative and less than 1.
-      rank (int):
-        Rank must be in [1, 10].
-      count (_Optional[ProtoUInt64]):
-        Count must be non-zero (covers uint64 / fixed64 literal formatting).
-      offset (_Optional[int]):
-        Offset must be non-negative (covers sint32 / sfixed32 literal formatting).
     """
 
     # Age must be between 0 and 150 exclusive of 0.
@@ -140,16 +124,6 @@ class ValidatedScalars(_ProtoModel):
 class ValidatedStrings(_ProtoModel):
     """
     ValidatedStrings exercises string length and pattern constraints.
-
-    Attributes:
-      name (str):
-        Name must be between 1 and 100 characters.
-      code (str):
-        Code must match uppercase letters only.
-      bio (str):
-        Bio has only a max length.
-      tag (str):
-        Tag has only a min length.
     """
 
     # Name must be between 1 and 100 characters.
@@ -181,12 +155,6 @@ class ValidatedStrings(_ProtoModel):
 class ValidatedRepeated(_ProtoModel):
     """
     ValidatedRepeated exercises repeated field length constraints.
-
-    Attributes:
-      items (list[str]):
-        Items must have between 1 and 10 elements.
-      tags (list[str]):
-        Tags must have at least 1 element.
     """
 
     # Items must have between 1 and 10 elements.
@@ -206,10 +174,6 @@ class ValidatedRepeated(_ProtoModel):
 class ValidatedMap(_ProtoModel):
     """
     ValidatedMap exercises map field length constraints.
-
-    Attributes:
-      labels (dict[str, str]):
-        Labels must have between 1 and 10 entries.
     """
 
     # Labels must have between 1 and 10 entries.
@@ -225,10 +189,6 @@ class ValidatedReserved(_ProtoModel):
     ValidatedReserved exercises a field whose name is a Python reserved word and
     also carries a buf.validate constraint. The generated field must emit both
     alias= and the constraint kwargs in a single _Field() call.
-
-    Attributes:
-      float_ (float):
-        Score must be positive.
     """
 
     model_config = _ConfigDict(populate_by_name=True, protected_namespaces=())
@@ -244,12 +204,6 @@ class ValidatedReserved(_ProtoModel):
 class ValidatedOneof(_ProtoModel):
     """
     ValidatedOneof exercises a oneof field that also carries a constraint.
-
-    Attributes:
-      small (_Optional[int]):
-        Must be positive when set.
-      large (_Optional[ProtoInt64]):
-        Must be positive when set.
     """
 
     # Must be positive when set.
@@ -270,10 +224,6 @@ class ValidatedDuration(_ProtoModel):
     ValidatedDuration exercises Duration bound constraints, which use
     message-typed rule fields and cannot be translated to Pydantic Field() args.
     The generator must not panic; instead it emits dropped-constraint comments.
-
-    Attributes:
-      timeout (_Optional[ProtoDuration]):
-        Timeout must be positive and at most one hour.
     """
 
     # Timeout must be positive and at most one hour.
@@ -288,10 +238,6 @@ class ValidatedTimestamp(_ProtoModel):
     """
     ValidatedTimestamp exercises Timestamp bound constraints, which also use
     message-typed rule fields and must not panic.
-
-    Attributes:
-      createdAt (_Optional[ProtoTimestamp]):
-        CreatedAt must be after the Unix epoch.
     """
 
     # CreatedAt must be after the Unix epoch.
@@ -304,10 +250,6 @@ class ValidatedTimestamp(_ProtoModel):
 class ValidatedStringLen(_ProtoModel):
     """
     ValidatedStringLen exercises the string.len exact-length constraint.
-
-    Attributes:
-      code (str):
-        Code must be exactly 5 characters.
     """
 
     # Code must be exactly 5 characters.
@@ -321,16 +263,6 @@ class ValidatedStringLen(_ProtoModel):
 class ValidatedStringAffix(_ProtoModel):
     """
     ValidatedStringAffix exercises string.prefix and string.suffix constraints.
-
-    Attributes:
-      url (str):
-        Url must start with "https://".
-      filename (str):
-        Filename must end with ".go".
-      path (str):
-        Path must start with "/home/" and end with ".txt".
-      content (str):
-        Content must match a pattern; prefix is also set (conflict → prefix dropped).
     """
 
     # Url must start with "https://".
@@ -362,12 +294,6 @@ class ValidatedStringAffix(_ProtoModel):
 class ValidatedExamples(_ProtoModel):
     """
     ValidatedExamples exercises the field examples annotation.
-
-    Attributes:
-      count (int):
-        Count with integer examples.
-      name (str):
-        Name with string examples.
     """
 
     # Count with integer examples.
@@ -389,22 +315,6 @@ class ValidatedFormats(_ProtoModel):
     """
     ValidatedFormats exercises format and semantic validators: email, URI,
     IP address (v4/v6), UUID, and float finite.
-
-    Attributes:
-      email (_Annotated[str, _AfterValidator(_validate_email)]):
-        Email must be a valid email address.
-      website (_Annotated[str, _AfterValidator(_validate_uri)]):
-        Website must be a valid URI.
-      address (_Annotated[str, _AfterValidator(_validate_ip)]):
-        Address must be a valid IP address.
-      ratio (_Annotated[float, _AfterValidator(_require_finite)]):
-        Ratio must be finite (not inf or NaN).
-      token (_Annotated[str, _AfterValidator(_validate_uuid)]):
-        Token must be a valid UUID.
-      hostV4 (_Annotated[str, _AfterValidator(_validate_ipv4)]):
-        Host must be a valid IPv4 address.
-      hostV6 (_Annotated[str, _AfterValidator(_validate_ipv6)]):
-        Host must be a valid IPv6 address.
     """
 
     # Email must be a valid email address.
@@ -446,14 +356,6 @@ class ValidatedFormats(_ProtoModel):
 class ValidatedDropped(_ProtoModel):
     """
     ValidatedDropped exercises constraints that are recognised but not translated.
-
-    Attributes:
-      name (str):
-        Name is required; the required constraint is not translated.
-      blob (bytes):
-        Blob has a bytes.const constraint which is not translated (bytes kind unsupported).
-      score (int):
-        Score must be positive; required is also set but not translated.
     """
 
     # Name is required; the required constraint is not translated.
@@ -479,12 +381,6 @@ class ValidatedDropped(_ProtoModel):
 class ValidatedConst(_ProtoModel):
     """
     ValidatedConst exercises the const constraint translated to Literal[...].
-
-    Attributes:
-      tag (_Literal['fixed']):
-      count (_Literal[42]):
-      active (_Literal[True]):
-      score (_Annotated[float, _AfterValidator(_make_const_validator(3.14))]):
     """
 
     tag: "_Literal['fixed']" = _Field(
@@ -507,11 +403,6 @@ class ValidatedConst(_ProtoModel):
 class ValidatedIn(_ProtoModel):
     """
     ValidatedIn exercises in and not_in constraints translated to AfterValidator.
-
-    Attributes:
-      status (_Annotated[str, _AfterValidator(_make_in_validator(frozenset({'active', 'inactive'})))]):
-      code (_Annotated[str, _AfterValidator(_make_not_in_validator(frozenset({'deleted', 'archived'})))]):
-      priority (_Annotated[int, _AfterValidator(_make_in_validator(frozenset({1, 2, 3})))]):
     """
 
     status: "_Annotated[str, _AfterValidator(_make_in_validator(frozenset({'active', 'inactive'})))]" = _Field(
@@ -530,10 +421,6 @@ class ValidatedIn(_ProtoModel):
 class ValidatedUnique(_ProtoModel):
     """
     ValidatedUnique exercises repeated.unique translated to AfterValidator.
-
-    Attributes:
-      tags (_Annotated[list[str], _AfterValidator(_require_unique)]):
-      scores (_Annotated[list[int], _AfterValidator(_require_unique)]):
     """
 
     tags: "_Annotated[list[str], _AfterValidator(_require_unique)]" = _Field(
@@ -548,14 +435,6 @@ class ValidatedUnique(_ProtoModel):
 class ValidatedBytes(_ProtoModel):
     """
     ValidatedBytes exercises bytes length constraints.
-
-    Attributes:
-      token (bytes):
-        Token must be at least 16 bytes.
-      hash_ (bytes):
-        Hash must be exactly 32 bytes.
-      payload (bytes):
-        Payload must be at most 1024 bytes.
     """
 
     model_config = _ConfigDict(populate_by_name=True, protected_namespaces=())
@@ -584,13 +463,6 @@ class ValidatedBytes(_ProtoModel):
 class ValidatedStringContains(_ProtoModel):
     """
     ValidatedStringContains exercises the string.contains constraint.
-
-    Attributes:
-      topic (str):
-        Topic must contain "protobuf".
-      label (str):
-        Label must start with "env-" and contain "prod".
-        The contains conflicts with prefix so contains is dropped.
     """
 
     # Topic must contain "protobuf".
@@ -612,24 +484,11 @@ class ValidatedRequired(_ProtoModel):
     """
     ValidatedRequired exercises required = true on proto3 optional scalar fields
     (where it strips | None) vs. message-typed and plain scalar fields (dropped).
-
-    Attributes:
-      requiredName (str):
-        required on proto3 optional scalar: | None stripped, field becomes required.
-      requiredScore (int):
-        required on proto3 optional scalar with an additional constraint.
-      requiredDetail (_Optional[ValidatedRequired.Detail]):
-        required on message-typed optional: not translated, emits dropped comment.
-      plainName (str):
-        required on plain proto3 scalar: not translated, emits dropped comment.
     """
 
     class Detail(_ProtoModel):
         """
         Detail is a nested message used to test message-typed required handling.
-
-        Attributes:
-          value (str):
         """
 
         value: "str" = _Field(default="")
