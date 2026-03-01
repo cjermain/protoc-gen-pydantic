@@ -4,6 +4,12 @@ package test.api.v1;
 
 option go_package = "github.com/cjermain/protoc-gen-pydantic/test/api";
 
+message Item {
+  string name     = 1;
+  int32  quantity = 2;
+  double price    = 3;
+}
+
 message Person {
   string name   = 1;
   int32  age    = 2;

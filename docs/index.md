@@ -40,6 +40,17 @@ Every generated message class inherits from `_ProtoModel`, a thin base class tha
 ProtoJSON-aware serialization helpers on top of standard Pydantic. See
 [Generated Model API](features/generated-model-api.md) for the full interface.
 
+```python exec="on" session="index"
+import inspect
+import os
+import sys
+
+sys.path.insert(0, os.path.join(os.environ["MKDOCS_CONFIG_DIR"], "test", "gen"))
+
+from api.v1.field_types_pydantic import Item
+from api.v1.validate_pydantic import ValidatedUser
+```
+
 ## Basic usage
 
 A single `buf generate` command turns any `.proto` file into a ready-to-use Pydantic model:
@@ -52,22 +63,16 @@ A single `buf generate` command turns any `.proto` file into a ready-to-use Pyda
     package example;
 
     message Item {
-      string name = 1;
-      int32 quantity = 2;
-      double price = 3;
+      string name     = 1;
+      int32  quantity = 2;
+      double price    = 3;
     }
     ```
 
 === ":simple-python: item_pydantic.py (generated)"
 
-    ```python
-    from pydantic import Field as _Field
-
-
-    class Item(_ProtoModel):
-        name: "str" = _Field("")
-        quantity: "int" = _Field(0)
-        price: "float" = _Field(0.0)
+    ```python exec="on" session="index"
+    print(f"```python\n{inspect.getsource(Item).rstrip()}\n```")
     ```
 
 The generated model validates inputs immediately — no extra setup, no runtime surprises.
@@ -87,7 +92,7 @@ directly into Pydantic validation:
     import "buf/validate/validate.proto";
 
     // A user account.
-    message User {
+    message ValidatedUser {
       // Display name (1–50 characters).
       string name = 1 [
         (buf.validate.field).string.min_len = 1,
@@ -113,61 +118,60 @@ directly into Pydantic validation:
 
 === ":simple-python: user_pydantic.py (generated)"
 
-    ```python
-    from enum import Enum as _Enum
-    from typing import Annotated as _Annotated
-
-    from pydantic import (
-        AfterValidator as _AfterValidator,
-        Field as _Field,
-    )
-
-    from ._proto_types import _validate_email
-
-
-    class User(_ProtoModel):
-        """A user account."""
-
-        class Role(str, _Enum):
-            UNSPECIFIED = "UNSPECIFIED"
-            VIEWER = "VIEWER"
-            EDITOR = "EDITOR"
-            ADMIN = "ADMIN"
-
-        # Display name (1–50 characters).
-        name: "str" = _Field(
-            "",
-            min_length=1,
-            max_length=50,
-            description="Display name (1–50 characters).",
-        )
-
-        # Age in years.
-        age: "int" = _Field(0, ge=0, description="Age in years.")
-
-        # Contact email address.
-        email: "_Annotated[str, _AfterValidator(_validate_email)]" = _Field(
-            "",
-            description="Contact email address.",
-        )
-
-        role: "User.Role | None" = _Field(None)
+    ```python exec="on" session="index"
+    print(f"```python\n{inspect.getsource(ValidatedUser).rstrip()}\n```")
     ```
 
-=== ":simple-python: usage.py"
+```python exec="on" session="index"
+from pydantic import ValidationError
 
-    ```python
-    from user_pydantic import User
+user = ValidatedUser(
+    name="Alice", age=30, email="alice@example.com", role=ValidatedUser.Role.EDITOR
+)
+proto_json = user.to_proto_json()
 
-    # Construct and validate
-    user = User(name="Alice", age=30, email="alice@example.com", role=User.Role.EDITOR)
+try:
+    ValidatedUser(name="", age=-1)
+except ValidationError as e:
+    n = e.error_count()
+```
 
-    # Serialize (ProtoJSON — omits zero values, uses original proto field names)
-    print(user.to_proto_json())
-    # {"name": "Alice", "age": 30, "email": "alice@example.com", "role": "EDITOR"}
+The generated model is immediately usable — construct, serialize, and validate with standard
+Pydantic:
 
-    # Validation errors are raised immediately
-    User(name="", age=-1)  # ValidationError: name too short, age below 0
-    ```
+```python exec="on" session="index"
+code = (
+    "from user_pydantic import ValidatedUser\n"
+    "\n"
+    "# Construct and validate\n"
+    'user = ValidatedUser(name="Alice", age=30, email="alice@example.com", role=ValidatedUser.Role.EDITOR)\n'
+    "\n"
+    "# Serialize (ProtoJSON — omits zero values, uses original proto field names)\n"
+    "print(user.to_proto_json())\n"
+    f"# {proto_json}\n"
+    "\n"
+    "# Validation errors are raised immediately\n"
+    f'ValidatedUser(name="", age=-1)  # raises ValidationError ({n} validation errors)'
+)
+print(f"```python\n{code}\n```")
+```
+
+```python exec="on" session="index"
+assert (
+    proto_json
+    == '{"name":"Alice","age":30,"email":"alice@example.com","role":"EDITOR"}'
+)
+assert n == 2
+```
 
 [Get started →](guide/quickstart.md){ .md-button .md-button--primary }
+
+---
+
+## Acknowledgements
+
+This project is a fork of [ornew/protoc-gen-pydantic](https://github.com/ornew/protoc-gen-pydantic)
+by [Arata Furukawa](https://github.com/ornew), which provided the initial plugin structure and
+plugin options. This fork adds well-known type mappings, Python builtin/keyword alias handling,
+cross-package references, enum value options, ProtoJSON-compatible output, buf.validate
+constraint translation, conditional imports, and a full test suite.

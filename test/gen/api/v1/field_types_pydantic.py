@@ -46,6 +46,12 @@ class _ProtoModel(_BaseModel):
         return cls.model_validate_json(json_str, **kwargs)
 
 
+class Item(_ProtoModel):
+    name: "str" = _Field(default="")
+    quantity: "int" = _Field(default=0)
+    price: "float" = _Field(default=0.0)
+
+
 class Person(_ProtoModel):
     name: "str" = _Field(default="")
     age: "int" = _Field(default=0)
