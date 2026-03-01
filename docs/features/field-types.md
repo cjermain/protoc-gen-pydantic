@@ -197,14 +197,14 @@ Message-typed fields default to `None` (not an empty sub-message):
 === ":lucide-file-code: field_types.proto"
 
     ```proto
-    message Order {
-      string  order_id = 1;
-      Address address  = 2;
-    }
-
     message Address {
       string street = 1;
       string city   = 2;
+    }
+
+    message Order {
+      string  order_id = 1;
+      Address address  = 2;
     }
     ```
 
