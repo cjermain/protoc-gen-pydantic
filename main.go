@@ -389,7 +389,7 @@ class _ProtoEnum({{ if $config.UseIntegersForEnums }}int{{ else }}str{{ end }}, 
 {{$bi}}"""
 {{- if $m.HasAlias }}
 
-{{$bi}}model_config = _ConfigDict(populate_by_name=True)
+{{$bi}}model_config = _ConfigDict(populate_by_name=True, protected_namespaces=())
 {{- end }}
 {{- range $m.NestedEnums }}
 

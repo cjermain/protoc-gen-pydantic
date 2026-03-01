@@ -55,7 +55,7 @@ class BuiltinNames(_ProtoModel):
       int_ (int):
     """
 
-    model_config = _ConfigDict(populate_by_name=True)
+    model_config = _ConfigDict(populate_by_name=True, protected_namespaces=())
 
     bool_: "bool" = _Field(
         default=False,
@@ -87,7 +87,7 @@ class ReservedFieldNames(_ProtoModel):
       model_dump_ (str):
     """
 
-    model_config = _ConfigDict(populate_by_name=True)
+    model_config = _ConfigDict(populate_by_name=True, protected_namespaces=())
 
     model_config_: "str" = _Field(
         default="",

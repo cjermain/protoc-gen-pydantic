@@ -245,7 +245,7 @@ class ValidatedReserved(_ProtoModel):
         Score must be positive.
     """
 
-    model_config = _ConfigDict(populate_by_name=True)
+    model_config = _ConfigDict(populate_by_name=True, protected_namespaces=())
 
     # Score must be positive.
     float_: "float" = _Field(
@@ -594,7 +594,7 @@ class ValidatedBytes(_ProtoModel):
         Payload must be at most 1024 bytes.
     """
 
-    model_config = _ConfigDict(populate_by_name=True)
+    model_config = _ConfigDict(populate_by_name=True, protected_namespaces=())
 
     # Token must be at least 16 bytes.
     token: "bytes" = _Field(

@@ -97,7 +97,7 @@ class Scalars(_ProtoModel):
       nestedMessageOptional (_Optional[Scalars.NestedMessage]):
     """
 
-    model_config = _ConfigDict(populate_by_name=True)
+    model_config = _ConfigDict(populate_by_name=True, protected_namespaces=())
 
     class NestedEnum(int, _Enum):
         """ """

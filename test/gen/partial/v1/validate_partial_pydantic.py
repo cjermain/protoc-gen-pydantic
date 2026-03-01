@@ -78,7 +78,7 @@ class ValidatedUUID(_ProtoModel):
         Id must be a valid UUID.
     """
 
-    model_config = _ConfigDict(populate_by_name=True)
+    model_config = _ConfigDict(populate_by_name=True, protected_namespaces=())
 
     # Id must be a valid UUID.
     id_: "_Annotated[str, _AfterValidator(_validate_uuid)]" = _Field(
