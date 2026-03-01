@@ -88,7 +88,7 @@ docs-build:
 
 # Build and locally preview the production docs site
 docs-preview: docs-build
-    mkdocs serve
+    mkdocs serve --watch-theme
 
 # Verify generated files match committed versions
 check-generated: generate
