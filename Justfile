@@ -76,7 +76,7 @@ docs-install:
 
 # Install deps and build docs — matches CI
 docs-ci:
-    mkdocs build --clean
+    mkdocs build --clean --strict
 
 # Start the MkDocs local dev server (hot-reload at http://localhost:8000/)
 docs-dev:

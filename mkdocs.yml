@@ -73,6 +73,7 @@ extra:
 
 plugins:
   - search
+  - markdown-exec
 
 markdown_extensions:
   - attr_list        # { .md-button } classes, { width="280" } image sizing

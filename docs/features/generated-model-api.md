@@ -8,6 +8,52 @@ Every generated `_pydantic.py` file contains a `_ProtoModel` base class that all
 classes in that file inherit from. It adds ProtoJSON-aware serialization on top of standard
 Pydantic — no extra setup required.
 
+```python exec="on" session="api"
+import datetime
+import os
+import sys
+
+sys.path.insert(0, os.path.join(os.environ["MKDOCS_CONFIG_DIR"], "test", "gen"))
+
+from pydantic import BaseModel as _BaseModel, ConfigDict, Field as _Field
+
+from api.v1.known_types_pydantic import WellKnownTypes
+from api.v1.scalars_pydantic import Scalars
+
+
+class _ProtoModel(_BaseModel):
+    model_config = ConfigDict(
+        use_enum_values=True,
+        ser_json_bytes="base64",
+        val_json_bytes="base64",
+        ser_json_inf_nan="strings",
+    )
+
+    def to_proto_json(self, **kwargs):
+        kwargs.setdefault("exclude_defaults", True)
+        kwargs.setdefault("by_alias", True)
+        return self.model_dump_json(**kwargs)
+
+    def to_proto_dict(self, **kwargs):
+        kwargs.setdefault("exclude_defaults", True)
+        kwargs.setdefault("by_alias", True)
+        return self.model_dump(**kwargs)
+
+    @classmethod
+    def from_proto_json(cls, s, **kwargs):
+        return cls.model_validate_json(s, **kwargs)
+
+    @classmethod
+    def from_proto_dict(cls, d, **kwargs):
+        return cls.model_validate(d, **kwargs)
+
+
+class User(_ProtoModel):
+    name: str = _Field(default="")
+    age: int = _Field(default=0)
+    active: bool = _Field(default=False)
+```
+
 ## `_ProtoModel`
 
 ```python
@@ -79,6 +125,14 @@ Parse a `dict` into a model instance:
 user = User.from_proto_dict({"name": "Alice", "age": 30})
 ```
 
+```python exec="on" session="api"
+user = User(name="Alice", age=30, active=False)
+assert user.to_proto_json() == '{"name":"Alice","age":30}'
+assert user.to_proto_dict() == {"name": "Alice", "age": 30}
+assert User.from_proto_json('{"name":"Alice","age":30}') == User(name="Alice", age=30)
+assert User.from_proto_dict({"name": "Alice", "age": 30}) == User(name="Alice", age=30)
+```
+
 ### `to_proto_json()` vs `model_dump_json()`
 
 Both methods produce valid JSON, but they differ in defaults:
@@ -131,6 +185,12 @@ s.to_proto_json()
 s.int64 + 1  # arithmetic works normally in Python → 9007199254740994
 ```
 
+```python exec="on" session="api"
+s = Scalars(int64=9007199254740993)
+assert s.to_proto_json() == '{"int64":"9007199254740993"}'
+assert s.int64 + 1 == 9007199254740994
+```
+
 ### Timestamp and Duration
 
 `google.protobuf.Timestamp` and `google.protobuf.Duration` map to Python's `datetime.datetime`
@@ -158,4 +218,20 @@ input, so you can parse directly from JSON payloads:
 
 ```python
 Event.from_proto_json('{"occurred":"2024-01-15T10:30:00Z","duration":"3600s"}')
+```
+
+```python exec="on" session="api"
+wkt = WellKnownTypes(
+    wkt_timestamp=datetime.datetime(
+        2024, 1, 15, 10, 30, 0, tzinfo=datetime.timezone.utc
+    ),
+    wkt_duration=datetime.timedelta(hours=1),
+)
+json_str = '{"wkt_timestamp":"2024-01-15T10:30:00Z","wkt_duration":"3600s"}'
+assert wkt.to_proto_json() == json_str
+parsed = WellKnownTypes.from_proto_json(json_str)
+assert parsed.wkt_timestamp == datetime.datetime(
+    2024, 1, 15, 10, 30, 0, tzinfo=datetime.timezone.utc
+)
+assert parsed.wkt_duration == datetime.timedelta(hours=1)
 ```
