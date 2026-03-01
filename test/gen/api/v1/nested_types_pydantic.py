@@ -54,13 +54,13 @@ class Shipment(_ProtoModel):
         DELIVERED = "DELIVERED"  # 3
 
     class Item(_ProtoModel):
-        sku: "str" = _Field(default="")
-        quantity: "int" = _Field(default=0)
-        price: "float" = _Field(default=0.0)
+        sku: str = _Field(default="")
+        quantity: int = _Field(default=0)
+        price: float = _Field(default=0.0)
 
-    order_id: "str" = _Field(default="")
+    order_id: str = _Field(default="")
     items: "list[Shipment.Item]" = _Field(
         default_factory=list,
     )
-    status_note: "str" = _Field(default="")
+    status_note: str = _Field(default="")
     status: "Shipment.Status | None" = _Field(default=None)

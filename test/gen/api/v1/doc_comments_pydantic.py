@@ -66,12 +66,12 @@ class User(_ProtoModel):
     """
 
     # The user's display name.
-    name: "str" = _Field(
+    name: str = _Field(
         default="",
         description="The user's display name.",
     )
     # Age in full years.
-    age: "int" = _Field(
+    age: int = _Field(
         default=0,
         description="Age in full years.",
     )

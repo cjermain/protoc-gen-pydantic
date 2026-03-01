@@ -729,7 +729,7 @@ def test_validated_const_active_default():
 
 def test_validated_const_in_generated_file():
     text = _GEN_VALIDATE.read_text()
-    assert "_Literal['fixed']" in text
+    assert '_Literal["fixed"]' in text
 
 
 def test_validated_const_score_default():
@@ -911,7 +911,8 @@ def test_validated_required_plain_scalar_accepts_default():
 
 def test_validated_required_annotations_in_generated_file():
     text = _GEN_VALIDATE.read_text()
-    assert 'required_name: "str"' in text
+    # Scalars use unquoted annotations; user-defined types (messages/enums) remain quoted.
+    assert "required_name: str" in text
     assert 'required_detail: "ValidatedRequired.Detail | None"' in text
     assert "# buf.validate: required (not translated)" in text
 

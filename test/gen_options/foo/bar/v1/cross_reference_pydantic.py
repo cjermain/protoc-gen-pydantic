@@ -53,7 +53,7 @@ class _ProtoModel(_BaseModel):
 class CrossRefMessage(_ProtoModel):
     model_config = _ConfigDict(populate_by_name=True, protected_namespaces=())
 
-    id_: "str" = _Field(
+    id_: str = _Field(
         default="",
         alias="id",
     )

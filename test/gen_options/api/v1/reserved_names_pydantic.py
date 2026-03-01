@@ -48,25 +48,25 @@ class _ProtoModel(_BaseModel):
 class BuiltinNames(_ProtoModel):
     model_config = _ConfigDict(populate_by_name=True, protected_namespaces=())
 
-    bool_: "bool" = _Field(
+    bool_: bool = _Field(
         default=False,
         alias="bool",
     )
-    float_: "float" = _Field(
+    float_: float = _Field(
         default=0.0,
         alias="float",
     )
-    bytes_: "bytes" = _Field(
+    bytes_: bytes = _Field(
         default=b"",
         alias="bytes",
     )
-    int_: "int" = _Field(
+    int_: int = _Field(
         default=0,
         alias="int",
     )
 
 
 class ReservedFieldNames(_ProtoModel):
-    modelConfig: "str" = _Field(default="")
-    modelFields: "str" = _Field(default="")
-    modelDump: "str" = _Field(default="")
+    modelConfig: str = _Field(default="")
+    modelFields: str = _Field(default="")
+    modelDump: str = _Field(default="")

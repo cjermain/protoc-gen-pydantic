@@ -76,47 +76,47 @@ class ValidatedScalars(_ProtoModel):
     """
 
     # Age must be between 0 and 150 exclusive of 0.
-    age: "int" = _Field(
+    age: int = _Field(
         default=0,
         description="Age must be between 0 and 150 exclusive of 0.",
         gt=0,
         le=150,
     )
     # Score must be in [0.0, 100.0].
-    score: "float" = _Field(
+    score: float = _Field(
         default=0.0,
         description="Score must be in [0.0, 100.0].",
         ge=0.0,
         le=100.0,
     )
     # Priority must be positive.
-    priority: "ProtoInt64" = _Field(
+    priority: ProtoInt64 = _Field(
         default=0,
         description="Priority must be positive.",
         gt=0,
     )
     # Ratio must be non-negative and less than 1.
-    ratio: "float" = _Field(
+    ratio: float = _Field(
         default=0.0,
         description="Ratio must be non-negative and less than 1.",
         ge=0.0,
         lt=1.0,
     )
     # Rank must be in [1, 10].
-    rank: "int" = _Field(
+    rank: int = _Field(
         default=0,
         description="Rank must be in [1, 10].",
         ge=1,
         le=10,
     )
     # Count must be non-zero (covers uint64 / fixed64 literal formatting).
-    count: "ProtoUInt64 | None" = _Field(
+    count: ProtoUInt64 | None = _Field(
         default=None,
         description="Count must be non-zero (covers uint64 / fixed64 literal formatting).",
         gt=0,
     )
     # Offset must be non-negative (covers sint32 / sfixed32 literal formatting).
-    offset: "int | None" = _Field(
+    offset: int | None = _Field(
         default=None,
         description="Offset must be non-negative (covers sint32 / sfixed32 literal formatting).",
         ge=0,
@@ -129,26 +129,26 @@ class ValidatedStrings(_ProtoModel):
     """
 
     # Name must be between 1 and 100 characters.
-    name: "str" = _Field(
+    name: str = _Field(
         default="",
         description="Name must be between 1 and 100 characters.",
         min_length=1,
         max_length=100,
     )
     # Code must match uppercase letters only.
-    code: "str" = _Field(
+    code: str = _Field(
         default="",
         description="Code must match uppercase letters only.",
         pattern="^[A-Z]+$",
     )
     # Bio has only a max length.
-    bio: "str" = _Field(
+    bio: str = _Field(
         default="",
         description="Bio has only a max length.",
         max_length=500,
     )
     # Tag has only a min length.
-    tag: "str" = _Field(
+    tag: str = _Field(
         default="",
         description="Tag has only a min length.",
         min_length=2,
@@ -161,14 +161,14 @@ class ValidatedRepeated(_ProtoModel):
     """
 
     # Items must have between 1 and 10 elements.
-    items: "list[str]" = _Field(
+    items: list[str] = _Field(
         default_factory=list,
         description="Items must have between 1 and 10 elements.",
         min_length=1,
         max_length=10,
     )
     # Tags must have at least 1 element.
-    tags: "list[str]" = _Field(
+    tags: list[str] = _Field(
         default_factory=list,
         description="Tags must have at least 1 element.",
         min_length=1,
@@ -181,7 +181,7 @@ class ValidatedMap(_ProtoModel):
     """
 
     # Labels must have between 1 and 10 entries.
-    labels: "dict[str, str]" = _Field(
+    labels: dict[str, str] = _Field(
         default_factory=dict,
         description="Labels must have between 1 and 10 entries.",
         min_length=1,
@@ -199,7 +199,7 @@ class ValidatedReserved(_ProtoModel):
     model_config = _ConfigDict(populate_by_name=True, protected_namespaces=())
 
     # Score must be positive.
-    float_: "float" = _Field(
+    float_: float = _Field(
         default=0.0,
         description="Score must be positive.",
         alias="float",
@@ -213,13 +213,13 @@ class ValidatedOneof(_ProtoModel):
     """
 
     # Must be positive when set.
-    small: "int | None" = _Field(
+    small: int | None = _Field(
         default=None,
         description="Must be positive when set.\nOnly one of the fields can be specified with: [small large] (oneof value)",
         gt=0,
     )
     # Must be positive when set.
-    large: "ProtoInt64 | None" = _Field(
+    large: ProtoInt64 | None = _Field(
         default=None,
         description="Must be positive when set.\nOnly one of the fields can be specified with: [small large] (oneof value)",
         gt=0,
@@ -234,7 +234,7 @@ class ValidatedDuration(_ProtoModel):
     """
 
     # Timeout must be positive and at most one hour.
-    timeout: "ProtoDuration | None" = _Field(
+    timeout: ProtoDuration | None = _Field(
         default=None,
         description="Timeout must be positive and at most one hour.",
         # buf.validate: gt (not translated)
@@ -249,7 +249,7 @@ class ValidatedTimestamp(_ProtoModel):
     """
 
     # CreatedAt must be after the Unix epoch.
-    created_at: "ProtoTimestamp | None" = _Field(
+    created_at: ProtoTimestamp | None = _Field(
         default=None,
         description="CreatedAt must be after the Unix epoch.",
         # buf.validate: gt (not translated)
@@ -262,7 +262,7 @@ class ValidatedStringLen(_ProtoModel):
     """
 
     # Code must be exactly 5 characters.
-    code: "str" = _Field(
+    code: str = _Field(
         default="",
         description="Code must be exactly 5 characters.",
         min_length=5,
@@ -276,25 +276,25 @@ class ValidatedStringAffix(_ProtoModel):
     """
 
     # Url must start with "https://".
-    url: "str" = _Field(
+    url: str = _Field(
         default="",
         description='Url must start with "https://".',
         pattern="^https://",
     )
     # Filename must end with ".go".
-    filename: "str" = _Field(
+    filename: str = _Field(
         default="",
         description='Filename must end with ".go".',
         pattern="\\.go$",
     )
     # Path must start with "/home/" and end with ".txt".
-    path: "str" = _Field(
+    path: str = _Field(
         default="",
         description='Path must start with "/home/" and end with ".txt".',
         pattern="^/home/.*\\.txt$",
     )
     # Content must match a pattern; prefix is also set (conflict → prefix dropped).
-    content: "str" = _Field(
+    content: str = _Field(
         default="",
         description="Content must match a pattern; prefix is also set (conflict → prefix dropped).",
         pattern="^[a-z]+$",
@@ -308,14 +308,14 @@ class ValidatedExamples(_ProtoModel):
     """
 
     # Count with integer examples.
-    count: "int" = _Field(
+    count: int = _Field(
         default=0,
         description="Count with integer examples.",
         gt=0,
         examples=[1, 42],
     )
     # Name with string examples.
-    name: "str" = _Field(
+    name: str = _Field(
         default="",
         description="Name with string examples.",
         min_length=1,
@@ -330,37 +330,37 @@ class ValidatedFormats(_ProtoModel):
     """
 
     # Email must be a valid email address.
-    email: "_Annotated[str, _AfterValidator(_validate_email)]" = _Field(
+    email: _Annotated[str, _AfterValidator(_validate_email)] = _Field(
         default="",
         description="Email must be a valid email address.",
     )
     # Website must be a valid URI.
-    website: "_Annotated[str, _AfterValidator(_validate_uri)]" = _Field(
+    website: _Annotated[str, _AfterValidator(_validate_uri)] = _Field(
         default="",
         description="Website must be a valid URI.",
     )
     # Address must be a valid IP address.
-    address: "_Annotated[str, _AfterValidator(_validate_ip)]" = _Field(
+    address: _Annotated[str, _AfterValidator(_validate_ip)] = _Field(
         default="",
         description="Address must be a valid IP address.",
     )
     # Ratio must be finite (not inf or NaN).
-    ratio: "_Annotated[float, _AfterValidator(_require_finite)]" = _Field(
+    ratio: _Annotated[float, _AfterValidator(_require_finite)] = _Field(
         default=0.0,
         description="Ratio must be finite (not inf or NaN).",
     )
     # Token must be a valid UUID.
-    token: "_Annotated[str, _AfterValidator(_validate_uuid)]" = _Field(
+    token: _Annotated[str, _AfterValidator(_validate_uuid)] = _Field(
         default="",
         description="Token must be a valid UUID.",
     )
     # Host must be a valid IPv4 address.
-    host_v4: "_Annotated[str, _AfterValidator(_validate_ipv4)]" = _Field(
+    host_v4: _Annotated[str, _AfterValidator(_validate_ipv4)] = _Field(
         default="",
         description="Host must be a valid IPv4 address.",
     )
     # Host must be a valid IPv6 address.
-    host_v6: "_Annotated[str, _AfterValidator(_validate_ipv6)]" = _Field(
+    host_v6: _Annotated[str, _AfterValidator(_validate_ipv6)] = _Field(
         default="",
         description="Host must be a valid IPv6 address.",
     )
@@ -372,12 +372,12 @@ class ValidatedFinite(_ProtoModel):
     """
 
     # Ratio must be finite (not inf or NaN).
-    ratio: "_Annotated[float, _AfterValidator(_require_finite)]" = _Field(
+    ratio: _Annotated[float, _AfterValidator(_require_finite)] = _Field(
         default=0.0,
         description="Ratio must be finite (not inf or NaN).",
     )
     # Value must be finite (not inf or NaN).
-    value: "_Annotated[float, _AfterValidator(_require_finite)]" = _Field(
+    value: _Annotated[float, _AfterValidator(_require_finite)] = _Field(
         default=0.0,
         description="Value must be finite (not inf or NaN).",
     )
@@ -389,19 +389,19 @@ class ValidatedDropped(_ProtoModel):
     """
 
     # Name is required; the required constraint is not translated.
-    name: "str" = _Field(
+    name: str = _Field(
         default="",
         description="Name is required; the required constraint is not translated.",
         # buf.validate: required (not translated)
     )
     # Blob has a bytes.const constraint which is not translated (bytes kind unsupported).
-    blob: "bytes" = _Field(
+    blob: bytes = _Field(
         default=b"",
         description="Blob has a bytes.const constraint which is not translated (bytes kind unsupported).",
         # buf.validate: const (not translated)
     )
     # Score must be positive; required is also set but not translated.
-    score: "int" = _Field(
+    score: int = _Field(
         default=0,
         description="Score must be positive; required is also set but not translated.",
         gt=0,
@@ -414,16 +414,16 @@ class ValidatedConst(_ProtoModel):
     ValidatedConst exercises the const constraint translated to Literal[...].
     """
 
-    tag: "_Literal['fixed']" = _Field(
+    tag: _Literal["fixed"] = _Field(
         default="fixed",
     )
-    count: "_Literal[42]" = _Field(
+    count: _Literal[42] = _Field(
         default=42,
     )
-    active: "_Literal[True]" = _Field(
+    active: _Literal[True] = _Field(
         default=True,
     )
-    score: "_Annotated[float, _AfterValidator(_make_const_validator(3.14))]" = _Field(
+    score: _Annotated[float, _AfterValidator(_make_const_validator(3.14))] = _Field(
         default=3.14,
     )
 
@@ -433,13 +433,19 @@ class ValidatedIn(_ProtoModel):
     ValidatedIn exercises in and not_in constraints translated to AfterValidator.
     """
 
-    status: "_Annotated[str, _AfterValidator(_make_in_validator(frozenset({'active', 'inactive'})))]" = _Field(
+    status: _Annotated[
+        str, _AfterValidator(_make_in_validator(frozenset({"active", "inactive"})))
+    ] = _Field(
         default="",
     )
-    code: "_Annotated[str, _AfterValidator(_make_not_in_validator(frozenset({'deleted', 'archived'})))]" = _Field(
+    code: _Annotated[
+        str, _AfterValidator(_make_not_in_validator(frozenset({"deleted", "archived"})))
+    ] = _Field(
         default="",
     )
-    priority: "_Annotated[int, _AfterValidator(_make_in_validator(frozenset({1, 2, 3})))]" = _Field(
+    priority: _Annotated[
+        int, _AfterValidator(_make_in_validator(frozenset({1, 2, 3})))
+    ] = _Field(
         default=0,
     )
 
@@ -449,10 +455,10 @@ class ValidatedUnique(_ProtoModel):
     ValidatedUnique exercises repeated.unique translated to AfterValidator.
     """
 
-    tags: "_Annotated[list[str], _AfterValidator(_require_unique)]" = _Field(
+    tags: _Annotated[list[str], _AfterValidator(_require_unique)] = _Field(
         default_factory=list,
     )
-    scores: "_Annotated[list[int], _AfterValidator(_require_unique)]" = _Field(
+    scores: _Annotated[list[int], _AfterValidator(_require_unique)] = _Field(
         default_factory=list,
     )
 
@@ -465,13 +471,13 @@ class ValidatedBytes(_ProtoModel):
     model_config = _ConfigDict(populate_by_name=True, protected_namespaces=())
 
     # Token must be at least 16 bytes.
-    token: "bytes" = _Field(
+    token: bytes = _Field(
         default=b"",
         description="Token must be at least 16 bytes.",
         min_length=16,
     )
     # Hash must be exactly 32 bytes.
-    hash_: "bytes" = _Field(
+    hash_: bytes = _Field(
         default=b"",
         description="Hash must be exactly 32 bytes.",
         alias="hash",
@@ -479,7 +485,7 @@ class ValidatedBytes(_ProtoModel):
         max_length=32,
     )
     # Payload must be at most 1024 bytes.
-    payload: "bytes" = _Field(
+    payload: bytes = _Field(
         default=b"",
         description="Payload must be at most 1024 bytes.",
         max_length=1024,
@@ -492,14 +498,14 @@ class ValidatedStringContains(_ProtoModel):
     """
 
     # Topic must contain "protobuf".
-    topic: "str" = _Field(
+    topic: str = _Field(
         default="",
         description='Topic must contain "protobuf".',
         pattern="protobuf",
     )
     # Label must start with "env-" and contain "prod".
     # The contains conflicts with prefix so contains is dropped.
-    label: "str" = _Field(
+    label: str = _Field(
         default="",
         description='Label must start with "env-" and contain "prod".\nThe contains conflicts with prefix so contains is dropped.',
         pattern="^env-",
@@ -519,20 +525,20 @@ class ValidatedUser(_ProtoModel):
         ADMIN = "ADMIN"  # 3
 
     # Display name (1–50 characters).
-    name: "str" = _Field(
+    name: str = _Field(
         default="",
         description="Display name (1–50 characters).",
         min_length=1,
         max_length=50,
     )
     # Age in years.
-    age: "int" = _Field(
+    age: int = _Field(
         default=0,
         description="Age in years.",
         ge=0,
     )
     # Contact email address.
-    email: "_Annotated[str, _AfterValidator(_validate_email)]" = _Field(
+    email: _Annotated[str, _AfterValidator(_validate_email)] = _Field(
         default="",
         description="Contact email address.",
     )
@@ -550,15 +556,15 @@ class ValidatedRequired(_ProtoModel):
         Detail is a nested message used to test message-typed required handling.
         """
 
-        value: "str" = _Field(default="")
+        value: str = _Field(default="")
 
     # required on proto3 optional scalar: | None stripped, field becomes required.
-    required_name: "str" = _Field(
+    required_name: str = _Field(
         default=...,
         description="required on proto3 optional scalar: | None stripped, field becomes required.",
     )
     # required on proto3 optional scalar with an additional constraint.
-    required_score: "int" = _Field(
+    required_score: int = _Field(
         default=...,
         description="required on proto3 optional scalar with an additional constraint.",
         gt=0,
@@ -570,7 +576,7 @@ class ValidatedRequired(_ProtoModel):
         # buf.validate: required (not translated)
     )
     # required on plain proto3 scalar: not translated, emits dropped comment.
-    plain_name: "str" = _Field(
+    plain_name: str = _Field(
         default="",
         description="required on plain proto3 scalar: not translated, emits dropped comment.",
         # buf.validate: required (not translated)

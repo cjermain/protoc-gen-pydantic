@@ -48,57 +48,57 @@ class _ProtoModel(_BaseModel):
 
 
 class Item(_ProtoModel):
-    name: "str" = _Field(default="")
-    quantity: "int" = _Field(default=0)
-    price: "float" = _Field(default=0.0)
+    name: str = _Field(default="")
+    quantity: int = _Field(default=0)
+    price: float = _Field(default=0.0)
 
 
 class Person(_ProtoModel):
-    name: "str" = _Field(default="")
-    age: "int" = _Field(default=0)
-    active: "bool" = _Field(default=False)
-    score: "float" = _Field(default=0.0)
-    avatar: "bytes" = _Field(default=b"")
+    name: str = _Field(default="")
+    age: int = _Field(default=0)
+    active: bool = _Field(default=False)
+    score: float = _Field(default=0.0)
+    avatar: bytes = _Field(default=b"")
 
 
 class SearchRequest(_ProtoModel):
-    query: "_Optional[str]" = _Field(default=None)
-    pageSize: "_Optional[int]" = _Field(default=None)
-    includeDeleted: "_Optional[bool]" = _Field(default=None)
+    query: _Optional[str] = _Field(default=None)
+    pageSize: _Optional[int] = _Field(default=None)
+    includeDeleted: _Optional[bool] = _Field(default=None)
 
 
 class TaggedItem(_ProtoModel):
-    name: "str" = _Field(default="")
-    tags: "list[str]" = _Field(
+    name: str = _Field(default="")
+    tags: list[str] = _Field(
         default_factory=list,
     )
-    scores: "list[int]" = _Field(
+    scores: list[int] = _Field(
         default_factory=list,
     )
 
 
 class Config(_ProtoModel):
-    labels: "dict[str, str]" = _Field(
+    labels: dict[str, str] = _Field(
         default_factory=dict,
     )
-    counters: "dict[str, int]" = _Field(
+    counters: dict[str, int] = _Field(
         default_factory=dict,
     )
 
 
 class Payment(_ProtoModel):
-    creditCard: "_Optional[str]" = _Field(default=None)
-    paypal: "_Optional[str]" = _Field(default=None)
-    bankIban: "_Optional[str]" = _Field(default=None)
+    creditCard: _Optional[str] = _Field(default=None)
+    paypal: _Optional[str] = _Field(default=None)
+    bankIban: _Optional[str] = _Field(default=None)
 
 
 class Address(_ProtoModel):
-    street: "str" = _Field(default="")
-    city: "str" = _Field(default="")
+    street: str = _Field(default="")
+    city: str = _Field(default="")
 
 
 class Order(_ProtoModel):
-    orderId: "str" = _Field(default="")
+    orderId: str = _Field(default="")
     address: "_Optional[Address]" = _Field(default=None)
 
 
@@ -108,5 +108,5 @@ class Task(_ProtoModel):
         STATUS_OPEN = 1  # STATUS_OPEN
         STATUS_DONE = 2  # STATUS_DONE
 
-    statusLabel: "str" = _Field(default="")
+    statusLabel: str = _Field(default="")
     status: "_Optional[Task.Status]" = _Field(default=None)

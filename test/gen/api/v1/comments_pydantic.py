@@ -82,14 +82,14 @@ class CommentedMessage(_ProtoModel):
 
         # Leading comment on nested first_name.
         # The given name in the nested message.
-        first_name: "str" = _Field(
+        first_name: str = _Field(
             default="",
             description="Leading comment on nested first_name.\nThe given name in the nested message.",
         )
         # Right comment on nested first_name.
         # Leading comment on nested last_name.
         # The family name in the nested message.
-        last_name: "str" = _Field(
+        last_name: str = _Field(
             default="",
             description="Leading comment on nested last_name.\nThe family name in the nested message.",
         )
@@ -100,14 +100,14 @@ class CommentedMessage(_ProtoModel):
 
     # Leading comment on first_name.
     # The given name of the person.
-    first_name: "str" = _Field(
+    first_name: str = _Field(
         default="",
         description="Leading comment on first_name.\nThe given name of the person.",
     )
     # Right comment on first_name.
     # Leading comment on last_name.
     # The family name of the person.
-    last_name: "str" = _Field(
+    last_name: str = _Field(
         default="",
         description="Leading comment on last_name.\nThe family name of the person.",
     )
@@ -146,19 +146,19 @@ class Outer(_ProtoModel):
             """
 
             # Deepest field comment.
-            deepest_field: "str" = _Field(
+            deepest_field: str = _Field(
                 default="",
                 description="Deepest field comment.",
             )
 
         # Inner field comment.
-        inner_field: "str" = _Field(
+        inner_field: str = _Field(
             default="",
             description="Inner field comment.",
         )
 
     # Outer field comment.
-    outer_field: "str" = _Field(
+    outer_field: str = _Field(
         default="",
         description="Outer field comment.",
     )
