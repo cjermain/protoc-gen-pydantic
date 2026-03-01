@@ -44,7 +44,7 @@ Python files alongside them. No runtime dependency on the plugin — only on Pyd
 - Handles Python builtin/keyword shadowing with PEP 8 trailing underscore aliases
 - Resolves cross-package message references
 - Preserves enum value options (built-in `deprecated`/`debug_redact` and custom extensions) as accessible metadata on enum members
-- Translates [buf.validate (protovalidate)](https://github.com/bufbuild/protovalidate) field constraints to native Pydantic constructs: numeric bounds, string/list lengths, regex patterns, `const` → `Literal[...]`, `in`/`not_in` → `AfterValidator`, `unique` → `AfterValidator`, and format validators (`email`, `uri`, `ip`, `ipv4`, `ipv6`, `uuid`) via lightweight runtime helpers in a generated `_proto_types.py`
+- Translates [buf.validate (protovalidate)](https://github.com/bufbuild/protovalidate) field constraints to native Pydantic constructs
 
 ## Installation
 
@@ -84,7 +84,7 @@ If you use [buf](https://buf.build/):
 # buf.gen.yaml
 version: v2
 plugins:
-  - local: protoc-gen-pydantic
+  - local: go run github.com/cjermain/protoc-gen-pydantic@latest
     opt:
       - paths=source_relative
     out: gen
@@ -187,43 +187,6 @@ print(user.to_proto_json())
 ValidatedUser(name="", age=-1)  # raises ValidationError (2 validation errors)
 ```
 
-### Nested messages and enums
-
-Nested message and enum types are generated as true Python nested classes, accessible via dotted attribute access:
-
-```proto
-message Order {
-  enum Status {
-    STATUS_UNSPECIFIED = 0;
-    STATUS_PENDING = 1;
-    STATUS_SHIPPED = 2;
-  }
-  message Item {
-    string sku = 1;
-    int32 quantity = 2;
-  }
-  Status status = 1;
-  repeated Item items = 2;
-}
-```
-
-```python
-class Order(_ProtoModel):
-    class Status(str, _Enum):
-        UNSPECIFIED = "UNSPECIFIED"
-        PENDING = "PENDING"
-        SHIPPED = "SHIPPED"
-
-    class Item(_ProtoModel):
-        sku: "str" = _Field("")
-        quantity: "int" = _Field(0)
-
-    status: "Order.Status | None" = _Field(None)
-    items: "list[Order.Item]" = _Field(default_factory=list)
-```
-
-Cross-file references import only the top-level class; nested types are resolved via dotted access at runtime.
-
 ## Options
 
 Passed via `opt:` in buf.gen.yaml or `--pydantic_opt=` with protoc:
@@ -252,25 +215,6 @@ modules:
 deps:
   - buf.build/bufbuild/protovalidate
 ```
-
-| buf.validate rule | Generated Pydantic construct |
-|---|---|
-| Numeric `gt` / `gte` / `lt` / `lte` | `Field(gt=` / `ge=` / `lt=` / `le=...)` |
-| `string.min_len` / `string.max_len` | `Field(min_length=..., max_length=...)` |
-| `string.len` | `Field(min_length=N, max_length=N)` |
-| `string.pattern` | `Field(pattern=...)` |
-| `string.prefix` / `string.suffix` | `Field(pattern=...)` (anchored regex) |
-| `repeated.min_items` / `repeated.max_items` | `Field(min_length=..., max_length=...)` |
-| `map.min_pairs` / `map.max_pairs` | `Field(min_length=..., max_length=...)` |
-| `field.example` | `Field(examples=[...])` |
-| `string.const` / `int.const` / `bool.const` | `Literal[value]` type + matching default |
-| `string.in` / `int.in` / etc. | `Annotated[T, AfterValidator(_make_in_validator(...))]` |
-| `string.not_in` / `int.not_in` / etc. | `Annotated[T, AfterValidator(_make_not_in_validator(...))]` |
-| `repeated.unique` | `Annotated[list[T], AfterValidator(_require_unique)]` |
-| `string.email` | `Annotated[str, AfterValidator(_validate_email)]` |
-| `string.uri` | `Annotated[str, AfterValidator(_validate_uri)]` |
-| `string.ip` / `string.ipv4` / `string.ipv6` | `Annotated[str, AfterValidator(_validate_ip*)]` |
-| `string.uuid` | `Annotated[str, AfterValidator(_validate_uuid)]` |
 
 See [buf.validate guide](https://cjermain.github.io/protoc-gen-pydantic/buf-validate/) for the full constraint reference.
 
