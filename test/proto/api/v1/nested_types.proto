@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package test.api.v1;
+
+option go_package = "github.com/cjermain/protoc-gen-pydantic/test/api";
+
+message Shipment {
+  message Item {
+    string sku      = 1;
+    int32  quantity = 2;
+    double price    = 3;
+  }
+
+  enum Status {
+    STATUS_UNSPECIFIED = 0;
+    STATUS_PENDING     = 1;
+    STATUS_SHIPPED     = 2;
+    STATUS_DELIVERED   = 3;
+  }
+
+  string        order_id    = 1;
+  repeated Item items       = 2;
+  string        status_note = 3;
+  Status        status      = 4;
+}

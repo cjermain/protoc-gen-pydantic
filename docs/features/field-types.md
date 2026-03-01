@@ -7,6 +7,25 @@ icon: lucide/table
 `protoc-gen-pydantic` supports all standard proto3 field types and generates correct Pydantic
 annotations with appropriate defaults.
 
+```python exec="on" session="field-types"
+import inspect
+import os
+import sys
+
+sys.path.insert(0, os.path.join(os.environ["MKDOCS_CONFIG_DIR"], "test", "gen"))
+
+from api.v1.field_types_pydantic import (
+    Address,
+    Config,
+    Order,
+    Payment,
+    Person,
+    SearchRequest,
+    TaggedItem,
+    Task,
+)
+```
+
 ## Scalar fields
 
 All proto3 scalar types map to native Python types:
@@ -26,7 +45,7 @@ All proto3 scalar types map to native Python types:
 `ProtoInt64` and `ProtoUInt64` are type aliases for `int` that carry JSON serialization semantics
 (proto3 encodes 64-bit integers as strings in JSON).
 
-=== ":lucide-file-code: scalars.proto"
+=== ":lucide-file-code: field_types.proto"
 
     ```proto
     message Person {
@@ -38,23 +57,28 @@ All proto3 scalar types map to native Python types:
     }
     ```
 
-=== ":simple-python: scalars_pydantic.py"
+=== ":simple-python: field_types_pydantic.py"
 
-    ```python
-    class Person(_ProtoModel):
-        name: "str" = _Field("")
-        age: "int" = _Field(0)
-        active: "bool" = _Field(False)
-        score: "float" = _Field(0.0)
-        avatar: "bytes" = _Field(b"")
+    ```python exec="on" session="field-types"
+    print(f"```python\n{inspect.getsource(Person).rstrip()}\n```")
     ```
+
+```python exec="on" session="field-types"
+person = Person(name="Alice", age=30)
+assert person.name == "Alice"
+assert person.age == 30
+assert person.active is False
+assert person.score == 0.0
+assert person.avatar == b""
+assert person.to_proto_json() == '{"name":"Alice","age":30}'
+```
 
 ## Optional fields
 
 `optional` fields use `T | None` with a default of `None`, distinguishing "field not set"
 from the zero value:
 
-=== ":lucide-file-code: optional.proto"
+=== ":lucide-file-code: field_types.proto"
 
     ```proto
     message SearchRequest {
@@ -64,20 +88,27 @@ from the zero value:
     }
     ```
 
-=== ":simple-python: optional_pydantic.py"
+=== ":simple-python: field_types_pydantic.py"
 
-    ```python
-    class SearchRequest(_ProtoModel):
-        query: "str | None" = _Field(None)
-        page_size: "int | None" = _Field(None)
-        include_deleted: "bool | None" = _Field(None)
+    ```python exec="on" session="field-types"
+    print(f"```python\n{inspect.getsource(SearchRequest).rstrip()}\n```")
     ```
+
+```python exec="on" session="field-types"
+req = SearchRequest()
+assert req.query is None
+assert req.page_size is None
+assert req.include_deleted is None
+assert req.to_proto_json() == "{}"
+req2 = SearchRequest(query="hello", page_size=10)
+assert req2.to_proto_json() == '{"query":"hello","page_size":10}'
+```
 
 ## Repeated fields
 
 `repeated` fields generate `list[T]` with `default_factory=list`:
 
-=== ":lucide-file-code: repeated.proto"
+=== ":lucide-file-code: field_types.proto"
 
     ```proto
     message TaggedItem {
@@ -87,20 +118,25 @@ from the zero value:
     }
     ```
 
-=== ":simple-python: repeated_pydantic.py"
+=== ":simple-python: field_types_pydantic.py"
 
-    ```python
-    class TaggedItem(_ProtoModel):
-        name: "str" = _Field("")
-        tags: "list[str]" = _Field(default_factory=list)
-        scores: "list[int]" = _Field(default_factory=list)
+    ```python exec="on" session="field-types"
+    print(f"```python\n{inspect.getsource(TaggedItem).rstrip()}\n```")
     ```
+
+```python exec="on" session="field-types"
+item = TaggedItem(name="widget", tags=["a", "b"], scores=[1, 2, 3])
+assert item.tags == ["a", "b"]
+assert item.scores == [1, 2, 3]
+assert TaggedItem().tags == []
+assert item.to_proto_json() == '{"name":"widget","tags":["a","b"],"scores":[1,2,3]}'
+```
 
 ## Map fields
 
 `map<K, V>` fields generate `dict[K, V]` with `default_factory=dict`:
 
-=== ":lucide-file-code: map.proto"
+=== ":lucide-file-code: field_types.proto"
 
     ```proto
     message Config {
@@ -109,20 +145,26 @@ from the zero value:
     }
     ```
 
-=== ":simple-python: map_pydantic.py"
+=== ":simple-python: field_types_pydantic.py"
 
-    ```python
-    class Config(_ProtoModel):
-        labels: "dict[str, str]" = _Field(default_factory=dict)
-        counters: "dict[str, int]" = _Field(default_factory=dict)
+    ```python exec="on" session="field-types"
+    print(f"```python\n{inspect.getsource(Config).rstrip()}\n```")
     ```
+
+```python exec="on" session="field-types"
+cfg = Config(labels={"env": "prod"}, counters={"hits": 42})
+assert cfg.labels == {"env": "prod"}
+assert cfg.counters == {"hits": 42}
+assert Config().labels == {}
+assert cfg.to_proto_json() == '{"labels":{"env":"prod"},"counters":{"hits":42}}'
+```
 
 ## Oneof fields
 
 `oneof` groups generate one field per variant, all typed as `T | None = None`.
 At most one may be non-`None` at a time (proto3 semantics).
 
-=== ":lucide-file-code: oneof.proto"
+=== ":lucide-file-code: field_types.proto"
 
     ```proto
     message Payment {
@@ -134,20 +176,25 @@ At most one may be non-`None` at a time (proto3 semantics).
     }
     ```
 
-=== ":simple-python: oneof_pydantic.py"
+=== ":simple-python: field_types_pydantic.py"
 
-    ```python
-    class Payment(_ProtoModel):
-        credit_card: "str | None" = _Field(None)
-        paypal: "str | None" = _Field(None)
-        bank_iban: "str | None" = _Field(None)
+    ```python exec="on" session="field-types"
+    print(f"```python\n{inspect.getsource(Payment).rstrip()}\n```")
     ```
+
+```python exec="on" session="field-types"
+pay = Payment(credit_card="4242424242424242")
+assert pay.credit_card == "4242424242424242"
+assert pay.paypal is None
+assert pay.bank_iban is None
+assert pay.to_proto_json() == '{"credit_card":"4242424242424242"}'
+```
 
 ## Message fields
 
 Message-typed fields default to `None` (not an empty sub-message):
 
-=== ":lucide-file-code: message_field.proto"
+=== ":lucide-file-code: field_types.proto"
 
     ```proto
     message Order {
@@ -161,24 +208,29 @@ Message-typed fields default to `None` (not an empty sub-message):
     }
     ```
 
-=== ":simple-python: message_field_pydantic.py"
+=== ":simple-python: field_types_pydantic.py"
 
-    ```python
-    class Order(_ProtoModel):
-        order_id: "str" = _Field("")
-        address: "Address | None" = _Field(None)
-
-
-    class Address(_ProtoModel):
-        street: "str" = _Field("")
-        city: "str" = _Field("")
+    ```python exec="on" session="field-types"
+    addr_src = inspect.getsource(Address).rstrip()
+    order_src = inspect.getsource(Order).rstrip()
+    print(f"```python\n{addr_src}\n\n\n{order_src}\n```")
     ```
+
+```python exec="on" session="field-types"
+order = Order(order_id="ord-1", address=Address(street="Main St", city="Springfield"))
+assert order.address.city == "Springfield"
+assert Order().address is None
+assert (
+    order.to_proto_json()
+    == '{"order_id":"ord-1","address":{"street":"Main St","city":"Springfield"}}'
+)
+```
 
 ## Enum fields
 
 Enum-typed fields also default to `None`. See the [Enums page](./enums.md) for full details.
 
-=== ":lucide-file-code: enum_field.proto"
+=== ":lucide-file-code: field_types.proto"
 
     ```proto
     message Task {
@@ -193,15 +245,15 @@ Enum-typed fields also default to `None`. See the [Enums page](./enums.md) for f
     }
     ```
 
-=== ":simple-python: enum_field_pydantic.py"
+=== ":simple-python: field_types_pydantic.py"
 
-    ```python
-    class Task(_ProtoModel):
-        class Status(str, _Enum):
-            UNSPECIFIED = "UNSPECIFIED"
-            OPEN = "OPEN"
-            DONE = "DONE"
-
-        status_label: "str" = _Field("")
-        status: "Task.Status | None" = _Field(None)
+    ```python exec="on" session="field-types"
+    print(f"```python\n{inspect.getsource(Task).rstrip()}\n```")
     ```
+
+```python exec="on" session="field-types"
+task = Task(status=Task.Status.OPEN)
+assert task.status == "OPEN"
+assert Task().status is None
+assert task.to_proto_json() == '{"status":"OPEN"}'
+```

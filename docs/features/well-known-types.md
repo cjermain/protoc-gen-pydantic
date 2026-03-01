@@ -8,6 +8,16 @@ Google's Protocol Buffers ships with a set of "well-known types" (WKTs) for comm
 shapes. `protoc-gen-pydantic` maps them to the most natural Python equivalents instead of
 wrapping raw `_pb2` objects.
 
+```python exec="on" session="wkt"
+import datetime
+import os
+import sys
+
+sys.path.insert(0, os.path.join(os.environ["MKDOCS_CONFIG_DIR"], "test", "gen"))
+
+from api.v1.known_types_pydantic import Event, WellKnownTypes
+```
+
 ## Type mappings
 
 | Protobuf WKT | Python type | Notes |
@@ -32,45 +42,36 @@ wrapping raw `_pb2` objects.
 
 ## Example
 
-=== ":lucide-file-code: event.proto"
+=== ":lucide-file-code: known_types.proto"
 
     ```proto
-    syntax = "proto3";
-
-    import "google/protobuf/duration.proto";
-    import "google/protobuf/field_mask.proto";
-    import "google/protobuf/struct.proto";
-    import "google/protobuf/timestamp.proto";
-    import "google/protobuf/wrappers.proto";
-
     message Event {
-      string                    id          = 1;
-      google.protobuf.Timestamp occurred    = 2;
-      google.protobuf.Duration  duration    = 3;
-      google.protobuf.Struct    metadata    = 4;
-      google.protobuf.FieldMask update_mask = 5;
+      string                     id          = 1;
+      google.protobuf.Timestamp  occurred    = 2;
+      google.protobuf.Duration   duration    = 3;
+      google.protobuf.Struct     metadata    = 4;
+      google.protobuf.FieldMask  update_mask = 5;
       google.protobuf.Int32Value retry_count = 6;
     }
     ```
 
-=== ":simple-python: event_pydantic.py"
+=== ":simple-python: known_types_pydantic.py"
 
-    ```python
-    from typing import Any as _Any
+    ```python exec="on" session="wkt"
+    import inspect
 
-    from pydantic import Field as _Field
-
-    from ._proto_types import ProtoDuration, ProtoTimestamp
-
-
-    class Event(_ProtoModel):
-        id: "str" = _Field("")
-        occurred: "ProtoTimestamp | None" = _Field(None)
-        duration: "ProtoDuration | None" = _Field(None)
-        metadata: "dict[str, _Any] | None" = _Field(None)
-        update_mask: "list[str] | None" = _Field(None)
-        retry_count: "int | None" = _Field(None)
+    print(f"```python\n{inspect.getsource(Event).rstrip()}\n```")
     ```
+
+```python exec="on" session="wkt"
+event = Event(id_="evt-1")
+assert event.id_ == "evt-1"
+assert event.occurred is None
+assert event.retry_count is None
+
+event2 = Event(id_="evt-2", retry_count=0)
+assert event2.retry_count == 0
+```
 
 ## Timestamp and Duration
 
@@ -81,13 +82,29 @@ alongside format validators.
 ```python
 import datetime
 
-from event_pydantic import Event
+from known_types_pydantic import Event
 
 event = Event(
-    id="evt-123",
+    id_="evt-123",
     occurred=datetime.datetime.now(datetime.timezone.utc),
     duration=datetime.timedelta(seconds=5),
 )
+```
+
+```python exec="on" session="wkt"
+wkt = WellKnownTypes(
+    wkt_timestamp=datetime.datetime(
+        2024, 1, 15, 10, 30, 0, tzinfo=datetime.timezone.utc
+    ),
+    wkt_duration=datetime.timedelta(hours=1),
+)
+json_str = '{"wkt_timestamp":"2024-01-15T10:30:00Z","wkt_duration":"3600s"}'
+assert wkt.to_proto_json() == json_str
+parsed = WellKnownTypes.from_proto_json(json_str)
+assert parsed.wkt_timestamp == datetime.datetime(
+    2024, 1, 15, 10, 30, 0, tzinfo=datetime.timezone.utc
+)
+assert parsed.wkt_duration == datetime.timedelta(hours=1)
 ```
 
 ## Struct and Value
@@ -100,6 +117,11 @@ event = Event(
 )
 ```
 
+```python exec="on" session="wkt"
+event = Event(metadata={"source": "sensor-42", "readings": [1.1, 2.2, 3.3]})
+assert event.metadata["source"] == "sensor-42"
+```
+
 ## Wrapper types
 
 Wrapper types (`BoolValue`, `Int32Value`, etc.) exist in proto to distinguish "field not set"
@@ -107,10 +129,10 @@ from the zero value. They map to their underlying Python type with `| None`:
 
 ```python
 # retry_count is None → "not set"
-event = Event(id="evt-1")
+event = Event(id_="evt-1")
 assert event.retry_count is None
 
 # retry_count is 0 → explicitly set to zero
-event = Event(id="evt-2", retry_count=0)
+event = Event(id_="evt-2", retry_count=0)
 assert event.retry_count == 0
 ```

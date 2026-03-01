@@ -8,6 +8,16 @@ Proto field names can clash with Python builtins, keywords, and Pydantic `BaseMo
 attributes. `protoc-gen-pydantic` handles these automatically using a **PEP 8 trailing
 underscore alias**.
 
+```python exec="on" session="reserved-names"
+import inspect
+import os
+import sys
+
+sys.path.insert(0, os.path.join(os.environ["MKDOCS_CONFIG_DIR"], "test", "gen"))
+
+from api.v1.reserved_names_pydantic import BuiltinNames, ReservedFieldNames
+```
+
 ## How it works
 
 When a proto field name is a reserved word in Python, the generator:
@@ -18,28 +28,29 @@ When a proto field name is a reserved word in Python, the generator:
 3. Adds `populate_by_name=True` to `model_config` so you can pass either the alias or
    the Python name when constructing the model
 
-=== ":lucide-file-code: reserved.proto"
+=== ":lucide-file-code: reserved_names.proto"
 
     ```proto
-    message Scalars {
+    message BuiltinNames {
       bool  bool  = 1;
       float float = 2;
       bytes bytes = 3;
-      int32 int   = 4;   // 'int' is also reserved
+      int32 int   = 4;
     }
     ```
 
-=== ":simple-python: reserved_pydantic.py"
+=== ":simple-python: reserved_names_pydantic.py"
 
-    ```python
-    class Scalars(_ProtoModel):
-        model_config = _ConfigDict(populate_by_name=True, ...)
-
-        bool_: "bool" = _Field(False, alias="bool")
-        float_: "float" = _Field(0.0, alias="float")
-        bytes_: "bytes" = _Field(b"", alias="bytes")
-        int_: "int" = _Field(0, alias="int")
+    ```python exec="on" session="reserved-names"
+    print(f"```python\n{inspect.getsource(BuiltinNames).rstrip()}\n```")
     ```
+
+```python exec="on" session="reserved-names"
+b = BuiltinNames(bool_=True, float_=3.14)
+assert b.bool_ is True
+assert b.float_ == 3.14
+assert b.to_proto_dict() == {"bool": True, "float": 3.14}
+```
 
 ## Reserved name categories
 
@@ -57,20 +68,49 @@ The following categories of names trigger the trailing-underscore rename:
 `model_validate`, `model_json_schema`, and other `model_*` names that would shadow
 Pydantic internals
 
+=== ":lucide-file-code: reserved_names.proto"
+
+    ```proto
+    message ReservedFieldNames {
+      string model_config = 1;
+      string model_fields = 2;
+      string model_dump   = 3;
+    }
+    ```
+
+=== ":simple-python: reserved_names_pydantic.py"
+
+    ```python exec="on" session="reserved-names"
+    print(f"```python\n{inspect.getsource(ReservedFieldNames).rstrip()}\n```")
+    ```
+
+```python exec="on" session="reserved-names"
+r = ReservedFieldNames(model_config_="cfg", model_fields_="flds")
+assert r.model_config_ == "cfg"
+assert r.to_proto_dict() == {"model_config": "cfg", "model_fields": "flds"}
+```
+
 ## Using the aliased fields
 
 Because `populate_by_name=True` is set, you can use either the Python name or the proto alias:
 
 ```python
 # Using the Python name (trailing underscore)
-s = Scalars(bool_=True, float_=3.14)
+b = BuiltinNames(bool_=True, float_=3.14)
 
 # Using the original proto alias
-s = Scalars(**{"bool": True, "float": 3.14})
+b = BuiltinNames(**{"bool": True, "float": 3.14})
 
 # Serialization always uses the proto name (no trailing underscore)
-print(s.model_dump())
-# {"bool": True, "float": 3.14, "bytes": b"", "int": 0}
+print(b.to_proto_dict())
+# {"bool": True, "float": 3.14}
+```
+
+```python exec="on" session="reserved-names"
+b1 = BuiltinNames(bool_=True, float_=3.14)
+b2 = BuiltinNames(**{"bool": True, "float": 3.14})
+assert b1 == b2
+assert b1.to_proto_dict() == {"bool": True, "float": 3.14}
 ```
 
 ## buf.validate + reserved names

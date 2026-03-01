@@ -8,12 +8,23 @@ Proto3 allows messages and enums to be defined inside other messages. `protoc-ge
 generates these as true Python **nested classes**, so they are accessible via dotted attribute
 access — exactly as you would expect from idiomatic Python.
 
+```python exec="on" session="nested-types"
+import inspect
+import os
+import sys
+
+sys.path.insert(0, os.path.join(os.environ["MKDOCS_CONFIG_DIR"], "test", "gen"))
+
+from api.v1.nested_types_pydantic import Shipment
+from api.v1.comments_pydantic import Outer
+```
+
 ## Nested messages
 
-=== ":lucide-file-code: order.proto"
+=== ":lucide-file-code: nested_types.proto"
 
     ```proto
-    message Order {
+    message Shipment {
       message Item {
         string sku      = 1;
         int32  quantity = 2;
@@ -25,39 +36,44 @@ access — exactly as you would expect from idiomatic Python.
     }
     ```
 
-=== ":simple-python: order_pydantic.py"
+=== ":simple-python: nested_types_pydantic.py"
 
-    ```python
-    class Order(_ProtoModel):
-        class Item(_ProtoModel):
-            sku: "str" = _Field("")
-            quantity: "int" = _Field(0)
-            price: "float" = _Field(0.0)
-
-        order_id: "str" = _Field("")
-        items: "list[Order.Item]" = _Field(default_factory=list)
+    ```python exec="on" session="nested-types"
+    print(f"```python\n{inspect.getsource(Shipment).rstrip()}\n```")
     ```
 
 ```python
 # Usage
-order = Order(
-    order_id="ord-1",
+shipment = Shipment(
+    order_id="shp-1",
     items=[
-        Order.Item(sku="ABC", quantity=2, price=9.99),
-        Order.Item(sku="XYZ", quantity=1, price=24.99),
+        Shipment.Item(sku="ABC", quantity=2, price=9.99),
+        Shipment.Item(sku="XYZ", quantity=1, price=24.99),
     ],
 )
-print(order.items[0].sku)  # ABC
+print(shipment.items[0].sku)  # ABC
+```
+
+```python exec="on" session="nested-types"
+shipment = Shipment(
+    order_id="shp-1",
+    items=[
+        Shipment.Item(sku="ABC", quantity=2, price=9.99),
+        Shipment.Item(sku="XYZ", quantity=1, price=24.99),
+    ],
+)
+assert shipment.items[0].sku == "ABC"
+assert shipment.items[1].price == 24.99
 ```
 
 ## Nested enums
 
 Enums nested inside a message become nested classes of that message:
 
-=== ":lucide-file-code: order.proto"
+=== ":lucide-file-code: nested_types.proto"
 
     ```proto
-    message Order {
+    message Shipment {
       enum Status {
         STATUS_UNSPECIFIED = 0;
         STATUS_PENDING     = 1;
@@ -70,60 +86,51 @@ Enums nested inside a message become nested classes of that message:
     }
     ```
 
-=== ":simple-python: order_pydantic.py"
+=== ":simple-python: nested_types_pydantic.py"
 
-    ```python
-    class Order(_ProtoModel):
-        class Status(str, _Enum):
-            UNSPECIFIED = "UNSPECIFIED"
-            PENDING = "PENDING"
-            SHIPPED = "SHIPPED"
-            DELIVERED = "DELIVERED"
-
-        status_note: "str" = _Field("")
-        status: "Order.Status | None" = _Field(None)
+    ```python exec="on" session="nested-types"
+    print(f"```python\n{inspect.getsource(Shipment).rstrip()}\n```")
     ```
 
 ```python
 # Usage
-order = Order(status=Order.Status.PENDING)
-print(order.status)  # 'PENDING'
+shipment = Shipment(status=Shipment.Status.PENDING)
+print(shipment.status)  # 'PENDING'
+```
+
+```python exec="on" session="nested-types"
+shipment = Shipment(status=Shipment.Status.PENDING)
+assert shipment.status == "PENDING"
+assert Shipment().status is None
 ```
 
 ## Deeply nested types
 
 Nesting can go arbitrarily deep:
 
-=== ":lucide-file-code: deep.proto"
+=== ":lucide-file-code: comments.proto"
 
     ```proto
     message Outer {
       message Inner {
         message Deepest {
-          string value = 1;
+          string deepest_field = 1;
         }
-        Deepest data = 1;
       }
       Inner inner = 1;
     }
     ```
 
-=== ":simple-python: deep_pydantic.py"
+=== ":simple-python: comments_pydantic.py"
 
-    ```python
-    class Outer(_ProtoModel):
-        class Inner(_ProtoModel):
-            class Deepest(_ProtoModel):
-                value: "str" = _Field("")
-
-            data: "Outer.Inner.Deepest | None" = _Field(None)
-
-        inner: "Outer.Inner | None" = _Field(None)
+    ```python exec="on" session="nested-types"
+    print(f"```python\n{inspect.getsource(Outer).rstrip()}\n```")
     ```
 
-```python
-obj = Outer(inner=Outer.Inner(data=Outer.Inner.Deepest(value="hello")))
-print(obj.inner.data.value)  # hello
+```python exec="on" session="nested-types"
+# Outer.Inner.Deepest is accessible via dotted attribute access
+deepest = Outer.Inner.Deepest(deepest_field="hello")
+assert deepest.deepest_field == "hello"
 ```
 
 ## Cross-file references

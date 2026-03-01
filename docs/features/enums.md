@@ -8,28 +8,43 @@ Proto3 enums become Python `Enum` subclasses. The generator supports string-valu
 (default), integer-valued enums (opt-in), enum value options, and the well-known
 `auto_trim_enum_prefix` behaviour.
 
+```python exec="on" session="enums"
+import inspect
+import os
+import sys
+
+sys.path.insert(0, os.path.join(os.environ["MKDOCS_CONFIG_DIR"], "test", "gen"))
+
+from api.v1.enums_pydantic import Hue, Shape
+from api.v1.enum_options_pydantic import Status
+from api.v1.custom_options_pydantic import Currency
+```
+
 ## Basic enum
 
 By default, enums use `str` as the mixin type and string names as values:
 
-=== ":lucide-file-code: status.proto"
+=== ":lucide-file-code: enums.proto"
 
     ```proto
-    enum Status {
-      STATUS_UNSPECIFIED = 0;
-      STATUS_ACTIVE      = 1;
-      STATUS_INACTIVE    = 2;
+    enum Hue {
+      HUE_UNSPECIFIED = 0;
+      HUE_RED         = 1;
+      HUE_BLUE        = 2;
     }
     ```
 
-=== ":simple-python: status_pydantic.py"
+=== ":simple-python: enums_pydantic.py"
 
-    ```python
-    class Status(str, _Enum):
-        UNSPECIFIED = "UNSPECIFIED"
-        ACTIVE = "ACTIVE"
-        INACTIVE = "INACTIVE"
+    ```python exec="on" session="enums"
+    print(f"```python\n{inspect.getsource(Hue).rstrip()}\n```")
     ```
+
+```python exec="on" session="enums"
+assert Hue.RED == "RED"
+assert Hue.BLUE == "BLUE"
+assert isinstance(Hue.RED, str)
+```
 
 ## Prefix trimming (`auto_trim_enum_prefix`)
 
@@ -37,17 +52,17 @@ The default `auto_trim_enum_prefix=true` removes the enum type name prefix from 
 The prefix match is case-insensitive and strips a trailing `_`:
 
 ```
-STATUS_UNSPECIFIED → UNSPECIFIED
-STATUS_ACTIVE      → ACTIVE
+HUE_UNSPECIFIED → UNSPECIFIED
+HUE_RED         → RED
 ```
 
 With `auto_trim_enum_prefix=false` the full name is kept:
 
 ```python
-class Status(str, _Enum):
-    STATUS_UNSPECIFIED = "STATUS_UNSPECIFIED"
-    STATUS_ACTIVE = "STATUS_ACTIVE"
-    STATUS_INACTIVE = "STATUS_INACTIVE"
+class Hue(str, _Enum):
+    HUE_UNSPECIFIED = "HUE_UNSPECIFIED"
+    HUE_RED = "HUE_RED"
+    HUE_BLUE = "HUE_BLUE"
 ```
 
 See [Plugin Options](../options.md#auto-trim-enum-prefix) for details.
@@ -57,10 +72,10 @@ See [Plugin Options](../options.md#auto-trim-enum-prefix) for details.
 With `use_integers_for_enums=true`, the mixin type becomes `int` and values are integers:
 
 ```python
-class Status(int, _Enum):
+class Hue(int, _Enum):
     UNSPECIFIED = 0
-    ACTIVE = 1
-    INACTIVE = 2
+    RED = 1
+    BLUE = 2
 ```
 
 See [Plugin Options](../options.md#use-integers-for-enums) for details.
@@ -70,14 +85,14 @@ See [Plugin Options](../options.md#use-integers-for-enums) for details.
 Enums defined at the file level become top-level classes. Enums defined inside a message
 become nested classes of that message:
 
-=== ":lucide-file-code: mixed.proto"
+=== ":lucide-file-code: enums.proto"
 
     ```proto
     // Top-level enum
-    enum Color {
-      COLOR_UNSPECIFIED = 0;
-      COLOR_RED         = 1;
-      COLOR_BLUE        = 2;
+    enum Hue {
+      HUE_UNSPECIFIED = 0;
+      HUE_RED         = 1;
+      HUE_BLUE        = 2;
     }
 
     message Shape {
@@ -88,99 +103,74 @@ become nested classes of that message:
         KIND_SQUARE      = 2;
       }
 
-      Color color = 1;
-      Kind  kind  = 2;
+      Hue  color = 1;
+      Kind kind  = 2;
     }
     ```
 
-=== ":simple-python: mixed_pydantic.py"
+=== ":simple-python: enums_pydantic.py"
 
-    ```python
-    class Color(str, _Enum):
-        UNSPECIFIED = "UNSPECIFIED"
-        RED = "RED"
-        BLUE = "BLUE"
-
-
-    class Shape(_ProtoModel):
-        class Kind(str, _Enum):
-            UNSPECIFIED = "UNSPECIFIED"
-            CIRCLE = "CIRCLE"
-            SQUARE = "SQUARE"
-
-        color: "Color | None" = _Field(None)
-        kind: "Shape.Kind | None" = _Field(None)
+    ```python exec="on" session="enums"
+    hue_src = inspect.getsource(Hue).rstrip()
+    shape_src = inspect.getsource(Shape).rstrip()
+    print(f"```python\n{hue_src}\n\n\n{shape_src}\n```")
     ```
+
+```python exec="on" session="enums"
+assert Shape.Kind.CIRCLE == "CIRCLE"
+shape = Shape(color=Hue.RED, kind=Shape.Kind.CIRCLE)
+assert shape.color == "RED"
+assert shape.kind == "CIRCLE"
+```
 
 ## Enum value options
 
 Proto3 enum values can carry options (built-in or custom). These are preserved as accessible
 metadata on the Python enum members.
 
-### Built-in: `deprecated`
+### Built-in: `deprecated` and `debug_redact`
 
 ```proto
 enum Status {
   STATUS_UNSPECIFIED = 0;
   STATUS_ACTIVE      = 1;
-  STATUS_LEGACY      = 2 [deprecated = true];
+  STATUS_INACTIVE    = 2;
+  STATUS_ARCHIVED    = 3 [deprecated = true, debug_redact = true];
 }
 ```
 
-```python
-class Status(_ProtoEnum):
-    UNSPECIFIED = ("UNSPECIFIED", _EnumValueOptions(number=0))
-    ACTIVE = ("ACTIVE", _EnumValueOptions(number=1))
-    LEGACY = ("LEGACY", _EnumValueOptions(number=2, deprecated=True))
+=== ":simple-python: enum_options_pydantic.py"
 
-
-# Access the deprecated option
-print(Status.LEGACY.options.deprecated)  # True
-```
+    ```python exec="on" session="enums"
+    print(f"```python\n{inspect.getsource(Status).rstrip()}\n```")
+    ```
 
 When any enum value in a file carries options, the generator switches from plain `str, _Enum`
 to `_ProtoEnum` (a thin subclass) and stores options as a second tuple element. Each member's
 options are accessible via the `.options` property.
 
-### Built-in: `debug_redact`
-
-```proto
-enum Status {
-  STATUS_UNSPECIFIED = 0;
-  STATUS_ACTIVE      = 1;
-  STATUS_SECRET      = 2 [debug_redact = true];
-}
-```
-
-```python
-class Status(_ProtoEnum):
-    UNSPECIFIED = ("UNSPECIFIED", _EnumValueOptions(number=0))
-    ACTIVE = ("ACTIVE", _EnumValueOptions(number=1))
-    SECRET = ("SECRET", _EnumValueOptions(number=2, debug_redact=True))
-
-
-print(Status.SECRET.options.debug_redact)  # True
+```python exec="on" session="enums"
+assert Status.ARCHIVED.options.deprecated is True
+assert Status.ARCHIVED.options.debug_redact is True
+assert Status.ACTIVE.options.deprecated is False
 ```
 
 ### Custom extensions
 
 Custom enum value options are also preserved:
 
-```proto
-extend google.protobuf.EnumValueOptions {
-  string display_name = 50001;
-}
+=== ":simple-python: custom_options_pydantic.py"
 
-enum Color {
-  COLOR_UNSPECIFIED = 0;
-  COLOR_RED         = 1 [(display_name) = "Red"];
-  COLOR_BLUE        = 2 [(display_name) = "Blue"];
-}
-```
+    ```python exec="on" session="enums"
+    print(f"```python\n{inspect.getsource(Currency).rstrip()}\n```")
+    ```
 
-```python
-print(Color.RED.options.display_name)  # Red
-print(Color.BLUE.options.display_name)  # Blue
+```python exec="on" session="enums"
+assert Currency.USD.options.display_name == "US Dollar"
+assert Currency.EUR.options.display_name == "Euro"
+assert Currency.GBP.options.display_name == "British Pound"
+assert Currency.USD.options.is_default is True
+assert Currency.USD.options.priority == 1
 ```
 
 ## Enum in JSON / dict
@@ -191,8 +181,14 @@ to ProtoJSON-compatible strings:
 ```python
 import json
 
-from status_pydantic import Status
+from enums_pydantic import Hue
 
-print(json.dumps({"status": Status.ACTIVE}))
-# {"status": "ACTIVE"}
+print(json.dumps({"hue": Hue.RED}))
+# {"hue": "RED"}
+```
+
+```python exec="on" session="enums"
+import json
+
+assert json.dumps({"hue": Hue.RED}) == '{"hue": "RED"}'
 ```

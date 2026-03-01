@@ -45,6 +45,39 @@ class _ProtoModel(_BaseModel):
         return cls.model_validate_json(json_str, **kwargs)
 
 
+class BuiltinNames(_ProtoModel):
+    """
+
+    Attributes:
+      bool_ (bool):
+      float_ (float):
+      bytes_ (bytes):
+      int_ (int):
+    """
+
+    model_config = _ConfigDict(populate_by_name=True)
+
+    bool_: "bool" = _Field(
+        default=False,
+        alias="bool",
+    )
+
+    float_: "float" = _Field(
+        default=0.0,
+        alias="float",
+    )
+
+    bytes_: "bytes" = _Field(
+        default=b"",
+        alias="bytes",
+    )
+
+    int_: "int" = _Field(
+        default=0,
+        alias="int",
+    )
+
+
 class ReservedFieldNames(_ProtoModel):
     """
 

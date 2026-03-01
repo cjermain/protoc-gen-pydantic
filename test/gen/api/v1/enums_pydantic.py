@@ -2,6 +2,49 @@
 
 from enum import Enum as _Enum
 
+from pydantic import BaseModel as _BaseModel, ConfigDict as _ConfigDict, Field as _Field
+
+
+class _ProtoModel(_BaseModel):
+    """Base class for generated Pydantic models with ProtoJSON helpers."""
+
+    model_config = _ConfigDict(
+        use_enum_values=True,
+        ser_json_bytes="base64",
+        val_json_bytes="base64",
+        ser_json_inf_nan="strings",
+    )
+
+    def to_proto_dict(self, **kwargs) -> dict:
+        """Serialize to a dict using ProtoJSON conventions.
+
+        Omits fields with default (zero) values and uses original proto
+        field names (camelCase aliases).
+        """
+        kwargs.setdefault("exclude_defaults", True)
+        kwargs.setdefault("by_alias", True)
+        return super().model_dump(**kwargs)
+
+    def to_proto_json(self, **kwargs) -> str:
+        """Serialize to a JSON string using ProtoJSON conventions.
+
+        Omits fields with default (zero) values and uses original proto
+        field names (camelCase aliases).
+        """
+        kwargs.setdefault("exclude_defaults", True)
+        kwargs.setdefault("by_alias", True)
+        return super().model_dump_json(**kwargs)
+
+    @classmethod
+    def from_proto_dict(cls, data: dict, **kwargs):
+        """Deserialize from a dict using ProtoJSON conventions."""
+        return cls.model_validate(data, **kwargs)
+
+    @classmethod
+    def from_proto_json(cls, json_str: str, **kwargs):
+        """Deserialize from a JSON string using ProtoJSON conventions."""
+        return cls.model_validate_json(json_str, **kwargs)
+
 
 class Enum(str, _Enum):
     """ """
@@ -11,3 +54,37 @@ class Enum(str, _Enum):
     ACTIVE = "ACTIVE"  # 1
 
     INACTIVE = "INACTIVE"  # 2
+
+
+class Hue(str, _Enum):
+    """
+    A primary hue.
+    """
+
+    UNSPECIFIED = "UNSPECIFIED"  # 0
+
+    RED = "RED"  # 1
+
+    BLUE = "BLUE"  # 2
+
+
+class Shape(_ProtoModel):
+    """
+
+    Attributes:
+      color (Hue | None):
+      kind (Shape.Kind | None):
+    """
+
+    class Kind(str, _Enum):
+        """ """
+
+        UNSPECIFIED = "UNSPECIFIED"  # 0
+
+        CIRCLE = "CIRCLE"  # 1
+
+        SQUARE = "SQUARE"  # 2
+
+    color: "Hue | None" = _Field(default=None)
+
+    kind: "Shape.Kind | None" = _Field(default=None)

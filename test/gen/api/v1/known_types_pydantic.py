@@ -104,3 +104,33 @@ class WellKnownTypes(_ProtoModel):
     wkt_bytes: "bytes | None" = _Field(default=None)
 
     wkt_empty: "None" = _Field(default=None)
+
+
+class Event(_ProtoModel):
+    """
+
+    Attributes:
+      id_ (str):
+      occurred (ProtoTimestamp | None):
+      duration (ProtoDuration | None):
+      metadata (dict[str, _Any] | None):
+      update_mask (list[str] | None):
+      retry_count (int | None):
+    """
+
+    model_config = _ConfigDict(populate_by_name=True)
+
+    id_: "str" = _Field(
+        default="",
+        alias="id",
+    )
+
+    occurred: "ProtoTimestamp | None" = _Field(default=None)
+
+    duration: "ProtoDuration | None" = _Field(default=None)
+
+    metadata: "dict[str, _Any] | None" = _Field(default=None)
+
+    update_mask: "list[str] | None" = _Field(default=None)
+
+    retry_count: "int | None" = _Field(default=None)
