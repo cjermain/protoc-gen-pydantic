@@ -8,6 +8,26 @@ icon: lucide/shield-check
 proto fields with validation rules. `protoc-gen-pydantic` translates these rules into native
 Pydantic constructs — no plugin option needed.
 
+```python exec="on" session="validate"
+import inspect
+import os
+import sys
+
+sys.path.insert(0, os.path.join(os.environ["MKDOCS_CONFIG_DIR"], "test", "gen"))
+
+from api.v1.validate_pydantic import (
+    ValidatedConst,
+    ValidatedDropped,
+    ValidatedFinite,
+    ValidatedFormats,
+    ValidatedIn,
+    ValidatedRequired,
+    ValidatedScalars,
+    ValidatedStrings,
+    ValidatedUnique,
+)
+```
+
 ## Setup
 
 Add the BSR dependency to `buf.yaml`:
@@ -74,102 +94,110 @@ import "buf/validate/validate.proto";
 
 ### Numeric bounds
 
-=== ":lucide-file-code: validated.proto"
+=== ":lucide-file-code: validate.proto"
 
     ```proto
     message ValidatedScalars {
-      // Age must be between 1 and 150 inclusive.
-      int32 age = 1 [
-        (buf.validate.field).int32.gt  = 0,
-        (buf.validate.field).int32.lte = 150
-      ];
+      // Age must be between 0 and 150 exclusive of 0.
+      int32 age = 1 [(buf.validate.field).int32.gt = 0, (buf.validate.field).int32.lte = 150];
       // Score must be in [0.0, 100.0].
-      double score = 2 [
-        (buf.validate.field).double.gte = 0.0,
-        (buf.validate.field).double.lte = 100.0
-      ];
+      double score = 2 [(buf.validate.field).double.gte = 0.0, (buf.validate.field).double.lte = 100.0];
+      // Priority must be positive.
+      int64 priority = 3 [(buf.validate.field).int64.gt = 0];
+      // Ratio must be non-negative and less than 1.
+      float ratio = 4 [(buf.validate.field).float.gte = 0.0, (buf.validate.field).float.lt = 1.0];
+      // Rank must be in [1, 10].
+      uint32 rank = 5 [(buf.validate.field).uint32.gte = 1, (buf.validate.field).uint32.lte = 10];
+      // Count must be non-zero (covers uint64 / fixed64 literal formatting).
+      optional uint64 count = 6 [(buf.validate.field).uint64.gt = 0];
+      // Offset must be non-negative (covers sint32 / sfixed32 literal formatting).
+      optional sint32 offset = 7 [(buf.validate.field).sint32.gte = 0];
     }
     ```
 
-=== ":simple-python: validated_pydantic.py"
+=== ":simple-python: validate_pydantic.py"
 
-    ```python
-    class ValidatedScalars(_ProtoModel):
-        # Age must be between 1 and 150 inclusive.
-        age: "int" = _Field(
-            0,
-            gt=0,
-            le=150,
-            description="Age must be between 1 and 150 inclusive.",
-        )
-
-        # Score must be in [0.0, 100.0].
-        score: "float" = _Field(
-            0.0,
-            ge=0.0,
-            le=100.0,
-            description="Score must be in [0.0, 100.0].",
-        )
+    ```python exec="on" session="validate"
+    print(f"```python\n{inspect.getsource(ValidatedScalars).rstrip()}\n```")
     ```
+
+```python exec="on" session="validate"
+from pydantic import ValidationError
+
+vs = ValidatedScalars(age=5, score=50.0)
+assert vs.age == 5
+try:
+    ValidatedScalars(age=200)  # exceeds le=150
+except ValidationError:
+    pass
+```
 
 ### String constraints
 
-=== ":lucide-file-code: validated.proto"
+=== ":lucide-file-code: validate.proto"
 
     ```proto
     message ValidatedStrings {
-      // Username: 1–50 chars, alphanumeric.
-      string username = 1 [
-        (buf.validate.field).string.min_len = 1,
-        (buf.validate.field).string.max_len = 50,
-        (buf.validate.field).string.pattern = "^[a-zA-Z0-9_]+$"
-      ];
-      // Country code: exactly 2 uppercase letters.
-      string country_code = 2 [(buf.validate.field).string.len = 2];
-      // URL must start with https://.
-      string website = 3 [(buf.validate.field).string.prefix = "https://"];
-      // Topic must contain the word "protobuf".
-      string topic = 4 [(buf.validate.field).string.contains = "protobuf"];
+      // Name must be between 1 and 100 characters.
+      string name = 1 [(buf.validate.field).string.min_len = 1, (buf.validate.field).string.max_len = 100];
+      // Code must match uppercase letters only.
+      string code = 2 [(buf.validate.field).string.pattern = "^[A-Z]+$"];
+      // Bio has only a max length.
+      string bio = 3 [(buf.validate.field).string.max_len = 500];
+      // Tag has only a min length.
+      string tag = 4 [(buf.validate.field).string.min_len = 2];
     }
     ```
 
-=== ":simple-python: validated_pydantic.py"
+=== ":simple-python: validate_pydantic.py"
 
-    ```python
-    class ValidatedStrings(_ProtoModel):
-        username: "str" = _Field("", min_length=1, max_length=50, pattern="^[a-zA-Z0-9_]+$")
-        country_code: "str" = _Field("", min_length=2, max_length=2)
-        website: "str" = _Field("", pattern="^https://.*")
-        topic: "str" = _Field("", pattern="protobuf")
+    ```python exec="on" session="validate"
+    print(f"```python\n{inspect.getsource(ValidatedStrings).rstrip()}\n```")
     ```
+
+```python exec="on" session="validate"
+from pydantic import ValidationError
+
+vs = ValidatedStrings(name="Alice", code="ABC", bio="test", tag="ab")
+assert vs.name == "Alice"
+try:
+    ValidatedStrings(
+        name="Alice", code="abc", bio="test", tag="ab"
+    )  # code must be uppercase
+except ValidationError:
+    pass
+```
 
 ### Format validators (email, URI, IP, UUID)
 
 Format validators are translated to `AfterValidator` wrappers. The validators are
 generated into `_proto_types.py` alongside the model files.
 
-=== ":lucide-file-code: validated.proto"
+=== ":lucide-file-code: validate.proto"
 
     ```proto
     message ValidatedFormats {
-      string email   = 1 [(buf.validate.field).string.email = true];
-      string website = 2 [(buf.validate.field).string.uri   = true];
-      string address = 3 [(buf.validate.field).string.ip    = true];
-      string token   = 4 [(buf.validate.field).string.uuid  = true];
+      // Email must be a valid email address.
+      string email = 1 [(buf.validate.field).string.email = true];
+      // Website must be a valid URI.
+      string website = 2 [(buf.validate.field).string.uri = true];
+      // Address must be a valid IP address.
+      string address = 3 [(buf.validate.field).string.ip = true];
+      // Ratio must be finite (not inf or NaN).
+      float ratio = 4 [(buf.validate.field).float.finite = true];
+      // Token must be a valid UUID.
+      string token = 5 [(buf.validate.field).string.uuid = true];
+      // Host must be a valid IPv4 address.
+      string host_v4 = 6 [(buf.validate.field).string.ipv4 = true];
+      // Host must be a valid IPv6 address.
+      string host_v6 = 7 [(buf.validate.field).string.ipv6 = true];
     }
     ```
 
-=== ":simple-python: validated_pydantic.py"
+=== ":simple-python: validate_pydantic.py"
 
-    ```python
-    from ._proto_types import _validate_email, _validate_ip, _validate_uri, _validate_uuid
-
-
-    class ValidatedFormats(_ProtoModel):
-        email: "_Annotated[str, _AfterValidator(_validate_email)]" = _Field("")
-        website: "_Annotated[str, _AfterValidator(_validate_uri)]" = _Field("")
-        address: "_Annotated[str, _AfterValidator(_validate_ip)]" = _Field("")
-        token: "_Annotated[str, _AfterValidator(_validate_uuid)]" = _Field("")
+    ```python exec="on" session="validate"
+    print(f"```python\n{inspect.getsource(ValidatedFormats).rstrip()}\n```")
     ```
 
 > **Note:** Empty strings skip format validation — this matches proto3 semantics where the
@@ -178,55 +206,76 @@ generated into `_proto_types.py` alongside the model files.
 The `string.email` validator requires the [`email-validator`](https://pypi.org/project/email-validator/)
 package (`pip install email-validator` or add to your project dependencies).
 
+```python exec="on" session="validate"
+vf = ValidatedFormats()  # empty strings are allowed (proto3 zero value)
+assert vf.email == ""
+assert vf.website == ""
+```
+
 ### Finite float / double
 
 `float.finite = true` and `double.finite = true` reject `inf` and `NaN` values:
 
-=== ":lucide-file-code: validated.proto"
+=== ":lucide-file-code: validate.proto"
 
     ```proto
     message ValidatedFinite {
+      // Ratio must be finite (not inf or NaN).
       float ratio = 1 [(buf.validate.field).float.finite = true];
+      // Value must be finite (not inf or NaN).
+      double value = 2 [(buf.validate.field).double.finite = true];
     }
     ```
 
-=== ":simple-python: validated_pydantic.py"
+=== ":simple-python: validate_pydantic.py"
 
-    ```python
-    class ValidatedFinite(_ProtoModel):
-        ratio: "_Annotated[float, _AfterValidator(_require_finite)]" = _Field(0.0)
+    ```python exec="on" session="validate"
+    print(f"```python\n{inspect.getsource(ValidatedFinite).rstrip()}\n```")
     ```
+
+```python exec="on" session="validate"
+from pydantic import ValidationError
+
+vf = ValidatedFinite(ratio=0.5, value=1.0)
+assert vf.ratio == 0.5
+try:
+    ValidatedFinite(ratio=float("inf"))
+except ValidationError:
+    pass
+```
 
 ### Set membership (`in` / `not_in`)
 
-=== ":lucide-file-code: validated.proto"
+=== ":lucide-file-code: validate.proto"
 
     ```proto
     message ValidatedIn {
       string status   = 1 [(buf.validate.field) = {string: {in: ["active", "inactive"]}}];
-      int32  priority = 2 [(buf.validate.field) = {int32: {in: [1, 2, 3]}}];
-      string code     = 3 [(buf.validate.field) = {string: {not_in: ["deleted", "archived"]}}];
+      string code     = 2 [(buf.validate.field) = {string: {not_in: ["deleted", "archived"]}}];
+      int32  priority = 3 [(buf.validate.field) = {int32: {in: [1, 2, 3]}}];
     }
     ```
 
-=== ":simple-python: validated_pydantic.py"
+=== ":simple-python: validate_pydantic.py"
 
-    ```python
-    class ValidatedIn(_ProtoModel):
-        status: "_Annotated[str, _AfterValidator(_make_in_validator(frozenset({'active', 'inactive'})))]" = _Field(
-            "",
-        )
-        priority: "_Annotated[int, _AfterValidator(_make_in_validator(frozenset({1, 2, 3})))]" = _Field(
-            0,
-        )
-        code: "_Annotated[str, _AfterValidator(_make_not_in_validator(frozenset({'deleted', 'archived'})))]" = _Field(
-            "",
-        )
+    ```python exec="on" session="validate"
+    print(f"```python\n{inspect.getsource(ValidatedIn).rstrip()}\n```")
     ```
+
+```python exec="on" session="validate"
+from pydantic import ValidationError
+
+vi = ValidatedIn(status="active")
+assert vi.status == "active"
+try:
+    ValidatedIn(status="pending")  # not in allowed set
+except ValidationError:
+    pass
+```
 
 ### Unique elements in repeated fields
 
-=== ":lucide-file-code: validated.proto"
+=== ":lucide-file-code: validate.proto"
 
     ```proto
     message ValidatedUnique {
@@ -235,17 +284,22 @@ package (`pip install email-validator` or add to your project dependencies).
     }
     ```
 
-=== ":simple-python: validated_pydantic.py"
+=== ":simple-python: validate_pydantic.py"
 
-    ```python
-    class ValidatedUnique(_ProtoModel):
-        tags: "_Annotated[list[str], _AfterValidator(_require_unique)]" = _Field(
-            default_factory=list,
-        )
-        scores: "_Annotated[list[int], _AfterValidator(_require_unique)]" = _Field(
-            default_factory=list,
-        )
+    ```python exec="on" session="validate"
+    print(f"```python\n{inspect.getsource(ValidatedUnique).rstrip()}\n```")
     ```
+
+```python exec="on" session="validate"
+from pydantic import ValidationError
+
+vu = ValidatedUnique(tags=["a", "b"])
+assert vu.tags == ["a", "b"]
+try:
+    ValidatedUnique(tags=["a", "a"])  # duplicates not allowed
+except ValidationError:
+    pass
+```
 
 ### Const (fixed values)
 
@@ -254,7 +308,7 @@ matching default — the field is essentially fixed at that value. `float.const`
 `double.const` use `AfterValidator(_make_const_validator(value))` since `Literal[float]`
 is invalid per PEP 586:
 
-=== ":lucide-file-code: validated.proto"
+=== ":lucide-file-code: validate.proto"
 
     ```proto
     message ValidatedConst {
@@ -265,43 +319,67 @@ is invalid per PEP 586:
     }
     ```
 
-=== ":simple-python: validated_pydantic.py"
+=== ":simple-python: validate_pydantic.py"
 
-    ```python
-    class ValidatedConst(_ProtoModel):
-        tag: "_Literal['fixed']" = _Field("fixed")
-        count: "_Literal[42]" = _Field(42)
-        active: "_Literal[True]" = _Field(True)
-        score: "_Annotated[float, _AfterValidator(_make_const_validator(3.14))]" = _Field(
-            3.14
-        )
+    ```python exec="on" session="validate"
+    print(f"```python\n{inspect.getsource(ValidatedConst).rstrip()}\n```")
     ```
+
+```python exec="on" session="validate"
+vc = ValidatedConst()
+assert vc.tag == "fixed"
+assert vc.count == 42
+assert vc.active is True
+```
 
 ### Required (proto3 optional + required)
 
-`required = true` on a `proto3 optional` scalar field strips `| None` from the type,
-making the field required at the Pydantic level:
+`required = true` behaves differently depending on the field type:
 
-=== ":lucide-file-code: validated.proto"
+- **`proto3 optional` scalar**: strips `| None` from the type — the field becomes
+  required at the Pydantic level (no default).
+- **`proto3 optional` scalar + additional constraint**: same stripping, constraint also applied.
+- **Message-typed optional**: cannot be translated — emits a `# buf.validate: required (not translated)` comment.
+- **Plain proto3 scalar**: cannot be translated (already has a zero default) — emits a dropped comment.
+
+=== ":lucide-file-code: validate.proto"
 
     ```proto
     message ValidatedRequired {
-      optional string name  = 1 [(buf.validate.field).required = true];
-      optional int32  score = 2 [
+      // required on proto3 optional scalar: | None stripped, field becomes required.
+      optional string required_name = 1 [(buf.validate.field).required = true];
+      // required on proto3 optional scalar with an additional constraint.
+      optional int32 required_score = 2 [
         (buf.validate.field).required = true,
         (buf.validate.field).int32.gt = 0
       ];
+      // required on message-typed optional: not translated, emits dropped comment.
+      optional Detail required_detail = 3 [(buf.validate.field).required = true];
+      // required on plain proto3 scalar: not translated, emits dropped comment.
+      string plain_name = 4 [(buf.validate.field).required = true];
+
+      message Detail {
+        string value = 1;
+      }
     }
     ```
 
-=== ":simple-python: validated_pydantic.py"
+=== ":simple-python: validate_pydantic.py"
 
-    ```python
-    class ValidatedRequired(_ProtoModel):
-        # required strips | None → field has no default
-        name: "str" = _Field(...)
-        score: "int" = _Field(..., gt=0)
+    ```python exec="on" session="validate"
+    print(f"```python\n{inspect.getsource(ValidatedRequired).rstrip()}\n```")
     ```
+
+```python exec="on" session="validate"
+from pydantic import ValidationError
+
+vr = ValidatedRequired(required_name="Alice", required_score=5)
+assert vr.required_name == "Alice"
+try:
+    ValidatedRequired(required_score=5)  # required_name is required
+except ValidationError:
+    pass
+```
 
 ## The `_proto_types.py` file
 
@@ -333,14 +411,34 @@ inside `_Field()` so they remain visible to developers:
 | `bytes.const` | `Literal[bytes]` is not supported |
 | `duration.gt` / `timestamp.lte` / etc. | Message-typed bounds have no Field() equivalent |
 
-Example of a dropped constraint comment:
+=== ":lucide-file-code: validate.proto"
 
-```python
-class ValidatedDropped(_ProtoModel):
-    name: "str" = _Field(
-        "",
-        # buf.validate: required (not translated)
-    )
+    ```proto
+    message ValidatedDropped {
+      // Name is required; the required constraint is not translated.
+      string name = 1 [(buf.validate.field).required = true];
+      // Blob has a bytes.const constraint which is not translated (bytes kind unsupported).
+      bytes blob = 2 [(buf.validate.field).bytes.const = "\x01"];
+      // Score must be positive; required is also set but not translated.
+      int32 score = 3 [(buf.validate.field).required = true, (buf.validate.field).int32.gt = 0];
+    }
+    ```
+
+=== ":simple-python: validate_pydantic.py"
+
+    ```python exec="on" session="validate"
+    print(f"```python\n{inspect.getsource(ValidatedDropped).rstrip()}\n```")
+    ```
+
+```python exec="on" session="validate"
+from pydantic import ValidationError
+
+vd = ValidatedDropped(score=1)  # score gt=0 is still enforced
+assert vd.score == 1
+try:
+    ValidatedDropped(score=0)  # score must be > 0
+except ValidationError:
+    pass
 ```
 
 ## `enum.defined_only`

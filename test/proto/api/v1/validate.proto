@@ -152,6 +152,14 @@ message ValidatedFormats {
   string host_v6 = 7 [(buf.validate.field).string.ipv6 = true];
 }
 
+// ValidatedFinite exercises float.finite and double.finite constraints.
+message ValidatedFinite {
+  // Ratio must be finite (not inf or NaN).
+  float ratio = 1 [(buf.validate.field).float.finite = true];
+  // Value must be finite (not inf or NaN).
+  double value = 2 [(buf.validate.field).double.finite = true];
+}
+
 // ValidatedDropped exercises constraints that are recognised but not translated.
 message ValidatedDropped {
   // Name is required; the required constraint is not translated.

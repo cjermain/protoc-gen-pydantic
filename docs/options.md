@@ -40,16 +40,16 @@ Controls whether field names use the proto snake_case name or the camelCase JSON
 
     ```python
     class User(_ProtoModel):
-        is_active: "bool" = _Field(False)
-        first_name: "str" = _Field("")
+        is_active: "bool" = _Field(default=False)
+        first_name: "str" = _Field(default="")
     ```
 
 === "false"
 
     ```python
     class User(_ProtoModel):
-        isActive: "bool" = _Field(False)
-        firstName: "str" = _Field("")
+        isActive: "bool" = _Field(default=False)
+        firstName: "str" = _Field(default="")
     ```
 
 **buf.gen.yaml:**
@@ -170,7 +170,7 @@ has a comment. The inline Python comment is still emitted.
     ```python
     class User(_ProtoModel):
         # The user's display name.
-        name: "str" = _Field("", description="The user's display name.")
+        name: "str" = _Field(default="", description="The user's display name.")
     ```
 
 === "true"
@@ -178,7 +178,7 @@ has a comment. The inline Python comment is still emitted.
     ```python
     class User(_ProtoModel):
         # The user's display name.
-        name: "str" = _Field("")
+        name: "str" = _Field(default="")
     ```
 
 **buf.gen.yaml:**
@@ -207,7 +207,7 @@ Controls how nullable types are expressed in annotations.
 
     ```python
     class User(_ProtoModel):
-        nickname: "str | None" = _Field(None)
+        nickname: "str | None" = _Field(default=None)
     ```
 
 === "false"
@@ -217,7 +217,7 @@ Controls how nullable types are expressed in annotations.
 
 
     class User(_ProtoModel):
-        nickname: "_Optional[str]" = _Field(None)
+        nickname: "_Optional[str]" = _Field(default=None)
     ```
 
 > The `T | None` syntax requires Python 3.10+ for runtime evaluation. Generated files use

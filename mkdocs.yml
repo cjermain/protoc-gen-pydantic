@@ -25,8 +25,8 @@ nav:
     - Comments & Descriptions: features/comments.md
     - Reserved Names: features/reserved-names.md
     - Generated Model API: features/generated-model-api.md
-  - Reference:
     - buf.validate: buf-validate.md
+  - Reference:
     - Plugin Options: options.md
   - Contributing: contributing.md
 

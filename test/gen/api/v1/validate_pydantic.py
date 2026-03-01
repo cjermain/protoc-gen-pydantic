@@ -366,6 +366,23 @@ class ValidatedFormats(_ProtoModel):
     )
 
 
+class ValidatedFinite(_ProtoModel):
+    """
+    ValidatedFinite exercises float.finite and double.finite constraints.
+    """
+
+    # Ratio must be finite (not inf or NaN).
+    ratio: "_Annotated[float, _AfterValidator(_require_finite)]" = _Field(
+        default=0.0,
+        description="Ratio must be finite (not inf or NaN).",
+    )
+    # Value must be finite (not inf or NaN).
+    value: "_Annotated[float, _AfterValidator(_require_finite)]" = _Field(
+        default=0.0,
+        description="Value must be finite (not inf or NaN).",
+    )
+
+
 class ValidatedDropped(_ProtoModel):
     """
     ValidatedDropped exercises constraints that are recognised but not translated.
