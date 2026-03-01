@@ -12,9 +12,26 @@
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit)](https://pre-commit.com/)
 [![Docs](https://img.shields.io/badge/docs-GitHub%20Pages-blue)](https://cjermain.github.io/protoc-gen-pydantic/)
 
-`protoc-gen-pydantic` is a `protoc` plugin that generates [Pydantic v2](https://docs.pydantic.dev/) model definitions from `.proto` files.
+`protoc-gen-pydantic` is a `protoc` plugin that generates [Pydantic v2](https://docs.pydantic.dev/) model
+definitions from `.proto` files — so your schema stays the single source of truth.
+
+If you work with Protobuf APIs in Python, the usual tradeoff is: use raw `_pb2` classes (no validation,
+no editor support) or hand-write parallel Pydantic models and keep them in sync forever.
+`protoc-gen-pydantic` eliminates that tradeoff: run `buf generate` once and get type-safe, validated
+Python models automatically.
+
+**Full documentation:** [cjermain.github.io/protoc-gen-pydantic](https://cjermain.github.io/protoc-gen-pydantic/)
 
 > Forked from [ornew/protoc-gen-pydantic](https://github.com/ornew/protoc-gen-pydantic) by [Arata Furukawa](https://github.com/ornew), which provided the initial plugin structure and plugin options. This fork adds well-known type mappings, Python builtin/keyword alias handling, cross-package references, enum value options, ProtoJSON-compatible output, conditional imports, and a test suite.
+
+## How it works
+
+Run `buf generate` (or `protoc`) once. The plugin reads your `.proto` files and writes ready-to-use
+Python files alongside them. No runtime dependency on the plugin — only on Pydantic.
+
+```
+.proto  →  buf generate  →  *_pydantic.py + _proto_types.py  →  import and use
+```
 
 ## Features
 
@@ -81,35 +98,93 @@ buf generate
 
 ## Example
 
-Given a simple `.proto` file:
+### With validation constraints
+
+Add `buf.validate` constraints to your proto fields and the generator translates them
+directly into Pydantic validation:
 
 ```proto
 syntax = "proto3";
 
 package example;
 
-// User model representing the example.User message.
-message User {
-  string name = 1;
-  int32 age = 2;
-  repeated string emails = 3;
-  bool is_active = 4;
+import "buf/validate/validate.proto";
+
+// A user account.
+message ValidatedUser {
+  // Display name (1–50 characters).
+  string name = 1 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).string.max_len = 50
+  ];
+
+  // Age in years.
+  int32 age = 2 [(buf.validate.field).int32.gte = 0];
+
+  // Contact email address.
+  string email = 3 [(buf.validate.field).string.email = true];
+
+  enum Role {
+    ROLE_UNSPECIFIED = 0;
+    ROLE_VIEWER = 1;
+    ROLE_EDITOR = 2;
+    ROLE_ADMIN = 3;
+  }
+
+  Role role = 4;
 }
 ```
 
-The generated Pydantic model will look like this:
+The generated model:
 
 ```python
-from pydantic import BaseModel as _BaseModel, Field as _Field
+class ValidatedUser(_ProtoModel):
+    """
+    A user account.
+    """
 
-class User(_BaseModel):
-    """
-    User model representing the example.User message.
-    """
-    name: str = _Field(...)
-    age: int = _Field(...)
-    emails: list[str] = _Field(...)
-    is_active: bool = _Field(...)
+    class Role(str, _Enum):
+        UNSPECIFIED = "UNSPECIFIED"  # 0
+        VIEWER = "VIEWER"  # 1
+        EDITOR = "EDITOR"  # 2
+        ADMIN = "ADMIN"  # 3
+
+    # Display name (1–50 characters).
+    name: str = _Field(
+        default="",
+        description="Display name (1–50 characters).",
+        min_length=1,
+        max_length=50,
+    )
+    # Age in years.
+    age: int = _Field(
+        default=0,
+        description="Age in years.",
+        ge=0,
+    )
+    # Contact email address.
+    email: _Annotated[str, _AfterValidator(_validate_email)] = _Field(
+        default="",
+        description="Contact email address.",
+    )
+    role: "ValidatedUser.Role | None" = _Field(default=None)
+```
+
+Use it like any Pydantic model:
+
+```python
+from user_pydantic import ValidatedUser
+from pydantic import ValidationError
+
+# Construct and validate
+user = ValidatedUser(name="Alice", age=30, email="alice@example.com", role=ValidatedUser.Role.EDITOR)
+
+# Serialize (ProtoJSON — omits zero values, uses original proto field names)
+print(user.to_proto_json())
+# {"name":"Alice","age":30,"email":"alice@example.com","role":"EDITOR"}
+
+# Validation errors are raised immediately
+ValidatedUser(name="", age=-1)  # raises ValidationError (2 validation errors)
 ```
 
 ### Nested messages and enums
@@ -161,124 +236,7 @@ Passed via `opt:` in buf.gen.yaml or `--pydantic_opt=` with protoc:
 | `disable_field_description` | `false` | Omit `description=` from generated fields |
 | `use_none_union_syntax_instead_of_optional` | `true` | Use `T \| None` instead of `Optional[T]` |
 
-### `preserving_proto_field_name`
-
-```proto
-message User {
-  bool is_active = 1;
-}
-```
-
-If `preserving_proto_field_name` is `true` (default):
-
-```python
-class User(_BaseModel):
-    is_active: bool = _Field(...)
-```
-
-If `preserving_proto_field_name` is `false`:
-
-```python
-class User(_BaseModel):
-    isActive: bool = _Field(...)
-```
-
-### `auto_trim_enum_prefix`
-
-```proto
-enum Status {
-  STATUS_UNSPECIFIED = 0;
-  STATUS_OK = 1;
-  STATUS_ERROR = 2;
-}
-```
-
-If `auto_trim_enum_prefix` is `true` (default):
-
-```python
-class Status(str, _Enum):
-    UNSPECIFIED = "UNSPECIFIED"
-    OK = "OK"
-    ERROR = "ERROR"
-```
-
-If `auto_trim_enum_prefix` is `false`:
-
-```python
-class Status(str, _Enum):
-    STATUS_UNSPECIFIED = "UNSPECIFIED"
-    STATUS_OK = "OK"
-    STATUS_ERROR = "ERROR"
-```
-
-### `use_integers_for_enums`
-
-```proto
-enum Status {
-  STATUS_UNSPECIFIED = 0;
-  STATUS_OK = 1;
-  STATUS_ERROR = 2;
-}
-```
-
-If `use_integers_for_enums` is `false` (default):
-
-```python
-class Status(str, _Enum):
-    UNSPECIFIED = "UNSPECIFIED"
-    OK = "OK"
-    ERROR = "ERROR"
-```
-
-If `use_integers_for_enums` is `true`:
-
-```python
-class Status(int, _Enum):
-    UNSPECIFIED = 0
-    OK = 1
-    ERROR = 2
-```
-
-### `disable_field_description`
-
-```proto
-message User {
-    // User name
-    string name = 1;
-}
-```
-
-If `disable_field_description` is `false` (default):
-
-```python
-class User(_BaseModel):
-    # User name
-    name: str = _Field(..., description="User name")
-```
-
-If `disable_field_description` is `true`:
-
-```python
-class User(_BaseModel):
-    # User name
-    name: str = _Field(...)
-```
-
-### `use_none_union_syntax_instead_of_optional`
-
-If `use_none_union_syntax_instead_of_optional` is `true` (default):
-
-```python
-class User(_BaseModel):
-    name: str | None = _Field(...)
-```
-
-If `use_none_union_syntax_instead_of_optional` is `false`:
-
-```python
-class User(_BaseModel):
-    name: _Optional[str] = _Field(...)
-```
+See [Plugin Options](https://cjermain.github.io/protoc-gen-pydantic/options/) for full details.
 
 ## buf.validate
 
@@ -314,28 +272,7 @@ deps:
 | `string.ip` / `string.ipv4` / `string.ipv6` | `Annotated[str, AfterValidator(_validate_ip*)]` |
 | `string.uuid` | `Annotated[str, AfterValidator(_validate_uuid)]` |
 
-```proto
-import "buf/validate/validate.proto";
-
-message CreateUser {
-  string username = 1 [(buf.validate.field).string.min_len = 1, (buf.validate.field).string.max_len = 50];
-  int32 age = 2 [(buf.validate.field).int32.gte = 18, (buf.validate.field).int32.lte = 120];
-  string email = 3 [(buf.validate.field).string.email = true];
-  string status = 4 [(buf.validate.field) = {string: {in: ["active", "inactive"]}}];
-}
-```
-
-```python
-class CreateUser(_ProtoModel):
-    username: "str" = _Field("", min_length=1, max_length=50)
-    age: "int" = _Field(0, ge=18, le=120)
-    email: "_Annotated[str, _AfterValidator(_validate_email)]" = _Field("")
-    status: "_Annotated[str, _AfterValidator(_make_in_validator(frozenset({'active', 'inactive'})))]" = _Field("")
-```
-
-Format validators (`email`, `uri`, `ip*`, `uuid`) and set validators (`in`, `not_in`, `unique`) are emitted into a generated `_proto_types.py` alongside the model files. Only the helpers that are actually used in a given output directory are included — unused imports (e.g. `ipaddress`, `AnyUrl`) are omitted.
-
-Constraints without a Pydantic equivalent are emitted as `# buf.validate: X (not translated)` comments inside `_Field()` so they remain visible to developers: `required`, CEL expressions, `float`/`double`/`bytes` `const` (not valid in `Literal[]`), and message-typed bounds (e.g. `duration.gt`, `timestamp.lte`).
+See [buf.validate guide](https://cjermain.github.io/protoc-gen-pydantic/buf-validate/) for the full constraint reference.
 
 ## Development
 
