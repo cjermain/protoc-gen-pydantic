@@ -48,8 +48,6 @@ class _ProtoModel(_BaseModel):
 
 class Shipment(_ProtoModel):
     class Status(str, _Enum):
-        """ """
-
         UNSPECIFIED = "UNSPECIFIED"  # 0
 
         PENDING = "PENDING"  # 1

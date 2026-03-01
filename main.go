@@ -294,16 +294,15 @@ class _ProtoEnum({{ if $config.UseIntegersForEnums }}int{{ else }}str{{ end }}, 
 {{$bi}}{{ . }}
 {{- end }}
 {{$bi}}"""
-{{- else }}
-{{$bi}}""" """
 {{- end }}
 {{- if $e.TrailingComments }}
 {{$bi}}{{ range $e.TrailingComments }}
 {{$bi}}# {{ . }}
 {{- end }}
 {{- end }}
-{{- range $e.Values }}
-{{$bi}}{{ range .LeadingComments }}
+{{- range $i, $_ := $e.Values }}
+{{- if or $i $e.LeadingComments $e.TrailingComments}}
+{{$bi}}{{end}}{{ range .LeadingComments }}
 {{$bi}}# {{ . }}
 {{- end }}
 {{- if .EnumHasOptions }}

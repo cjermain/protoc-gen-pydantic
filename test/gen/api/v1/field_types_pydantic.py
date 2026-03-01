@@ -119,8 +119,6 @@ class Order(_ProtoModel):
 
 class Task(_ProtoModel):
     class Status(str, _Enum):
-        """ """
-
         UNSPECIFIED = "UNSPECIFIED"  # 0
 
         OPEN = "OPEN"  # 1

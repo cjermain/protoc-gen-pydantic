@@ -49,8 +49,6 @@ class _ProtoModel(_BaseModel):
 
 class Shipment(_ProtoModel):
     class Status(int, _Enum):
-        """ """
-
         STATUS_UNSPECIFIED = 0  # STATUS_UNSPECIFIED
 
         STATUS_PENDING = 1  # STATUS_PENDING

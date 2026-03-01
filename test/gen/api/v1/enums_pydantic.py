@@ -47,8 +47,6 @@ class _ProtoModel(_BaseModel):
 
 
 class Enum(str, _Enum):
-    """ """
-
     UNSPECIFIED = "UNSPECIFIED"  # 0
 
     ACTIVE = "ACTIVE"  # 1
@@ -70,8 +68,6 @@ class Hue(str, _Enum):
 
 class Shape(_ProtoModel):
     class Kind(str, _Enum):
-        """ """
-
         UNSPECIFIED = "UNSPECIFIED"  # 0
 
         CIRCLE = "CIRCLE"  # 1

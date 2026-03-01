@@ -111,8 +111,6 @@ class Order(_ProtoModel):
 
 class Task(_ProtoModel):
     class Status(int, _Enum):
-        """ """
-
         STATUS_UNSPECIFIED = 0  # STATUS_UNSPECIFIED
 
         STATUS_OPEN = 1  # STATUS_OPEN

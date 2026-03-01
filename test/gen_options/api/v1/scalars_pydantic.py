@@ -57,8 +57,6 @@ class Scalars(_ProtoModel):
     model_config = _ConfigDict(populate_by_name=True, protected_namespaces=())
 
     class NestedEnum(int, _Enum):
-        """ """
-
         NESTED_ENUM_UNSPECIFIED = 0  # NESTED_ENUM_UNSPECIFIED
 
         NESTED_ENUM_ACTIVE = 1  # NESTED_ENUM_ACTIVE
