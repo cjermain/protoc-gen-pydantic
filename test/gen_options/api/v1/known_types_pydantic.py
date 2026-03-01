@@ -49,58 +49,34 @@ class _ProtoModel(_BaseModel):
 
 
 class WellKnownTypes(_ProtoModel):
-    """
+    wktTimestamp: _Optional[ProtoTimestamp] = _Field(default=None)
+    wktDuration: _Optional[ProtoDuration] = _Field(default=None)
+    wktStruct: _Optional[dict[str, _Any]] = _Field(default=None)
+    wktValue: _Optional[_Any] = _Field(default=None)
+    wktListValue: _Optional[list[_Any]] = _Field(default=None)
+    wktAny: _Optional[_Any] = _Field(default=None)
+    wktFieldMask: _Optional[list[str]] = _Field(default=None)
+    wktBool: _Optional[bool] = _Field(default=None)
+    wktInt32: _Optional[int] = _Field(default=None)
+    wktInt64: _Optional[ProtoInt64] = _Field(default=None)
+    wktUint32: _Optional[int] = _Field(default=None)
+    wktUint64: _Optional[ProtoUInt64] = _Field(default=None)
+    wktFloat: _Optional[float] = _Field(default=None)
+    wktDouble: _Optional[float] = _Field(default=None)
+    wktString: _Optional[str] = _Field(default=None)
+    wktBytes: _Optional[bytes] = _Field(default=None)
+    wktEmpty: None = _Field(default=None)
 
-    Attributes:
-      wktTimestamp (_Optional[ProtoTimestamp]):
-      wktDuration (_Optional[ProtoDuration]):
-      wktStruct (_Optional[dict[str, _Any]]):
-      wktValue (_Optional[_Any]):
-      wktListValue (_Optional[list[_Any]]):
-      wktAny (_Optional[_Any]):
-      wktFieldMask (_Optional[list[str]]):
-      wktBool (_Optional[bool]):
-      wktInt32 (_Optional[int]):
-      wktInt64 (_Optional[ProtoInt64]):
-      wktUint32 (_Optional[int]):
-      wktUint64 (_Optional[ProtoUInt64]):
-      wktFloat (_Optional[float]):
-      wktDouble (_Optional[float]):
-      wktString (_Optional[str]):
-      wktBytes (_Optional[bytes]):
-      wktEmpty (None):
-    """
 
-    wktTimestamp: "_Optional[ProtoTimestamp]" = _Field(default=None)
+class Event(_ProtoModel):
+    model_config = _ConfigDict(populate_by_name=True, protected_namespaces=())
 
-    wktDuration: "_Optional[ProtoDuration]" = _Field(default=None)
-
-    wktStruct: "_Optional[dict[str, _Any]]" = _Field(default=None)
-
-    wktValue: "_Optional[_Any]" = _Field(default=None)
-
-    wktListValue: "_Optional[list[_Any]]" = _Field(default=None)
-
-    wktAny: "_Optional[_Any]" = _Field(default=None)
-
-    wktFieldMask: "_Optional[list[str]]" = _Field(default=None)
-
-    wktBool: "_Optional[bool]" = _Field(default=None)
-
-    wktInt32: "_Optional[int]" = _Field(default=None)
-
-    wktInt64: "_Optional[ProtoInt64]" = _Field(default=None)
-
-    wktUint32: "_Optional[int]" = _Field(default=None)
-
-    wktUint64: "_Optional[ProtoUInt64]" = _Field(default=None)
-
-    wktFloat: "_Optional[float]" = _Field(default=None)
-
-    wktDouble: "_Optional[float]" = _Field(default=None)
-
-    wktString: "_Optional[str]" = _Field(default=None)
-
-    wktBytes: "_Optional[bytes]" = _Field(default=None)
-
-    wktEmpty: "None" = _Field(default=None)
+    id_: str = _Field(
+        default="",
+        alias="id",
+    )
+    occurred: _Optional[ProtoTimestamp] = _Field(default=None)
+    duration: _Optional[ProtoDuration] = _Field(default=None)
+    metadata: _Optional[dict[str, _Any]] = _Field(default=None)
+    updateMask: _Optional[list[str]] = _Field(default=None)
+    retryCount: _Optional[int] = _Field(default=None)

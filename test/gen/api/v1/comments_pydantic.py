@@ -50,14 +50,6 @@ class CommentedMessage(_ProtoModel):
     """
     Leading comment on CommentedMessage.
     CommentedMessage exercises all comment positions.
-
-    Attributes:
-      first_name (str):
-        Leading comment on first_name.
-        The given name of the person.
-      last_name (str):
-        Leading comment on last_name.
-        The family name of the person.
     """
 
     class NestedEnum(str, _Enum):
@@ -72,11 +64,9 @@ class CommentedMessage(_ProtoModel):
         # Leading comment on UNSPECIFIED value.
         UNSPECIFIED = "UNSPECIFIED"  # 0
         # Right comment on UNSPECIFIED.
-
         # Leading comment on ACTIVE value.
         ACTIVE = "ACTIVE"  # 1
         # Right comment on ACTIVE.
-
         # Leading comment on INACTIVE value.
         INACTIVE = "INACTIVE"  # 2
         # Right comment on INACTIVE.
@@ -85,14 +75,6 @@ class CommentedMessage(_ProtoModel):
         """
         Leading comment on NestedMessage.
         A message nested inside CommentedMessage.
-
-        Attributes:
-          first_name (str):
-            Leading comment on nested first_name.
-            The given name in the nested message.
-          last_name (str):
-            Leading comment on nested last_name.
-            The family name in the nested message.
         """
 
         # Trailing comment on NestedMessage.
@@ -100,15 +82,14 @@ class CommentedMessage(_ProtoModel):
 
         # Leading comment on nested first_name.
         # The given name in the nested message.
-        first_name: "str" = _Field(
+        first_name: str = _Field(
             default="",
             description="Leading comment on nested first_name.\nThe given name in the nested message.",
         )
         # Right comment on nested first_name.
-
         # Leading comment on nested last_name.
         # The family name in the nested message.
-        last_name: "str" = _Field(
+        last_name: str = _Field(
             default="",
             description="Leading comment on nested last_name.\nThe family name in the nested message.",
         )
@@ -119,15 +100,14 @@ class CommentedMessage(_ProtoModel):
 
     # Leading comment on first_name.
     # The given name of the person.
-    first_name: "str" = _Field(
+    first_name: str = _Field(
         default="",
         description="Leading comment on first_name.\nThe given name of the person.",
     )
     # Right comment on first_name.
-
     # Leading comment on last_name.
     # The family name of the person.
-    last_name: "str" = _Field(
+    last_name: str = _Field(
         default="",
         description="Leading comment on last_name.\nThe family name of the person.",
     )
@@ -137,10 +117,6 @@ class CommentedMessage(_ProtoModel):
 class Outer(_ProtoModel):
     """
     Outer message comment.
-
-    Attributes:
-      outer_field (str):
-        Outer field comment.
     """
 
     class OuterEnum(str, _Enum):
@@ -149,16 +125,11 @@ class Outer(_ProtoModel):
         """
 
         UNSPECIFIED = "UNSPECIFIED"  # 0
-
         X = "X"  # 1
 
     class Inner(_ProtoModel):
         """
         Inner message comment.
-
-        Attributes:
-          inner_field (str):
-            Inner field comment.
         """
 
         class InnerEnum(str, _Enum):
@@ -167,32 +138,27 @@ class Outer(_ProtoModel):
             """
 
             UNSPECIFIED = "UNSPECIFIED"  # 0
-
             A = "A"  # 1
 
         class Deepest(_ProtoModel):
             """
             Deepest message comment.
-
-            Attributes:
-              deepest_field (str):
-                Deepest field comment.
             """
 
             # Deepest field comment.
-            deepest_field: "str" = _Field(
+            deepest_field: str = _Field(
                 default="",
                 description="Deepest field comment.",
             )
 
         # Inner field comment.
-        inner_field: "str" = _Field(
+        inner_field: str = _Field(
             default="",
             description="Inner field comment.",
         )
 
     # Outer field comment.
-    outer_field: "str" = _Field(
+    outer_field: str = _Field(
         default="",
         description="Outer field comment.",
     )

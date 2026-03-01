@@ -54,257 +54,153 @@ class _ProtoModel(_BaseModel):
 
 
 class Collections(_ProtoModel):
-    """
-
-    Attributes:
-      int32Repeated (list[int]):
-      int64Repeated (list[ProtoInt64]):
-      uint32Repeated (list[int]):
-      uint64Repeated (list[ProtoUInt64]):
-      fixed32Repeated (list[int]):
-      fixed64Repeated (list[ProtoUInt64]):
-      sint32Repeated (list[int]):
-      sint64Repeated (list[ProtoInt64]):
-      sfixed32Repeated (list[int]):
-      sfixed64Repeated (list[ProtoInt64]):
-      boolRepeated (list[bool]):
-      floatRepeated (list[float]):
-      doubleRepeated (list[float]):
-      stringRepeated (list[str]):
-      bytesRepeated (list[bytes]):
-      enumRepeated (list[Enum]):
-      nestedEnumRepeated (list[Scalars.NestedEnum]):
-      messageRepeated (list[Message]):
-      nestedMessageRepeated (list[Scalars.NestedMessage]):
-      int32MapKey (dict[int, str]):
-      int64MapKey (dict[ProtoInt64, str]):
-      uint32MapKey (dict[int, str]):
-      uint64MapKey (dict[ProtoUInt64, str]):
-      fixed32MapKey (dict[int, str]):
-      fixed64MapKey (dict[ProtoUInt64, str]):
-      sint32MapKey (dict[int, str]):
-      sint64MapKey (dict[ProtoInt64, str]):
-      sfixed32MapKey (dict[int, str]):
-      sfixed64MapKey (dict[ProtoInt64, str]):
-      boolMapKey (dict[bool, str]):
-      stringMapKey (dict[str, str]):
-      int32MapValue (dict[str, int]):
-      int64MapValue (dict[str, ProtoInt64]):
-      uint32MapValue (dict[str, int]):
-      uint64MapValue (dict[str, ProtoUInt64]):
-      fixed32MapValue (dict[str, int]):
-      fixed64MapValue (dict[str, ProtoUInt64]):
-      sint32MapValue (dict[str, int]):
-      sint64MapValue (dict[str, ProtoInt64]):
-      sfixed32MapValue (dict[str, int]):
-      sfixed64MapValue (dict[str, ProtoInt64]):
-      boolMapValue (dict[str, bool]):
-      floatMapValue (dict[str, float]):
-      doubleMapValue (dict[str, float]):
-      stringMapValue (dict[str, str]):
-      bytesMapValue (dict[str, bytes]):
-      enumMapValue (dict[str, Enum]):
-      nestedEnumMapValue (dict[str, Scalars.NestedEnum]):
-      messageMapValue (dict[str, Message]):
-      nestedMessageMapValue (dict[str, Scalars.NestedMessage]):
-    """
-
-    int32Repeated: "list[int]" = _Field(
+    int32Repeated: list[int] = _Field(
         default_factory=list,
     )
-
-    int64Repeated: "list[ProtoInt64]" = _Field(
+    int64Repeated: list[ProtoInt64] = _Field(
         default_factory=list,
     )
-
-    uint32Repeated: "list[int]" = _Field(
+    uint32Repeated: list[int] = _Field(
         default_factory=list,
     )
-
-    uint64Repeated: "list[ProtoUInt64]" = _Field(
+    uint64Repeated: list[ProtoUInt64] = _Field(
         default_factory=list,
     )
-
-    fixed32Repeated: "list[int]" = _Field(
+    fixed32Repeated: list[int] = _Field(
         default_factory=list,
     )
-
-    fixed64Repeated: "list[ProtoUInt64]" = _Field(
+    fixed64Repeated: list[ProtoUInt64] = _Field(
         default_factory=list,
     )
-
-    sint32Repeated: "list[int]" = _Field(
+    sint32Repeated: list[int] = _Field(
         default_factory=list,
     )
-
-    sint64Repeated: "list[ProtoInt64]" = _Field(
+    sint64Repeated: list[ProtoInt64] = _Field(
         default_factory=list,
     )
-
-    sfixed32Repeated: "list[int]" = _Field(
+    sfixed32Repeated: list[int] = _Field(
         default_factory=list,
     )
-
-    sfixed64Repeated: "list[ProtoInt64]" = _Field(
+    sfixed64Repeated: list[ProtoInt64] = _Field(
         default_factory=list,
     )
-
-    boolRepeated: "list[bool]" = _Field(
+    boolRepeated: list[bool] = _Field(
         default_factory=list,
     )
-
-    floatRepeated: "list[float]" = _Field(
+    floatRepeated: list[float] = _Field(
         default_factory=list,
     )
-
-    doubleRepeated: "list[float]" = _Field(
+    doubleRepeated: list[float] = _Field(
         default_factory=list,
     )
-
-    stringRepeated: "list[str]" = _Field(
+    stringRepeated: list[str] = _Field(
         default_factory=list,
     )
-
-    bytesRepeated: "list[bytes]" = _Field(
+    bytesRepeated: list[bytes] = _Field(
         default_factory=list,
     )
-
     enumRepeated: "list[Enum]" = _Field(
         default_factory=list,
     )
-
     nestedEnumRepeated: "list[Scalars.NestedEnum]" = _Field(
         default_factory=list,
     )
-
     messageRepeated: "list[Message]" = _Field(
         default_factory=list,
     )
-
     nestedMessageRepeated: "list[Scalars.NestedMessage]" = _Field(
         default_factory=list,
     )
-
-    int32MapKey: "dict[int, str]" = _Field(
+    int32MapKey: dict[int, str] = _Field(
         default_factory=dict,
     )
-
-    int64MapKey: "dict[ProtoInt64, str]" = _Field(
+    int64MapKey: dict[ProtoInt64, str] = _Field(
         default_factory=dict,
     )
-
-    uint32MapKey: "dict[int, str]" = _Field(
+    uint32MapKey: dict[int, str] = _Field(
         default_factory=dict,
     )
-
-    uint64MapKey: "dict[ProtoUInt64, str]" = _Field(
+    uint64MapKey: dict[ProtoUInt64, str] = _Field(
         default_factory=dict,
     )
-
-    fixed32MapKey: "dict[int, str]" = _Field(
+    fixed32MapKey: dict[int, str] = _Field(
         default_factory=dict,
     )
-
-    fixed64MapKey: "dict[ProtoUInt64, str]" = _Field(
+    fixed64MapKey: dict[ProtoUInt64, str] = _Field(
         default_factory=dict,
     )
-
-    sint32MapKey: "dict[int, str]" = _Field(
+    sint32MapKey: dict[int, str] = _Field(
         default_factory=dict,
     )
-
-    sint64MapKey: "dict[ProtoInt64, str]" = _Field(
+    sint64MapKey: dict[ProtoInt64, str] = _Field(
         default_factory=dict,
     )
-
-    sfixed32MapKey: "dict[int, str]" = _Field(
+    sfixed32MapKey: dict[int, str] = _Field(
         default_factory=dict,
     )
-
-    sfixed64MapKey: "dict[ProtoInt64, str]" = _Field(
+    sfixed64MapKey: dict[ProtoInt64, str] = _Field(
         default_factory=dict,
     )
-
-    boolMapKey: "dict[bool, str]" = _Field(
+    boolMapKey: dict[bool, str] = _Field(
         default_factory=dict,
     )
-
-    stringMapKey: "dict[str, str]" = _Field(
+    stringMapKey: dict[str, str] = _Field(
         default_factory=dict,
     )
-
-    int32MapValue: "dict[str, int]" = _Field(
+    int32MapValue: dict[str, int] = _Field(
         default_factory=dict,
     )
-
-    int64MapValue: "dict[str, ProtoInt64]" = _Field(
+    int64MapValue: dict[str, ProtoInt64] = _Field(
         default_factory=dict,
     )
-
-    uint32MapValue: "dict[str, int]" = _Field(
+    uint32MapValue: dict[str, int] = _Field(
         default_factory=dict,
     )
-
-    uint64MapValue: "dict[str, ProtoUInt64]" = _Field(
+    uint64MapValue: dict[str, ProtoUInt64] = _Field(
         default_factory=dict,
     )
-
-    fixed32MapValue: "dict[str, int]" = _Field(
+    fixed32MapValue: dict[str, int] = _Field(
         default_factory=dict,
     )
-
-    fixed64MapValue: "dict[str, ProtoUInt64]" = _Field(
+    fixed64MapValue: dict[str, ProtoUInt64] = _Field(
         default_factory=dict,
     )
-
-    sint32MapValue: "dict[str, int]" = _Field(
+    sint32MapValue: dict[str, int] = _Field(
         default_factory=dict,
     )
-
-    sint64MapValue: "dict[str, ProtoInt64]" = _Field(
+    sint64MapValue: dict[str, ProtoInt64] = _Field(
         default_factory=dict,
     )
-
-    sfixed32MapValue: "dict[str, int]" = _Field(
+    sfixed32MapValue: dict[str, int] = _Field(
         default_factory=dict,
     )
-
-    sfixed64MapValue: "dict[str, ProtoInt64]" = _Field(
+    sfixed64MapValue: dict[str, ProtoInt64] = _Field(
         default_factory=dict,
     )
-
-    boolMapValue: "dict[str, bool]" = _Field(
+    boolMapValue: dict[str, bool] = _Field(
         default_factory=dict,
     )
-
-    floatMapValue: "dict[str, float]" = _Field(
+    floatMapValue: dict[str, float] = _Field(
         default_factory=dict,
     )
-
-    doubleMapValue: "dict[str, float]" = _Field(
+    doubleMapValue: dict[str, float] = _Field(
         default_factory=dict,
     )
-
-    stringMapValue: "dict[str, str]" = _Field(
+    stringMapValue: dict[str, str] = _Field(
         default_factory=dict,
     )
-
-    bytesMapValue: "dict[str, bytes]" = _Field(
+    bytesMapValue: dict[str, bytes] = _Field(
         default_factory=dict,
     )
-
     enumMapValue: "dict[str, Enum]" = _Field(
         default_factory=dict,
     )
-
     nestedEnumMapValue: "dict[str, Scalars.NestedEnum]" = _Field(
         default_factory=dict,
     )
-
     messageMapValue: "dict[str, Message]" = _Field(
         default_factory=dict,
     )
-
     nestedMessageMapValue: "dict[str, Scalars.NestedMessage]" = _Field(
         default_factory=dict,
     )

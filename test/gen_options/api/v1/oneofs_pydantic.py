@@ -47,13 +47,5 @@ class _ProtoModel(_BaseModel):
 
 
 class Oneofs(_ProtoModel):
-    """
-
-    Attributes:
-      a (_Optional[int]):
-      b (_Optional[str]):
-    """
-
-    a: "_Optional[int]" = _Field(default=None)
-
-    b: "_Optional[str]" = _Field(default=None)
+    a: _Optional[int] = _Field(default=None)
+    b: _Optional[str] = _Field(default=None)

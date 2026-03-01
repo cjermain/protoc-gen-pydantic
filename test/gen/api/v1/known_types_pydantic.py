@@ -49,58 +49,34 @@ class _ProtoModel(_BaseModel):
 
 
 class WellKnownTypes(_ProtoModel):
-    """
+    wkt_timestamp: ProtoTimestamp | None = _Field(default=None)
+    wkt_duration: ProtoDuration | None = _Field(default=None)
+    wkt_struct: dict[str, _Any] | None = _Field(default=None)
+    wkt_value: _Any | None = _Field(default=None)
+    wkt_list_value: list[_Any] | None = _Field(default=None)
+    wkt_any: _Any | None = _Field(default=None)
+    wkt_field_mask: list[str] | None = _Field(default=None)
+    wkt_bool: bool | None = _Field(default=None)
+    wkt_int32: int | None = _Field(default=None)
+    wkt_int64: ProtoInt64 | None = _Field(default=None)
+    wkt_uint32: int | None = _Field(default=None)
+    wkt_uint64: ProtoUInt64 | None = _Field(default=None)
+    wkt_float: float | None = _Field(default=None)
+    wkt_double: float | None = _Field(default=None)
+    wkt_string: str | None = _Field(default=None)
+    wkt_bytes: bytes | None = _Field(default=None)
+    wkt_empty: None = _Field(default=None)
 
-    Attributes:
-      wkt_timestamp (ProtoTimestamp | None):
-      wkt_duration (ProtoDuration | None):
-      wkt_struct (dict[str, _Any] | None):
-      wkt_value (_Any | None):
-      wkt_list_value (list[_Any] | None):
-      wkt_any (_Any | None):
-      wkt_field_mask (list[str] | None):
-      wkt_bool (bool | None):
-      wkt_int32 (int | None):
-      wkt_int64 (ProtoInt64 | None):
-      wkt_uint32 (int | None):
-      wkt_uint64 (ProtoUInt64 | None):
-      wkt_float (float | None):
-      wkt_double (float | None):
-      wkt_string (str | None):
-      wkt_bytes (bytes | None):
-      wkt_empty (None):
-    """
 
-    wkt_timestamp: "ProtoTimestamp | None" = _Field(default=None)
+class Event(_ProtoModel):
+    model_config = _ConfigDict(populate_by_name=True, protected_namespaces=())
 
-    wkt_duration: "ProtoDuration | None" = _Field(default=None)
-
-    wkt_struct: "dict[str, _Any] | None" = _Field(default=None)
-
-    wkt_value: "_Any | None" = _Field(default=None)
-
-    wkt_list_value: "list[_Any] | None" = _Field(default=None)
-
-    wkt_any: "_Any | None" = _Field(default=None)
-
-    wkt_field_mask: "list[str] | None" = _Field(default=None)
-
-    wkt_bool: "bool | None" = _Field(default=None)
-
-    wkt_int32: "int | None" = _Field(default=None)
-
-    wkt_int64: "ProtoInt64 | None" = _Field(default=None)
-
-    wkt_uint32: "int | None" = _Field(default=None)
-
-    wkt_uint64: "ProtoUInt64 | None" = _Field(default=None)
-
-    wkt_float: "float | None" = _Field(default=None)
-
-    wkt_double: "float | None" = _Field(default=None)
-
-    wkt_string: "str | None" = _Field(default=None)
-
-    wkt_bytes: "bytes | None" = _Field(default=None)
-
-    wkt_empty: "None" = _Field(default=None)
+    id_: str = _Field(
+        default="",
+        alias="id",
+    )
+    occurred: ProtoTimestamp | None = _Field(default=None)
+    duration: ProtoDuration | None = _Field(default=None)
+    metadata: dict[str, _Any] | None = _Field(default=None)
+    update_mask: list[str] | None = _Field(default=None)
+    retry_count: int | None = _Field(default=None)

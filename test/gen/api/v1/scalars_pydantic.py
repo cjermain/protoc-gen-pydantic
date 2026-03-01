@@ -53,153 +53,61 @@ class _ProtoModel(_BaseModel):
 
 
 class Scalars(_ProtoModel):
-    """
-
-    Attributes:
-      int32 (int):
-      int64 (ProtoInt64):
-      uint32 (int):
-      uint64 (ProtoUInt64):
-      fixed32 (int):
-      fixed64 (ProtoUInt64):
-      sint32 (int):
-      sint64 (ProtoInt64):
-      sfixed32 (int):
-      sfixed64 (ProtoInt64):
-      bool_ (bool):
-      float_ (float):
-      double (float):
-      string (str):
-      bytes_ (bytes):
-      enum (Enum | None):
-      nested_enum (Scalars.NestedEnum | None):
-      message (Message | None):
-      nested_message (Scalars.NestedMessage | None):
-      int32_optional (int | None):
-      int64_optional (ProtoInt64 | None):
-      uint32_optional (int | None):
-      uint64_optional (ProtoUInt64 | None):
-      fixed32_optional (int | None):
-      fixed64_optional (ProtoUInt64 | None):
-      sint32_optional (int | None):
-      sint64_optional (ProtoInt64 | None):
-      sfixed32_optional (int | None):
-      sfixed64_optional (ProtoInt64 | None):
-      bool_optional (bool | None):
-      float_optional (float | None):
-      double_optional (float | None):
-      string_optional (str | None):
-      bytes_optional (bytes | None):
-      enum_optional (Enum | None):
-      nested_enum_optional (Scalars.NestedEnum | None):
-      message_optional (Message | None):
-      nested_message_optional (Scalars.NestedMessage | None):
-    """
-
-    model_config = _ConfigDict(populate_by_name=True)
+    model_config = _ConfigDict(populate_by_name=True, protected_namespaces=())
 
     class NestedEnum(str, _Enum):
-        """ """
-
         UNSPECIFIED = "UNSPECIFIED"  # 0
-
         ACTIVE = "ACTIVE"  # 1
-
         INACTIVE = "INACTIVE"  # 2
 
     class NestedMessage(_ProtoModel):
-        """
+        first_name: str = _Field(default="")
+        last_name: str = _Field(default="")
 
-        Attributes:
-          first_name (str):
-          last_name (str):
-        """
-
-        first_name: "str" = _Field(default="")
-
-        last_name: "str" = _Field(default="")
-
-    int32: "int" = _Field(default=0)
-
-    int64: "ProtoInt64" = _Field(default=0)
-
-    uint32: "int" = _Field(default=0)
-
-    uint64: "ProtoUInt64" = _Field(default=0)
-
-    fixed32: "int" = _Field(default=0)
-
-    fixed64: "ProtoUInt64" = _Field(default=0)
-
-    sint32: "int" = _Field(default=0)
-
-    sint64: "ProtoInt64" = _Field(default=0)
-
-    sfixed32: "int" = _Field(default=0)
-
-    sfixed64: "ProtoInt64" = _Field(default=0)
-
-    bool_: "bool" = _Field(
+    int32: int = _Field(default=0)
+    int64: ProtoInt64 = _Field(default=0)
+    uint32: int = _Field(default=0)
+    uint64: ProtoUInt64 = _Field(default=0)
+    fixed32: int = _Field(default=0)
+    fixed64: ProtoUInt64 = _Field(default=0)
+    sint32: int = _Field(default=0)
+    sint64: ProtoInt64 = _Field(default=0)
+    sfixed32: int = _Field(default=0)
+    sfixed64: ProtoInt64 = _Field(default=0)
+    bool_: bool = _Field(
         default=False,
         alias="bool",
     )
-
-    float_: "float" = _Field(
+    float_: float = _Field(
         default=0.0,
         alias="float",
     )
-
-    double: "float" = _Field(default=0.0)
-
-    string: "str" = _Field(default="")
-
-    bytes_: "bytes" = _Field(
+    double: float = _Field(default=0.0)
+    string: str = _Field(default="")
+    bytes_: bytes = _Field(
         default=b"",
         alias="bytes",
     )
-
     enum: "Enum | None" = _Field(default=None)
-
     nested_enum: "Scalars.NestedEnum | None" = _Field(default=None)
-
     message: "Message | None" = _Field(default=None)
-
     nested_message: "Scalars.NestedMessage | None" = _Field(default=None)
-
-    int32_optional: "int | None" = _Field(default=None)
-
-    int64_optional: "ProtoInt64 | None" = _Field(default=None)
-
-    uint32_optional: "int | None" = _Field(default=None)
-
-    uint64_optional: "ProtoUInt64 | None" = _Field(default=None)
-
-    fixed32_optional: "int | None" = _Field(default=None)
-
-    fixed64_optional: "ProtoUInt64 | None" = _Field(default=None)
-
-    sint32_optional: "int | None" = _Field(default=None)
-
-    sint64_optional: "ProtoInt64 | None" = _Field(default=None)
-
-    sfixed32_optional: "int | None" = _Field(default=None)
-
-    sfixed64_optional: "ProtoInt64 | None" = _Field(default=None)
-
-    bool_optional: "bool | None" = _Field(default=None)
-
-    float_optional: "float | None" = _Field(default=None)
-
-    double_optional: "float | None" = _Field(default=None)
-
-    string_optional: "str | None" = _Field(default=None)
-
-    bytes_optional: "bytes | None" = _Field(default=None)
-
+    int32_optional: int | None = _Field(default=None)
+    int64_optional: ProtoInt64 | None = _Field(default=None)
+    uint32_optional: int | None = _Field(default=None)
+    uint64_optional: ProtoUInt64 | None = _Field(default=None)
+    fixed32_optional: int | None = _Field(default=None)
+    fixed64_optional: ProtoUInt64 | None = _Field(default=None)
+    sint32_optional: int | None = _Field(default=None)
+    sint64_optional: ProtoInt64 | None = _Field(default=None)
+    sfixed32_optional: int | None = _Field(default=None)
+    sfixed64_optional: ProtoInt64 | None = _Field(default=None)
+    bool_optional: bool | None = _Field(default=None)
+    float_optional: float | None = _Field(default=None)
+    double_optional: float | None = _Field(default=None)
+    string_optional: str | None = _Field(default=None)
+    bytes_optional: bytes | None = _Field(default=None)
     enum_optional: "Enum | None" = _Field(default=None)
-
     nested_enum_optional: "Scalars.NestedEnum | None" = _Field(default=None)
-
     message_optional: "Message | None" = _Field(default=None)
-
     nested_message_optional: "Scalars.NestedMessage | None" = _Field(default=None)

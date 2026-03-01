@@ -1,0 +1,65 @@
+syntax = "proto3";
+
+package test.api.v1;
+
+option go_package = "github.com/cjermain/protoc-gen-pydantic/test/api";
+
+message Item {
+  string name     = 1;
+  int32  quantity = 2;
+  double price    = 3;
+}
+
+message Person {
+  string name   = 1;
+  int32  age    = 2;
+  bool   active = 3;
+  double score  = 4;
+  bytes  avatar = 5;
+}
+
+message SearchRequest {
+  optional string query           = 1;
+  optional int32  page_size       = 2;
+  optional bool   include_deleted = 3;
+}
+
+message TaggedItem {
+  string         name   = 1;
+  repeated string tags   = 2;
+  repeated int32  scores = 3;
+}
+
+message Config {
+  map<string, string> labels   = 1;
+  map<string, int32>  counters = 2;
+}
+
+message Payment {
+  oneof method {
+    string credit_card = 1;
+    string paypal      = 2;
+    string bank_iban   = 3;
+  }
+}
+
+message Address {
+  string street = 1;
+  string city   = 2;
+}
+
+message Order {
+  string  order_id = 1;
+  Address address  = 2;
+}
+
+message Task {
+  enum Status {
+    STATUS_UNSPECIFIED = 0;
+    STATUS_OPEN        = 1;
+    STATUS_DONE        = 2;
+  }
+
+  string status_label = 1;
+  Status status       = 2;
+}

@@ -50,14 +50,6 @@ class CommentedMessage(_ProtoModel):
     """
     Leading comment on CommentedMessage.
     CommentedMessage exercises all comment positions.
-
-    Attributes:
-      firstName (str):
-        Leading comment on first_name.
-        The given name of the person.
-      lastName (str):
-        Leading comment on last_name.
-        The family name of the person.
     """
 
     class NestedEnum(int, _Enum):
@@ -72,11 +64,9 @@ class CommentedMessage(_ProtoModel):
         # Leading comment on UNSPECIFIED value.
         NESTED_ENUM_UNSPECIFIED = 0  # NESTED_ENUM_UNSPECIFIED
         # Right comment on UNSPECIFIED.
-
         # Leading comment on ACTIVE value.
         NESTED_ENUM_ACTIVE = 1  # NESTED_ENUM_ACTIVE
         # Right comment on ACTIVE.
-
         # Leading comment on INACTIVE value.
         NESTED_ENUM_INACTIVE = 2  # NESTED_ENUM_INACTIVE
         # Right comment on INACTIVE.
@@ -85,14 +75,6 @@ class CommentedMessage(_ProtoModel):
         """
         Leading comment on NestedMessage.
         A message nested inside CommentedMessage.
-
-        Attributes:
-          firstName (str):
-            Leading comment on nested first_name.
-            The given name in the nested message.
-          lastName (str):
-            Leading comment on nested last_name.
-            The family name in the nested message.
         """
 
         # Trailing comment on NestedMessage.
@@ -100,12 +82,11 @@ class CommentedMessage(_ProtoModel):
 
         # Leading comment on nested first_name.
         # The given name in the nested message.
-        firstName: "str" = _Field(default="")
+        firstName: str = _Field(default="")
         # Right comment on nested first_name.
-
         # Leading comment on nested last_name.
         # The family name in the nested message.
-        lastName: "str" = _Field(default="")
+        lastName: str = _Field(default="")
         # Right comment on nested last_name.
 
     # Trailing comment on CommentedMessage.
@@ -113,22 +94,17 @@ class CommentedMessage(_ProtoModel):
 
     # Leading comment on first_name.
     # The given name of the person.
-    firstName: "str" = _Field(default="")
+    firstName: str = _Field(default="")
     # Right comment on first_name.
-
     # Leading comment on last_name.
     # The family name of the person.
-    lastName: "str" = _Field(default="")
+    lastName: str = _Field(default="")
     # Right comment on last_name.
 
 
 class Outer(_ProtoModel):
     """
     Outer message comment.
-
-    Attributes:
-      outerField (str):
-        Outer field comment.
     """
 
     class OuterEnum(int, _Enum):
@@ -137,16 +113,11 @@ class Outer(_ProtoModel):
         """
 
         OUTER_ENUM_UNSPECIFIED = 0  # OUTER_ENUM_UNSPECIFIED
-
         OUTER_ENUM_X = 1  # OUTER_ENUM_X
 
     class Inner(_ProtoModel):
         """
         Inner message comment.
-
-        Attributes:
-          innerField (str):
-            Inner field comment.
         """
 
         class InnerEnum(int, _Enum):
@@ -155,23 +126,18 @@ class Outer(_ProtoModel):
             """
 
             INNER_ENUM_UNSPECIFIED = 0  # INNER_ENUM_UNSPECIFIED
-
             INNER_ENUM_A = 1  # INNER_ENUM_A
 
         class Deepest(_ProtoModel):
             """
             Deepest message comment.
-
-            Attributes:
-              deepestField (str):
-                Deepest field comment.
             """
 
             # Deepest field comment.
-            deepestField: "str" = _Field(default="")
+            deepestField: str = _Field(default="")
 
         # Inner field comment.
-        innerField: "str" = _Field(default="")
+        innerField: str = _Field(default="")
 
     # Outer field comment.
-    outerField: "str" = _Field(default="")
+    outerField: str = _Field(default="")

@@ -9,3 +9,21 @@ enum Enum {
   ENUM_ACTIVE = 1;
   ENUM_INACTIVE = 2;
 }
+
+// A primary hue.
+enum Hue {
+  HUE_UNSPECIFIED = 0;
+  HUE_RED         = 1;
+  HUE_BLUE        = 2;
+}
+
+message Shape {
+  enum Kind {
+    KIND_UNSPECIFIED = 0;
+    KIND_CIRCLE      = 1;
+    KIND_SQUARE      = 2;
+  }
+
+  optional Hue  color = 1;
+  optional Kind kind  = 2;
+}

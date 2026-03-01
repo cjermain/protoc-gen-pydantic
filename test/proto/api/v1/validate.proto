@@ -152,6 +152,14 @@ message ValidatedFormats {
   string host_v6 = 7 [(buf.validate.field).string.ipv6 = true];
 }
 
+// ValidatedFinite exercises float.finite and double.finite constraints.
+message ValidatedFinite {
+  // Ratio must be finite (not inf or NaN).
+  float ratio = 1 [(buf.validate.field).float.finite = true];
+  // Value must be finite (not inf or NaN).
+  double value = 2 [(buf.validate.field).double.finite = true];
+}
+
 // ValidatedDropped exercises constraints that are recognised but not translated.
 message ValidatedDropped {
   // Name is required; the required constraint is not translated.
@@ -203,6 +211,30 @@ message ValidatedStringContains {
     (buf.validate.field).string.prefix = "env-",
     (buf.validate.field).string.contains = "prod"
   ];
+}
+
+// A user account.
+message ValidatedUser {
+  // Display name (1–50 characters).
+  string name = 1 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).string.max_len = 50
+  ];
+
+  // Age in years.
+  int32 age = 2 [(buf.validate.field).int32.gte = 0];
+
+  // Contact email address.
+  string email = 3 [(buf.validate.field).string.email = true];
+
+  enum Role {
+    ROLE_UNSPECIFIED = 0;
+    ROLE_VIEWER      = 1;
+    ROLE_EDITOR      = 2;
+    ROLE_ADMIN       = 3;
+  }
+
+  Role role = 4;
 }
 
 // ValidatedRequired exercises required = true on proto3 optional scalar fields

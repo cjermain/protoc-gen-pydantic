@@ -38,17 +38,14 @@ class Status(_ProtoEnum):
         0,
         _EnumValueOptions(number=0),
     )  # STATUS_UNSPECIFIED
-
     STATUS_ACTIVE = (
         1,
         _EnumValueOptions(number=1),
     )  # STATUS_ACTIVE
-
     STATUS_INACTIVE = (
         2,
         _EnumValueOptions(number=2),
     )  # STATUS_INACTIVE
-
     STATUS_ARCHIVED = (
         3,
         _EnumValueOptions(number=3, deprecated=True, debug_redact=True),

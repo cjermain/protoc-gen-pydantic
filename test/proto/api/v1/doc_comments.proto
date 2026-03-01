@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package test.api.v1;
+
+option go_package = "github.com/cjermain/protoc-gen-pydantic/test/api";
+
+// A user account in the system.
+// Represents a single registered user.
+message User {
+  // The user's display name.
+  string name = 1;
+
+  // Age in full years.
+  int32 age = 2;
+}
+
+// The current lifecycle status of a task.
+enum TaskStatus {
+  // Not yet assigned a status.
+  TASK_STATUS_UNSPECIFIED = 0;
+  // Task is ready to be worked on.
+  TASK_STATUS_OPEN = 1;
+  // Task has been completed.
+  TASK_STATUS_DONE = 2;
+}

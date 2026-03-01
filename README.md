@@ -10,6 +10,7 @@
 [![Pydantic v2](https://img.shields.io/badge/pydantic-v2-blue)](https://docs.pydantic.dev/)
 [![buf](https://img.shields.io/badge/buf-compatible-blue)](https://buf.build/)
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit)](https://pre-commit.com/)
+[![Docs](https://img.shields.io/badge/docs-GitHub%20Pages-blue)](https://cjermain.github.io/protoc-gen-pydantic/)
 
 `protoc-gen-pydantic` is a `protoc` plugin that generates [Pydantic v2](https://docs.pydantic.dev/) model definitions from `.proto` files.
 

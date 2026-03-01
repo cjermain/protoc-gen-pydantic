@@ -31,3 +31,12 @@ message WellKnownTypes {
   google.protobuf.BytesValue wkt_bytes = 16;
   google.protobuf.Empty wkt_empty = 17;
 }
+
+message Event {
+  string                     id          = 1;
+  google.protobuf.Timestamp  occurred    = 2;
+  google.protobuf.Duration   duration    = 3;
+  google.protobuf.Struct     metadata    = 4;
+  google.protobuf.FieldMask  update_mask = 5;
+  google.protobuf.Int32Value retry_count = 6;
+}

@@ -43,26 +43,15 @@ func pyQuote(s string) string {
 	return q
 }
 
-// pyQuoteSingle produces a single-quoted Python string literal for s.
-// Needed to embed string values inside double-quoted type annotation strings
-// (e.g. inside Literal[...]) without breaking the outer delimiter.
-func pyQuoteSingle(s string) string {
-	q := fmt.Sprintf("%q", s)                    // double-quoted Go literal, e.g. "fixed"
-	inner := q[1 : len(q)-1]                     // strip outer double-quotes: fixed
-	inner = strings.ReplaceAll(inner, `\"`, `"`) // unescape \"
-	inner = strings.ReplaceAll(inner, `'`, `\'`) // escape any single quotes
-	return "'" + inner + "'"
-}
-
 // formatScalarLiteral formats a scalar protoreflect.Value as a Python literal
-// suitable for embedding in type annotations (single-quoted strings for strings).
+// suitable for embedding in type annotations (double-quoted strings for strings).
 // Returns "" for unsupported kinds (bytes, float, double, messages, enums) so
 // callers fall through to dropped-constraint comments. Float/double are excluded
 // because Python's Literal[] type does not accept float values (PEP 586).
 func formatScalarLiteral(fd protoreflect.FieldDescriptor, v protoreflect.Value) string {
 	switch fd.Kind() {
 	case protoreflect.StringKind:
-		return pyQuoteSingle(v.String())
+		return pyQuote(v.String())
 	case protoreflect.BoolKind:
 		if v.Bool() {
 			return "True"
@@ -294,16 +283,15 @@ class _ProtoEnum({{ if $config.UseIntegersForEnums }}int{{ else }}str{{ end }}, 
 {{$bi}}{{ . }}
 {{- end }}
 {{$bi}}"""
-{{- else }}
-{{$bi}}""" """
 {{- end }}
 {{- if $e.TrailingComments }}
 {{$bi}}{{ range $e.TrailingComments }}
 {{$bi}}# {{ . }}
 {{- end }}
 {{- end }}
-{{- range $e.Values }}
-{{$bi}}{{ range .LeadingComments }}
+{{- range $i, $_ := $e.Values }}
+{{- if and (not $i) (or $e.LeadingComments $e.TrailingComments)}}
+{{$bi}}{{end}}{{- range .LeadingComments }}
 {{$bi}}# {{ . }}
 {{- end }}
 {{- if .EnumHasOptions }}
@@ -374,38 +362,34 @@ class _ProtoEnum({{ if $config.UseIntegersForEnums }}int{{ else }}str{{ end }}, 
 {{- $hasEnumOptions := index . "HasEnumOptions" -}}
 {{- $customOptionFields := index . "CustomOptionFields" -}}
 {{$indent}}class {{ $m.Name }}(_ProtoModel):
+{{- if $m.LeadingComments }}
 {{$bi}}"""
 {{- range $m.LeadingComments }}
 {{$bi}}{{ . }}
 {{- end }}
-{{$bi}}
-{{$bi}}Attributes:
-{{- range $m.Fields }}
-{{$bi}}  {{ .Name }} ({{ .Type }}):
-{{- range .LeadingComments }}
-{{$bi}}    {{ . }}
+{{$bi}}"""{{- end }}
+{{- if and $m.LeadingComments $m.HasAlias }}
+{{ end }}{{- if $m.HasAlias }}
+{{$bi}}model_config = _ConfigDict(populate_by_name=True, protected_namespaces=())
 {{- end }}
-{{- end }}
-{{$bi}}"""
-{{- if $m.HasAlias }}
-
-{{$bi}}model_config = _ConfigDict(populate_by_name=True)
-{{- end }}
-{{- range $m.NestedEnums }}
-
-{{template "renderEnum" (dict "Enum" . "Indent" $bi "Config" $config "HasEnumOptions" $hasEnumOptions "CustomOptionFields" $customOptionFields)}}{{- end }}{{- range $m.NestedMessages }}
-
-{{template "renderMessage" (dict "Message" . "Indent" $bi "Config" $config "HasEnumOptions" $hasEnumOptions "CustomOptionFields" $customOptionFields)}}{{- end }}
+{{- if and (or $m.LeadingComments $m.HasAlias) $m.NestedEnums }}
+{{ end }}{{- range $i, $e := $m.NestedEnums }}{{ if $i }}
+{{ end }}
+{{template "renderEnum" (dict "Enum" $e "Indent" $bi "Config" $config "HasEnumOptions" $hasEnumOptions "CustomOptionFields" $customOptionFields)}}{{- end }}{{- if and (or $m.LeadingComments $m.HasAlias $m.NestedEnums) $m.NestedMessages }}
+{{ end }}{{- range $i, $nm := $m.NestedMessages }}{{ if $i }}
+{{ end }}
+{{template "renderMessage" (dict "Message" $nm "Indent" $bi "Config" $config "HasEnumOptions" $hasEnumOptions "CustomOptionFields" $customOptionFields)}}{{- end }}
 {{- range $i, $v := $m.TrailingComments }}{{ if eq $i 0 }}
 {{ end }}
 {{$bi}}# {{ $v }}
 {{- end }}
-{{ range $i, $field := $m.Fields }}{{ if $i }}
-{{ end }}{{- range $field.LeadingComments }}
+{{- if or $m.LeadingComments $m.HasAlias $m.NestedEnums $m.NestedMessages $m.TrailingComments }}
+{{ end }}{{- range $field := $m.Fields }}
+{{- range $field.LeadingComments }}
 {{$bi}}# {{ . }}
 {{- end }}
 {{- if or (and (not $config.DisableFieldDescription) (or (ne (len $field.LeadingComments) 0) (ne $field.OneOf nil))) $field.Alias $field.IsDefaultFactory $field.HasConstraints }}
-{{$bi}}{{ $field.Name }}: "{{ $field.Type }}" = _Field(
+{{$bi}}{{ $field.Name }}: {{ $field.TypeAnnotationFormatted $bi }} = _Field(
 {{$bi}}    {{ $field.Default }},
 {{- if and (not $config.DisableFieldDescription) (or (ne (len $field.LeadingComments) 0) (ne $field.OneOf nil)) }}
 {{$bi}}    description={{ pyQuote $field.Description }},
@@ -421,7 +405,7 @@ class _ProtoEnum({{ if $config.UseIntegersForEnums }}int{{ else }}str{{ end }}, 
 {{- end }}
 {{$bi}})
 {{- else }}
-{{$bi}}{{ $field.Name }}: "{{ $field.Type }}" = _Field({{ $field.Default }})
+{{$bi}}{{ $field.Name }}: {{ $field.TypeAnnotationFormatted $bi }} = _Field({{ $field.Default }})
 {{- end }}
 {{- range $field.TrailingComments }}
 {{$bi}}# {{ . }}
@@ -817,6 +801,7 @@ type Field struct {
 	Name             string
 	Alias            string // non-empty when Name was renamed to avoid shadowing Python builtins
 	Type             string
+	NeedsQuote       bool // true when Type contains a user-defined class (message/enum) requiring a forward-reference string annotation
 	Optional         bool
 	Default          string // proto3 zero-value default (e.g. "0", "False", "None", "default_factory=list")
 	OneOf            *OneOf
@@ -831,6 +816,39 @@ func (f Field) IsDefaultFactory() bool {
 
 func (f Field) HasConstraints() bool {
 	return f.Constraints != nil && f.Constraints.HasAny()
+}
+
+// TypeAnnotation returns the type as it should appear in a Python annotation,
+// wrapped in double quotes when the type is a forward reference to a
+// user-defined class (message or enum).
+func (f Field) TypeAnnotation() string {
+	if f.NeedsQuote {
+		return `"` + f.Type + `"`
+	}
+	return f.Type
+}
+
+// TypeAnnotationFormatted returns the type annotation formatted for the field
+// definition line at the given base indent level. For unquoted _Annotated[...]
+// types whose definition line would exceed 88 characters, it wraps the
+// annotation across multiple lines to match ruff's output style.
+func (f Field) TypeAnnotationFormatted(bi string) string {
+	annotation := f.TypeAnnotation()
+	// Only wrap unquoted _Annotated[...] types (quoted types are never split).
+	if f.NeedsQuote || !strings.HasPrefix(annotation, "_Annotated[") || !strings.HasSuffix(annotation, "]") {
+		return annotation
+	}
+	// Check whether the full field definition opening line fits within 88 chars.
+	fullLine := bi + f.Name + ": " + annotation + " = _Field("
+	if len(fullLine) <= 88 {
+		return annotation
+	}
+	// Wrap as:
+	//   _Annotated[
+	//   {bi}    inner
+	//   {bi}]
+	inner := annotation[len("_Annotated[") : len(annotation)-1]
+	return "_Annotated[\n" + bi + "    " + inner + "\n" + bi + "]"
 }
 
 func (f Field) ConstraintArgs() []string {
@@ -1485,12 +1503,13 @@ func (e *generator) processMessage(
 			name = name + "_"
 		}
 		f := Field{
-			Name:     name,
-			Alias:    alias,
-			Type:     typ,
-			Optional: field.HasOptionalKeyword(),
-			Default:  e.resolveDefault(field),
-			OneOf:    oneOf,
+			Name:       name,
+			Alias:      alias,
+			Type:       typ,
+			NeedsQuote: fieldNeedsQuote(field),
+			Optional:   field.HasOptionalKeyword(),
+			Default:    e.resolveDefault(field),
+			OneOf:      oneOf,
 		}
 		f.LeadingComments, f.TrailingComments = extractComments(sourceCodeInfo, fieldPath)
 		if fp := msgProto.GetField()[i]; fp.GetOptions() != nil {
@@ -1547,6 +1566,24 @@ func (e *generator) addCrossFileImport(sourceFile, targetFile protoreflect.FileD
 		e.addExternalImport(fmt.Sprintf("from %s.%s import %s", pyPkg, moduleName, importName))
 	}
 	return nil
+}
+
+// fieldNeedsQuote reports whether the resolved Python type for the given
+// protobuf field descriptor contains a user-defined class name (message or
+// enum) and therefore requires a quoted forward-reference annotation.
+func fieldNeedsQuote(field protoreflect.FieldDescriptor) bool {
+	candidate := field
+	if field.IsMap() {
+		candidate = field.MapValue()
+	}
+	switch candidate.Kind() {
+	case protoreflect.EnumKind:
+		return true
+	case protoreflect.MessageKind:
+		_, isWKT := wellKnownTypes[string(candidate.Message().FullName())]
+		return !isWKT
+	}
+	return false
 }
 
 func (e *generator) resolveBaseType(referer string, field protoreflect.FieldDescriptor) (string, error) {
