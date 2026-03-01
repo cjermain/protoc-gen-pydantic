@@ -50,37 +50,21 @@ class _ProtoModel(_BaseModel):
 
 class WellKnownTypes(_ProtoModel):
     wktTimestamp: "_Optional[ProtoTimestamp]" = _Field(default=None)
-
     wktDuration: "_Optional[ProtoDuration]" = _Field(default=None)
-
     wktStruct: "_Optional[dict[str, _Any]]" = _Field(default=None)
-
     wktValue: "_Optional[_Any]" = _Field(default=None)
-
     wktListValue: "_Optional[list[_Any]]" = _Field(default=None)
-
     wktAny: "_Optional[_Any]" = _Field(default=None)
-
     wktFieldMask: "_Optional[list[str]]" = _Field(default=None)
-
     wktBool: "_Optional[bool]" = _Field(default=None)
-
     wktInt32: "_Optional[int]" = _Field(default=None)
-
     wktInt64: "_Optional[ProtoInt64]" = _Field(default=None)
-
     wktUint32: "_Optional[int]" = _Field(default=None)
-
     wktUint64: "_Optional[ProtoUInt64]" = _Field(default=None)
-
     wktFloat: "_Optional[float]" = _Field(default=None)
-
     wktDouble: "_Optional[float]" = _Field(default=None)
-
     wktString: "_Optional[str]" = _Field(default=None)
-
     wktBytes: "_Optional[bytes]" = _Field(default=None)
-
     wktEmpty: "None" = _Field(default=None)
 
 
@@ -91,13 +75,8 @@ class Event(_ProtoModel):
         default="",
         alias="id",
     )
-
     occurred: "_Optional[ProtoTimestamp]" = _Field(default=None)
-
     duration: "_Optional[ProtoDuration]" = _Field(default=None)
-
     metadata: "_Optional[dict[str, _Any]]" = _Field(default=None)
-
     updateMask: "_Optional[list[str]]" = _Field(default=None)
-
     retryCount: "_Optional[int]" = _Field(default=None)

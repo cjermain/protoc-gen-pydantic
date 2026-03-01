@@ -80,40 +80,34 @@ class ValidatedScalars(_ProtoModel):
         gt=0,
         le=150,
     )
-
     # Score must be in [0.0, 100.0].
     score: "float" = _Field(
         default=0.0,
         ge=0.0,
         le=100.0,
     )
-
     # Priority must be positive.
     priority: "ProtoInt64" = _Field(
         default=0,
         gt=0,
     )
-
     # Ratio must be non-negative and less than 1.
     ratio: "float" = _Field(
         default=0.0,
         ge=0.0,
         lt=1.0,
     )
-
     # Rank must be in [1, 10].
     rank: "int" = _Field(
         default=0,
         ge=1,
         le=10,
     )
-
     # Count must be non-zero (covers uint64 / fixed64 literal formatting).
     count: "_Optional[ProtoUInt64]" = _Field(
         default=None,
         gt=0,
     )
-
     # Offset must be non-negative (covers sint32 / sfixed32 literal formatting).
     offset: "_Optional[int]" = _Field(
         default=None,
@@ -132,19 +126,16 @@ class ValidatedStrings(_ProtoModel):
         min_length=1,
         max_length=100,
     )
-
     # Code must match uppercase letters only.
     code: "str" = _Field(
         default="",
         pattern="^[A-Z]+$",
     )
-
     # Bio has only a max length.
     bio: "str" = _Field(
         default="",
         max_length=500,
     )
-
     # Tag has only a min length.
     tag: "str" = _Field(
         default="",
@@ -163,7 +154,6 @@ class ValidatedRepeated(_ProtoModel):
         min_length=1,
         max_length=10,
     )
-
     # Tags must have at least 1 element.
     tags: "list[str]" = _Field(
         default_factory=list,
@@ -211,7 +201,6 @@ class ValidatedOneof(_ProtoModel):
         default=None,
         gt=0,
     )
-
     # Must be positive when set.
     large: "_Optional[ProtoInt64]" = _Field(
         default=None,
@@ -270,19 +259,16 @@ class ValidatedStringAffix(_ProtoModel):
         default="",
         pattern="^https://",
     )
-
     # Filename must end with ".go".
     filename: "str" = _Field(
         default="",
         pattern="\\.go$",
     )
-
     # Path must start with "/home/" and end with ".txt".
     path: "str" = _Field(
         default="",
         pattern="^/home/.*\\.txt$",
     )
-
     # Content must match a pattern; prefix is also set (conflict → prefix dropped).
     content: "str" = _Field(
         default="",
@@ -302,7 +288,6 @@ class ValidatedExamples(_ProtoModel):
         gt=0,
         examples=[1, 42],
     )
-
     # Name with string examples.
     name: "str" = _Field(
         default="",
@@ -321,32 +306,26 @@ class ValidatedFormats(_ProtoModel):
     email: "_Annotated[str, _AfterValidator(_validate_email)]" = _Field(
         default="",
     )
-
     # Website must be a valid URI.
     website: "_Annotated[str, _AfterValidator(_validate_uri)]" = _Field(
         default="",
     )
-
     # Address must be a valid IP address.
     address: "_Annotated[str, _AfterValidator(_validate_ip)]" = _Field(
         default="",
     )
-
     # Ratio must be finite (not inf or NaN).
     ratio: "_Annotated[float, _AfterValidator(_require_finite)]" = _Field(
         default=0.0,
     )
-
     # Token must be a valid UUID.
     token: "_Annotated[str, _AfterValidator(_validate_uuid)]" = _Field(
         default="",
     )
-
     # Host must be a valid IPv4 address.
     hostV4: "_Annotated[str, _AfterValidator(_validate_ipv4)]" = _Field(
         default="",
     )
-
     # Host must be a valid IPv6 address.
     hostV6: "_Annotated[str, _AfterValidator(_validate_ipv6)]" = _Field(
         default="",
@@ -363,13 +342,11 @@ class ValidatedDropped(_ProtoModel):
         default="",
         # buf.validate: required (not translated)
     )
-
     # Blob has a bytes.const constraint which is not translated (bytes kind unsupported).
     blob: "bytes" = _Field(
         default=b"",
         # buf.validate: const (not translated)
     )
-
     # Score must be positive; required is also set but not translated.
     score: "int" = _Field(
         default=0,
@@ -386,15 +363,12 @@ class ValidatedConst(_ProtoModel):
     tag: "_Literal['fixed']" = _Field(
         default="fixed",
     )
-
     count: "_Literal[42]" = _Field(
         default=42,
     )
-
     active: "_Literal[True]" = _Field(
         default=True,
     )
-
     score: "_Annotated[float, _AfterValidator(_make_const_validator(3.14))]" = _Field(
         default=3.14,
     )
@@ -408,11 +382,9 @@ class ValidatedIn(_ProtoModel):
     status: "_Annotated[str, _AfterValidator(_make_in_validator(frozenset({'active', 'inactive'})))]" = _Field(
         default="",
     )
-
     code: "_Annotated[str, _AfterValidator(_make_not_in_validator(frozenset({'deleted', 'archived'})))]" = _Field(
         default="",
     )
-
     priority: "_Annotated[int, _AfterValidator(_make_in_validator(frozenset({1, 2, 3})))]" = _Field(
         default=0,
     )
@@ -426,7 +398,6 @@ class ValidatedUnique(_ProtoModel):
     tags: "_Annotated[list[str], _AfterValidator(_require_unique)]" = _Field(
         default_factory=list,
     )
-
     scores: "_Annotated[list[int], _AfterValidator(_require_unique)]" = _Field(
         default_factory=list,
     )
@@ -444,7 +415,6 @@ class ValidatedBytes(_ProtoModel):
         default=b"",
         min_length=16,
     )
-
     # Hash must be exactly 32 bytes.
     hash_: "bytes" = _Field(
         default=b"",
@@ -452,7 +422,6 @@ class ValidatedBytes(_ProtoModel):
         min_length=32,
         max_length=32,
     )
-
     # Payload must be at most 1024 bytes.
     payload: "bytes" = _Field(
         default=b"",
@@ -470,7 +439,6 @@ class ValidatedStringContains(_ProtoModel):
         default="",
         pattern="protobuf",
     )
-
     # Label must start with "env-" and contain "prod".
     # The contains conflicts with prefix so contains is dropped.
     label: "str" = _Field(
@@ -497,19 +465,16 @@ class ValidatedRequired(_ProtoModel):
     requiredName: "str" = _Field(
         default=...,
     )
-
     # required on proto3 optional scalar with an additional constraint.
     requiredScore: "int" = _Field(
         default=...,
         gt=0,
     )
-
     # required on message-typed optional: not translated, emits dropped comment.
     requiredDetail: "_Optional[ValidatedRequired.Detail]" = _Field(
         default=None,
         # buf.validate: required (not translated)
     )
-
     # required on plain proto3 scalar: not translated, emits dropped comment.
     plainName: "str" = _Field(
         default="",

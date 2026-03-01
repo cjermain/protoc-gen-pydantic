@@ -58,97 +58,57 @@ class Scalars(_ProtoModel):
 
     class NestedEnum(int, _Enum):
         NESTED_ENUM_UNSPECIFIED = 0  # NESTED_ENUM_UNSPECIFIED
-
         NESTED_ENUM_ACTIVE = 1  # NESTED_ENUM_ACTIVE
-
         NESTED_ENUM_INACTIVE = 2  # NESTED_ENUM_INACTIVE
 
     class NestedMessage(_ProtoModel):
         firstName: "str" = _Field(default="")
-
         lastName: "str" = _Field(default="")
 
     int32: "int" = _Field(default=0)
-
     int64: "ProtoInt64" = _Field(default=0)
-
     uint32: "int" = _Field(default=0)
-
     uint64: "ProtoUInt64" = _Field(default=0)
-
     fixed32: "int" = _Field(default=0)
-
     fixed64: "ProtoUInt64" = _Field(default=0)
-
     sint32: "int" = _Field(default=0)
-
     sint64: "ProtoInt64" = _Field(default=0)
-
     sfixed32: "int" = _Field(default=0)
-
     sfixed64: "ProtoInt64" = _Field(default=0)
-
     bool_: "bool" = _Field(
         default=False,
         alias="bool",
     )
-
     float_: "float" = _Field(
         default=0.0,
         alias="float",
     )
-
     double: "float" = _Field(default=0.0)
-
     string: "str" = _Field(default="")
-
     bytes_: "bytes" = _Field(
         default=b"",
         alias="bytes",
     )
-
     enum: "_Optional[Enum]" = _Field(default=None)
-
     nestedEnum: "_Optional[Scalars.NestedEnum]" = _Field(default=None)
-
     message: "_Optional[Message]" = _Field(default=None)
-
     nestedMessage: "_Optional[Scalars.NestedMessage]" = _Field(default=None)
-
     int32Optional: "_Optional[int]" = _Field(default=None)
-
     int64Optional: "_Optional[ProtoInt64]" = _Field(default=None)
-
     uint32Optional: "_Optional[int]" = _Field(default=None)
-
     uint64Optional: "_Optional[ProtoUInt64]" = _Field(default=None)
-
     fixed32Optional: "_Optional[int]" = _Field(default=None)
-
     fixed64Optional: "_Optional[ProtoUInt64]" = _Field(default=None)
-
     sint32Optional: "_Optional[int]" = _Field(default=None)
-
     sint64Optional: "_Optional[ProtoInt64]" = _Field(default=None)
-
     sfixed32Optional: "_Optional[int]" = _Field(default=None)
-
     sfixed64Optional: "_Optional[ProtoInt64]" = _Field(default=None)
-
     boolOptional: "_Optional[bool]" = _Field(default=None)
-
     floatOptional: "_Optional[float]" = _Field(default=None)
-
     doubleOptional: "_Optional[float]" = _Field(default=None)
-
     stringOptional: "_Optional[str]" = _Field(default=None)
-
     bytesOptional: "_Optional[bytes]" = _Field(default=None)
-
     enumOptional: "_Optional[Enum]" = _Field(default=None)
-
     nestedEnumOptional: "_Optional[Scalars.NestedEnum]" = _Field(default=None)
-
     messageOptional: "_Optional[Message]" = _Field(default=None)
-
     nestedMessageOptional: "_Optional[Scalars.NestedMessage]" = _Field(default=None)

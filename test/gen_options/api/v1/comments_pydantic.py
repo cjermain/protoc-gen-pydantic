@@ -64,11 +64,9 @@ class CommentedMessage(_ProtoModel):
         # Leading comment on UNSPECIFIED value.
         NESTED_ENUM_UNSPECIFIED = 0  # NESTED_ENUM_UNSPECIFIED
         # Right comment on UNSPECIFIED.
-
         # Leading comment on ACTIVE value.
         NESTED_ENUM_ACTIVE = 1  # NESTED_ENUM_ACTIVE
         # Right comment on ACTIVE.
-
         # Leading comment on INACTIVE value.
         NESTED_ENUM_INACTIVE = 2  # NESTED_ENUM_INACTIVE
         # Right comment on INACTIVE.
@@ -86,7 +84,6 @@ class CommentedMessage(_ProtoModel):
         # The given name in the nested message.
         firstName: "str" = _Field(default="")
         # Right comment on nested first_name.
-
         # Leading comment on nested last_name.
         # The family name in the nested message.
         lastName: "str" = _Field(default="")
@@ -99,7 +96,6 @@ class CommentedMessage(_ProtoModel):
     # The given name of the person.
     firstName: "str" = _Field(default="")
     # Right comment on first_name.
-
     # Leading comment on last_name.
     # The family name of the person.
     lastName: "str" = _Field(default="")
@@ -117,7 +113,6 @@ class Outer(_ProtoModel):
         """
 
         OUTER_ENUM_UNSPECIFIED = 0  # OUTER_ENUM_UNSPECIFIED
-
         OUTER_ENUM_X = 1  # OUTER_ENUM_X
 
     class Inner(_ProtoModel):
@@ -131,7 +126,6 @@ class Outer(_ProtoModel):
             """
 
             INNER_ENUM_UNSPECIFIED = 0  # INNER_ENUM_UNSPECIFIED
-
             INNER_ENUM_A = 1  # INNER_ENUM_A
 
         class Deepest(_ProtoModel):

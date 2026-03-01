@@ -47,7 +47,6 @@ class _ProtoModel(_BaseModel):
 
 class Message(_ProtoModel):
     firstName: "str" = _Field(default="")
-
     lastName: "str" = _Field(default="")
 
 

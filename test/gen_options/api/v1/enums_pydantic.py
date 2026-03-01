@@ -49,9 +49,7 @@ class _ProtoModel(_BaseModel):
 
 class Enum(int, _Enum):
     ENUM_UNSPECIFIED = 0  # ENUM_UNSPECIFIED
-
     ENUM_ACTIVE = 1  # ENUM_ACTIVE
-
     ENUM_INACTIVE = 2  # ENUM_INACTIVE
 
 
@@ -61,20 +59,15 @@ class Hue(int, _Enum):
     """
 
     HUE_UNSPECIFIED = 0  # HUE_UNSPECIFIED
-
     HUE_RED = 1  # HUE_RED
-
     HUE_BLUE = 2  # HUE_BLUE
 
 
 class Shape(_ProtoModel):
     class Kind(int, _Enum):
         KIND_UNSPECIFIED = 0  # KIND_UNSPECIFIED
-
         KIND_CIRCLE = 1  # KIND_CIRCLE
-
         KIND_SQUARE = 2  # KIND_SQUARE
 
     color: "_Optional[Hue]" = _Field(default=None)
-
     kind: "_Optional[Shape.Kind]" = _Field(default=None)

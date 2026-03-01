@@ -48,31 +48,23 @@ class _ProtoModel(_BaseModel):
 
 class Person(_ProtoModel):
     name: "str" = _Field(default="")
-
     age: "int" = _Field(default=0)
-
     active: "bool" = _Field(default=False)
-
     score: "float" = _Field(default=0.0)
-
     avatar: "bytes" = _Field(default=b"")
 
 
 class SearchRequest(_ProtoModel):
     query: "str | None" = _Field(default=None)
-
     page_size: "int | None" = _Field(default=None)
-
     include_deleted: "bool | None" = _Field(default=None)
 
 
 class TaggedItem(_ProtoModel):
     name: "str" = _Field(default="")
-
     tags: "list[str]" = _Field(
         default_factory=list,
     )
-
     scores: "list[int]" = _Field(
         default_factory=list,
     )
@@ -82,7 +74,6 @@ class Config(_ProtoModel):
     labels: "dict[str, str]" = _Field(
         default_factory=dict,
     )
-
     counters: "dict[str, int]" = _Field(
         default_factory=dict,
     )
@@ -93,12 +84,10 @@ class Payment(_ProtoModel):
         default=None,
         description="Only one of the fields can be specified with: [credit_card paypal bank_iban] (oneof method)",
     )
-
     paypal: "str | None" = _Field(
         default=None,
         description="Only one of the fields can be specified with: [credit_card paypal bank_iban] (oneof method)",
     )
-
     bank_iban: "str | None" = _Field(
         default=None,
         description="Only one of the fields can be specified with: [credit_card paypal bank_iban] (oneof method)",
@@ -107,24 +96,19 @@ class Payment(_ProtoModel):
 
 class Address(_ProtoModel):
     street: "str" = _Field(default="")
-
     city: "str" = _Field(default="")
 
 
 class Order(_ProtoModel):
     order_id: "str" = _Field(default="")
-
     address: "Address | None" = _Field(default=None)
 
 
 class Task(_ProtoModel):
     class Status(str, _Enum):
         UNSPECIFIED = "UNSPECIFIED"  # 0
-
         OPEN = "OPEN"  # 1
-
         DONE = "DONE"  # 2
 
     status_label: "str" = _Field(default="")
-
     status: "Task.Status | None" = _Field(default=None)

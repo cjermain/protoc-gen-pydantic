@@ -48,9 +48,7 @@ class _ProtoModel(_BaseModel):
 
 class Enum(str, _Enum):
     UNSPECIFIED = "UNSPECIFIED"  # 0
-
     ACTIVE = "ACTIVE"  # 1
-
     INACTIVE = "INACTIVE"  # 2
 
 
@@ -60,20 +58,15 @@ class Hue(str, _Enum):
     """
 
     UNSPECIFIED = "UNSPECIFIED"  # 0
-
     RED = "RED"  # 1
-
     BLUE = "BLUE"  # 2
 
 
 class Shape(_ProtoModel):
     class Kind(str, _Enum):
         UNSPECIFIED = "UNSPECIFIED"  # 0
-
         CIRCLE = "CIRCLE"  # 1
-
         SQUARE = "SQUARE"  # 2
 
     color: "Hue | None" = _Field(default=None)
-
     kind: "Shape.Kind | None" = _Field(default=None)

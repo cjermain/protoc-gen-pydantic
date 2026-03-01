@@ -64,11 +64,9 @@ class CommentedMessage(_ProtoModel):
         # Leading comment on UNSPECIFIED value.
         UNSPECIFIED = "UNSPECIFIED"  # 0
         # Right comment on UNSPECIFIED.
-
         # Leading comment on ACTIVE value.
         ACTIVE = "ACTIVE"  # 1
         # Right comment on ACTIVE.
-
         # Leading comment on INACTIVE value.
         INACTIVE = "INACTIVE"  # 2
         # Right comment on INACTIVE.
@@ -89,7 +87,6 @@ class CommentedMessage(_ProtoModel):
             description="Leading comment on nested first_name.\nThe given name in the nested message.",
         )
         # Right comment on nested first_name.
-
         # Leading comment on nested last_name.
         # The family name in the nested message.
         last_name: "str" = _Field(
@@ -108,7 +105,6 @@ class CommentedMessage(_ProtoModel):
         description="Leading comment on first_name.\nThe given name of the person.",
     )
     # Right comment on first_name.
-
     # Leading comment on last_name.
     # The family name of the person.
     last_name: "str" = _Field(
@@ -129,7 +125,6 @@ class Outer(_ProtoModel):
         """
 
         UNSPECIFIED = "UNSPECIFIED"  # 0
-
         X = "X"  # 1
 
     class Inner(_ProtoModel):
@@ -143,7 +138,6 @@ class Outer(_ProtoModel):
             """
 
             UNSPECIFIED = "UNSPECIFIED"  # 0
-
             A = "A"  # 1
 
         class Deepest(_ProtoModel):

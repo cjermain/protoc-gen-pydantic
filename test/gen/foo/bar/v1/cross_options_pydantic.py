@@ -38,7 +38,6 @@ class Language(_ProtoEnum):
         "UNSPECIFIED",
         _EnumValueOptions(number=0),
     )  # 0
-
     PYTHON = (
         "PYTHON",
         _EnumValueOptions(
@@ -46,7 +45,6 @@ class Language(_ProtoEnum):
             display_name="Python",
         ),
     )  # 1
-
     GOLANG = (
         "GOLANG",
         _EnumValueOptions(
@@ -54,7 +52,6 @@ class Language(_ProtoEnum):
             display_name="Golang",
         ),
     )  # 2
-
     RUST = (
         "RUST",
         _EnumValueOptions(

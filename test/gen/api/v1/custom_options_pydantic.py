@@ -38,7 +38,6 @@ class Currency(_ProtoEnum):
         "UNSPECIFIED",
         _EnumValueOptions(number=0),
     )  # 0
-
     USD = (
         "USD",
         _EnumValueOptions(
@@ -48,7 +47,6 @@ class Currency(_ProtoEnum):
             priority=1,
         ),
     )  # 1
-
     EUR = (
         "EUR",
         _EnumValueOptions(
@@ -57,7 +55,6 @@ class Currency(_ProtoEnum):
             priority=2,
         ),
     )  # 2
-
     GBP = (
         "GBP",
         _EnumValueOptions(
@@ -73,9 +70,6 @@ class Color(str, _Enum):
     """
 
     UNSPECIFIED = "UNSPECIFIED"  # 0
-
     RED = "RED"  # 1
-
     GREEN = "GREEN"  # 2
-
     BLUE = "BLUE"  # 3

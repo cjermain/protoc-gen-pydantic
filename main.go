@@ -301,8 +301,8 @@ class _ProtoEnum({{ if $config.UseIntegersForEnums }}int{{ else }}str{{ end }}, 
 {{- end }}
 {{- end }}
 {{- range $i, $_ := $e.Values }}
-{{- if or $i $e.LeadingComments $e.TrailingComments}}
-{{$bi}}{{end}}{{ range .LeadingComments }}
+{{- if and (not $i) (or $e.LeadingComments $e.TrailingComments)}}
+{{$bi}}{{end}}{{- range .LeadingComments }}
 {{$bi}}# {{ . }}
 {{- end }}
 {{- if .EnumHasOptions }}
@@ -395,8 +395,8 @@ class _ProtoEnum({{ if $config.UseIntegersForEnums }}int{{ else }}str{{ end }}, 
 {{$bi}}# {{ $v }}
 {{- end }}
 {{- if or $m.LeadingComments $m.HasAlias $m.NestedEnums $m.NestedMessages $m.TrailingComments }}
-{{ end }}{{- range $i, $field := $m.Fields }}{{ if $i }}
-{{ end }}{{- range $field.LeadingComments }}
+{{ end }}{{- range $field := $m.Fields }}
+{{- range $field.LeadingComments }}
 {{$bi}}# {{ . }}
 {{- end }}
 {{- if or (and (not $config.DisableFieldDescription) (or (ne (len $field.LeadingComments) 0) (ne $field.OneOf nil))) $field.Alias $field.IsDefaultFactory $field.HasConstraints }}

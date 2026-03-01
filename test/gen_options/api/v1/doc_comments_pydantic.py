@@ -53,10 +53,8 @@ class TaskStatus(int, _Enum):
 
     # Not yet assigned a status.
     TASK_STATUS_UNSPECIFIED = 0  # TASK_STATUS_UNSPECIFIED
-
     # Task is ready to be worked on.
     TASK_STATUS_OPEN = 1  # TASK_STATUS_OPEN
-
     # Task has been completed.
     TASK_STATUS_DONE = 2  # TASK_STATUS_DONE
 
@@ -69,6 +67,5 @@ class User(_ProtoModel):
 
     # The user's display name.
     name: "str" = _Field(default="")
-
     # Age in full years.
     age: "int" = _Field(default=0)

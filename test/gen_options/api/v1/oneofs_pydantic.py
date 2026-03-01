@@ -48,5 +48,4 @@ class _ProtoModel(_BaseModel):
 
 class Oneofs(_ProtoModel):
     a: "_Optional[int]" = _Field(default=None)
-
     b: "_Optional[str]" = _Field(default=None)

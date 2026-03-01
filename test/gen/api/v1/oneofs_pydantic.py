@@ -50,7 +50,6 @@ class Oneofs(_ProtoModel):
         default=None,
         description="Only one of the fields can be specified with: [a b] (oneof union)",
     )
-
     b: "str | None" = _Field(
         default=None,
         description="Only one of the fields can be specified with: [a b] (oneof union)",

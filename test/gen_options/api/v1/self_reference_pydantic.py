@@ -48,9 +48,7 @@ class _ProtoModel(_BaseModel):
 
 class TreeNode(_ProtoModel):
     name: "str" = _Field(default="")
-
     children: "list[TreeNode]" = _Field(
         default_factory=list,
     )
-
     parent: "_Optional[TreeNode]" = _Field(default=None)

@@ -52,17 +52,14 @@ class BuiltinNames(_ProtoModel):
         default=False,
         alias="bool",
     )
-
     float_: "float" = _Field(
         default=0.0,
         alias="float",
     )
-
     bytes_: "bytes" = _Field(
         default=b"",
         alias="bytes",
     )
-
     int_: "int" = _Field(
         default=0,
         alias="int",
@@ -76,12 +73,10 @@ class ReservedFieldNames(_ProtoModel):
         default="",
         alias="model_config",
     )
-
     model_fields_: "str" = _Field(
         default="",
         alias="model_fields",
     )
-
     model_dump_: "str" = _Field(
         default="",
         alias="model_dump",

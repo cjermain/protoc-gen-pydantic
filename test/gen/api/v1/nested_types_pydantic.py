@@ -49,26 +49,18 @@ class _ProtoModel(_BaseModel):
 class Shipment(_ProtoModel):
     class Status(str, _Enum):
         UNSPECIFIED = "UNSPECIFIED"  # 0
-
         PENDING = "PENDING"  # 1
-
         SHIPPED = "SHIPPED"  # 2
-
         DELIVERED = "DELIVERED"  # 3
 
     class Item(_ProtoModel):
         sku: "str" = _Field(default="")
-
         quantity: "int" = _Field(default=0)
-
         price: "float" = _Field(default=0.0)
 
     order_id: "str" = _Field(default="")
-
     items: "list[Shipment.Item]" = _Field(
         default_factory=list,
     )
-
     status_note: "str" = _Field(default="")
-
     status: "Shipment.Status | None" = _Field(default=None)
