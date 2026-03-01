@@ -10,6 +10,7 @@ edit_uri: https://github.com/cjermain/protoc-gen-pydantic/edit/main/docs
 docs_dir: docs
 exclude_docs: overrides/
 watch:
+  - docs/
   - test/gen
   - test/gen_options
   - mkdocs.yml
