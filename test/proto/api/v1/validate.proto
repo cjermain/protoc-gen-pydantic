@@ -115,6 +115,16 @@ message ValidatedStringAffix {
     (buf.validate.field).string.pattern = "^[a-z]+$",
     (buf.validate.field).string.prefix = "abc"
   ];
+  // Report must match a pattern; suffix is also set (conflict → suffix dropped).
+  string report = 5 [
+    (buf.validate.field).string.pattern = "^report_",
+    (buf.validate.field).string.suffix = ".csv"
+  ];
+  // Notes must match a pattern; contains is also set (conflict → contains dropped).
+  string notes = 6 [
+    (buf.validate.field).string.pattern = "^[a-z]+$",
+    (buf.validate.field).string.contains = "note"
+  ];
 }
 
 // ValidatedExamples exercises the field examples annotation.
@@ -183,6 +193,8 @@ message ValidatedIn {
   string status = 1 [(buf.validate.field) = {string: {in: ["active", "inactive"]}}];
   string code = 2 [(buf.validate.field) = {string: {not_in: ["deleted", "archived"]}}];
   int32 priority = 3 [(buf.validate.field) = {int32: {in: [1, 2, 3]}}];
+  // Limit covers uint32.in (exercises the uint path in formatScalarLiteral).
+  uint32 limit = 4 [(buf.validate.field) = {uint32: {in: [10, 50, 100]}}];
 }
 
 // ValidatedUnique exercises repeated.unique translated to AfterValidator.
@@ -255,5 +267,30 @@ message ValidatedRequired {
   // Detail is a nested message used to test message-typed required handling.
   message Detail {
     string value = 1;
+  }
+}
+
+// ValidatedOneofFormat exercises an AfterValidator-type constraint (email) on a
+// oneof field. In default mode the generated type is
+// _Annotated[str, _AfterValidator(_validate_email)] | None, exercising the
+// `| None` branch of wrapWithAnnotated. In gen_options mode it becomes
+// _Optional[_Annotated[str, _AfterValidator(_validate_email)]], exercising the
+// _Optional[...] branch.
+message ValidatedOneofFormat {
+  oneof contact {
+    // Must be a valid email address when set.
+    string email_contact = 1 [(buf.validate.field).string.email = true];
+    string phone_contact = 2;
+  }
+}
+
+// ValidatedConstOptional exercises const constraints on a oneof field, covering
+// the `| None` and `_Optional[...]` branches of ConstLiteral handling in
+// applyConstraintTypeOverrides (lines 1291-1294 in main.go).
+message ValidatedConstOptional {
+  oneof token_type {
+    // Only "fixed" is valid when set.
+    string fixed_token = 1 [(buf.validate.field).string.const = "fixed"];
+    string other_token = 2;
   }
 }

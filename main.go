@@ -78,6 +78,57 @@ func init() {
 			}
 			return m
 		},
+		// pyOneofSetLine returns a ruff-formatted "_set = [...]" assignment line for a
+		// oneof validator. bi is the class-body indent; the method body adds 4 more
+		// spaces. Three forms are tried in order to stay within ruff's 88-char limit:
+		//  1. Entire expression on one line.
+		//  2. Brackets split but comprehension body on one inner line.
+		//  3. f / for / if each on their own line (ruff's fallback for long tuples).
+		"pyOneofSetLine": func(bi string, fieldNames []string) string {
+			bodyIndent := bi + "    "
+			innerIndent := bi + "        "
+			parts := make([]string, len(fieldNames))
+			for i, n := range fieldNames {
+				parts[i] = fmt.Sprintf("%q", n)
+			}
+			tuple := "(" + strings.Join(parts, ", ")
+			if len(fieldNames) == 1 {
+				tuple += ","
+			}
+			tuple += ")"
+			// Case 1: entire expression fits on one line.
+			single := bodyIndent + "_set = [f for f in " + tuple + " if getattr(self, f) is not None]"
+			if len(single) <= 88 {
+				return single
+			}
+			// Case 2: body fits on one line inside the brackets.
+			bodyLine := innerIndent + "f for f in " + tuple + " if getattr(self, f) is not None"
+			if len(bodyLine) <= 88 {
+				return bodyIndent + "_set = [\n" +
+					bodyLine + "\n" +
+					bodyIndent + "]"
+			}
+			// Case 3: f / for / if on separate lines.
+			return bodyIndent + "_set = [\n" +
+				innerIndent + "f\n" +
+				innerIndent + "for f in " + tuple + "\n" +
+				innerIndent + "if getattr(self, f) is not None\n" +
+				bodyIndent + "]"
+		},
+		// pyRaiseOneof returns a ruff-formatted raise ValueError(...) statement for a
+		// oneof validator. The single-line form is used when it fits within 88
+		// characters; otherwise the argument is placed on its own indented line.
+		"pyRaiseOneof": func(bi string, name string) string {
+			raiseIndent := bi + "        "
+			single := raiseIndent + `raise ValueError(f"oneof '` + name + `': only one field may be set, got {_set!r}")`
+			if len(single) <= 88 {
+				return single
+			}
+			argIndent := bi + "            "
+			return raiseIndent + "raise ValueError(\n" +
+				argIndent + `f"oneof '` + name + `': only one field may be set, got {_set!r}"` + "\n" +
+				raiseIndent + ")"
+		},
 	}).Parse(modelTemplate))
 }
 
@@ -409,7 +460,15 @@ class _ProtoEnum({{ if $config.UseIntegersForEnums }}int{{ else }}str{{ end }}, 
 {{- end }}
 {{- range $field.TrailingComments }}
 {{$bi}}# {{ . }}
-{{- end }}{{- end }}
+{{- end }}{{- end }}{{- if $m.OneOfGroups }}
+{{ end }}{{- range $oo := $m.OneOfGroups }}
+{{$bi}}@_model_validator(mode="after")
+{{$bi}}def _validate_oneof_{{ $oo.Name }}(self) -> "{{ $m.Name }}":
+{{ pyOneofSetLine $bi $oo.FieldNames }}
+{{$bi}}    if len(_set) > 1:
+{{ pyRaiseOneof $bi $oo.Name }}
+{{$bi}}    return self
+{{- end }}
 {{- if and (eq (len $m.Fields) 0) (eq (len $m.NestedEnums) 0) (eq (len $m.NestedMessages) 0) }}
 {{$bi}}pass
 {{- end }}
@@ -866,9 +925,13 @@ func (f Field) Description() string {
 	parts := make([]string, 0, len(f.LeadingComments)+1)
 	parts = append(parts, f.LeadingComments...)
 	if f.OneOf != nil {
+		quotedNames := make([]string, len(f.OneOf.FieldNames))
+		for i, n := range f.OneOf.FieldNames {
+			quotedNames[i] = fmt.Sprintf("%q", n)
+		}
 		parts = append(parts, fmt.Sprintf(
-			"Only one of the fields can be specified with: %v (oneof %s)",
-			f.OneOf.FieldNames, f.OneOf.Name,
+			"Only one of the fields can be specified with: [%s] (oneof %s)",
+			strings.Join(quotedNames, ", "), f.OneOf.Name,
 		))
 	}
 	return strings.Join(parts, "\n")
@@ -1025,6 +1088,7 @@ type Message struct {
 	NestedEnums      []Enum
 	LeadingComments  []string
 	TrailingComments []string
+	OneOfGroups      []OneOf // deduplicated oneof groups; populated after all fields are processed
 }
 
 func (m Message) TopoKey() string {
@@ -1186,6 +1250,9 @@ func (e *generator) pydanticImportLine() string {
 		symbols = append(symbols, "AfterValidator as _AfterValidator")
 	}
 	symbols = append(symbols, "BaseModel as _BaseModel", "ConfigDict as _ConfigDict", "Field as _Field")
+	if e.stdImports["_ModelValidator"] {
+		symbols = append(symbols, "model_validator as _model_validator")
+	}
 	return formatImportBlock("from pydantic import ", symbols)
 }
 
@@ -1517,6 +1584,18 @@ func (e *generator) processMessage(
 		}
 		e.applyConstraintTypeOverrides(&f)
 		def.Fields = append(def.Fields, f)
+	}
+
+	// Collect unique oneof groups for validator generation.
+	seen := map[string]bool{}
+	for _, f := range def.Fields {
+		if f.OneOf != nil && !seen[f.OneOf.Name] {
+			seen[f.OneOf.Name] = true
+			def.OneOfGroups = append(def.OneOfGroups, *f.OneOf)
+		}
+	}
+	if len(def.OneOfGroups) > 0 {
+		e.addStdImport("_ModelValidator")
 	}
 
 	e.addStdImport("_BaseModel")

@@ -162,7 +162,9 @@ assert cfg.to_proto_json() == '{"labels":{"env":"prod"},"counters":{"hits":42}}'
 ## Oneof fields
 
 `oneof` groups generate one field per variant, all typed as `T | None = None`.
-At most one may be non-`None` at a time (proto3 semantics).
+A `@model_validator` is generated for each group and raises `ValidationError`
+if more than one field is set, enforcing proto3's at-most-one semantics at
+runtime.
 
 === ":lucide-file-code: field_types.proto"
 
@@ -183,11 +185,17 @@ At most one may be non-`None` at a time (proto3 semantics).
     ```
 
 ```python exec="on" session="field-types"
+from pydantic import ValidationError
+
 pay = Payment(credit_card="4242424242424242")
 assert pay.credit_card == "4242424242424242"
 assert pay.paypal is None
 assert pay.bank_iban is None
 assert pay.to_proto_json() == '{"credit_card":"4242424242424242"}'
+try:
+    Payment(credit_card="4242424242424242", paypal="me@paypal.com")  # raises
+except ValidationError:
+    pass
 ```
 
 ## Message fields

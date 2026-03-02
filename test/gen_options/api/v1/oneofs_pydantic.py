@@ -2,7 +2,12 @@
 
 from typing import Optional as _Optional
 
-from pydantic import BaseModel as _BaseModel, ConfigDict as _ConfigDict, Field as _Field
+from pydantic import (
+    BaseModel as _BaseModel,
+    ConfigDict as _ConfigDict,
+    Field as _Field,
+    model_validator as _model_validator,
+)
 
 
 class _ProtoModel(_BaseModel):
@@ -49,3 +54,26 @@ class _ProtoModel(_BaseModel):
 class Oneofs(_ProtoModel):
     a: _Optional[int] = _Field(default=None)
     b: _Optional[str] = _Field(default=None)
+
+    @_model_validator(mode="after")
+    def _validate_oneof_union(self) -> "Oneofs":
+        _set = [f for f in ("a", "b") if getattr(self, f) is not None]
+        if len(_set) > 1:
+            raise ValueError(f"oneof 'union': only one field may be set, got {_set!r}")
+        return self
+
+
+class SingleOneof(_ProtoModel):
+    """
+    SingleOneof has a oneof with exactly one field, exercising the single-element
+    tuple form ("field_name",) in the generated @model_validator.
+    """
+
+    theValue: _Optional[int] = _Field(default=None)
+
+    @_model_validator(mode="after")
+    def _validate_oneof_choice(self) -> "SingleOneof":
+        _set = [f for f in ("the_value",) if getattr(self, f) is not None]
+        if len(_set) > 1:
+            raise ValueError(f"oneof 'choice': only one field may be set, got {_set!r}")
+        return self

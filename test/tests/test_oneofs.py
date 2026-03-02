@@ -1,4 +1,7 @@
-from api.v1.oneofs_pydantic import Oneofs
+import pytest
+from pydantic import ValidationError
+
+from api.v1.oneofs_pydantic import Oneofs, SingleOneof
 
 
 def test_default_none():
@@ -19,11 +22,15 @@ def test_set_b():
     assert o.a is None
 
 
-def test_set_both():
-    """Pydantic does not enforce oneof exclusivity; both can be set."""
-    o = Oneofs(a=1, b="two")
-    assert o.a == 1
-    assert o.b == "two"
+def test_set_both_raises():
+    """Setting multiple fields in a oneof raises ValidationError."""
+    with pytest.raises(ValidationError):
+        Oneofs(a=1, b="two")
+
+
+def test_set_both_error_message():
+    with pytest.raises(ValidationError, match="oneof 'union'"):
+        Oneofs(a=1, b="two")
 
 
 def test_json_roundtrip():
@@ -31,3 +38,24 @@ def test_json_roundtrip():
     json_str = o.model_dump_json()
     o2 = Oneofs.model_validate_json(json_str)
     assert o2.a == 42
+
+
+# ---------------------------------------------------------------------------
+# SingleOneof — single-element tuple form in generated @model_validator
+# ---------------------------------------------------------------------------
+
+
+def test_single_oneof_default_none():
+    s = SingleOneof()
+    assert s.the_value is None
+
+
+def test_single_oneof_set_value():
+    s = SingleOneof(the_value=7)
+    assert s.the_value == 7
+
+
+def test_single_oneof_validator_runs():
+    # Setting the one available field is fine; validator still runs (returns self).
+    s = SingleOneof(the_value=42)
+    assert s.the_value == 42

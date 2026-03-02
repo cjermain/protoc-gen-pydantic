@@ -38,7 +38,7 @@ Python files alongside them. No runtime dependency on the plugin — only on Pyd
 - Supports all standard `proto3` field types
 - Generates true Python nested classes for nested messages and enums (e.g. `Foo.NestedMessage`)
 - Generates Pydantic models with type annotations and field descriptions
-- Supports `oneof`, `optional`, `repeated`, and `map` fields
+- Supports `oneof`, `optional`, `repeated`, and `map` fields; `oneof` exclusivity is enforced at runtime via a generated `@model_validator`
 - Retains comments from `.proto` files as docstrings in the generated models
 - Maps well-known types to native Python types (e.g. `Timestamp` → `datetime`, `Struct` → `dict[str, Any]`)
 - Handles Python builtin/keyword shadowing with PEP 8 trailing underscore aliases

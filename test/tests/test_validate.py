@@ -8,12 +8,15 @@ import datetime
 from api.v1.validate_pydantic import (
     ValidatedBytes,
     ValidatedConst,
+    ValidatedConstOptional,
     ValidatedDropped,
     ValidatedDuration,
     ValidatedExamples,
+    ValidatedFinite,
     ValidatedIn,
     ValidatedMap,
     ValidatedOneof,
+    ValidatedOneofFormat,
     ValidatedRepeated,
     ValidatedReserved,
     ValidatedScalars,
@@ -363,6 +366,11 @@ def test_validated_oneof_description_contains_comment_and_oneof():
     field_info = ValidatedOneof.model_fields["small"]
     assert "Must be positive when set" in field_info.description
     assert "oneof" in field_info.description
+
+
+def test_validated_oneof_exclusivity():
+    with pytest.raises(ValidationError, match="oneof 'value'"):
+        ValidatedOneof(small=1, large=2)
 
 
 # ---------------------------------------------------------------------------
@@ -921,3 +929,145 @@ def test_validated_required_field_is_required_in_pydantic():
     assert ValidatedRequired.model_fields["required_name"].is_required()
     assert ValidatedRequired.model_fields["required_score"].is_required()
     assert not ValidatedRequired.model_fields["plain_name"].is_required()
+
+
+# ---------------------------------------------------------------------------
+# ValidatedIn — uint32.in (uint path in formatScalarLiteral)
+# ---------------------------------------------------------------------------
+
+
+def test_validated_in_limit_valid():
+    m = ValidatedIn(limit=10)
+    assert m.limit == 10
+
+
+def test_validated_in_limit_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedIn(limit=99)
+
+
+def test_validated_in_limit_boundary():
+    ValidatedIn(limit=50)
+    ValidatedIn(limit=100)
+    with pytest.raises(ValidationError):
+        ValidatedIn(limit=1)
+
+
+# ---------------------------------------------------------------------------
+# ValidatedStringAffix — pattern+suffix conflict and pattern+contains conflict
+# ---------------------------------------------------------------------------
+
+
+def test_validated_string_affix_pattern_suffix_conflict_pattern_enforced():
+    # report: pattern="^report_" wins; suffix=".csv" is dropped.
+    ValidatedStringAffix(report="report_2024.csv")
+    ValidatedStringAffix(report="report_2024.txt")  # suffix not enforced
+    with pytest.raises(ValidationError):
+        ValidatedStringAffix(report="other_2024")
+
+
+def test_validated_string_affix_pattern_suffix_conflict_comment():
+    text = _GEN_VALIDATE.read_text()
+    assert "# buf.validate: suffix (not translated)" in text
+
+
+def test_validated_string_affix_pattern_contains_conflict_pattern_enforced():
+    # notes: pattern="^[a-z]+$" wins; contains="note" is dropped.
+    ValidatedStringAffix(notes="abcnote")
+    with pytest.raises(ValidationError):
+        ValidatedStringAffix(notes="ABC")
+
+
+# ---------------------------------------------------------------------------
+# ValidatedFinite — float.finite and double.finite constraints
+# ---------------------------------------------------------------------------
+
+
+def test_validated_finite_ratio_valid():
+    m = ValidatedFinite(ratio=1.0)
+    assert m.ratio == pytest.approx(1.0)
+
+
+def test_validated_finite_ratio_inf():
+    with pytest.raises(ValidationError):
+        ValidatedFinite(ratio=float("inf"))
+
+
+def test_validated_finite_ratio_nan():
+    with pytest.raises(ValidationError):
+        ValidatedFinite(ratio=float("nan"))
+
+
+def test_validated_finite_value_valid():
+    m = ValidatedFinite(value=3.14)
+    assert m.value == pytest.approx(3.14)
+
+
+def test_validated_finite_value_inf():
+    with pytest.raises(ValidationError):
+        ValidatedFinite(value=float("inf"))
+
+
+# ---------------------------------------------------------------------------
+# ValidatedOneofFormat — AfterValidator on a oneof field (wrapWithAnnotated)
+# ---------------------------------------------------------------------------
+
+
+def test_validated_oneof_format_email_valid():
+    # Email AfterValidator works inside oneof.
+    m = ValidatedOneofFormat(email_contact="user@example.com")
+    assert m.email_contact == "user@example.com"
+
+
+def test_validated_oneof_format_email_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedOneofFormat(email_contact="notanemail")
+
+
+def test_validated_oneof_format_phone_valid():
+    # Phone field has no constraint; any string is accepted.
+    m = ValidatedOneofFormat(phone_contact="+1-555-0100")
+    assert m.phone_contact == "+1-555-0100"
+
+
+def test_validated_oneof_format_both_raises():
+    with pytest.raises(ValidationError, match="oneof 'contact'"):
+        ValidatedOneofFormat(
+            email_contact="user@example.com", phone_contact="+1-555-0100"
+        )
+
+
+def test_validated_oneof_format_annotation_in_generated_file():
+    # The generated type for email_contact should use _Annotated + AfterValidator.
+    text = _GEN_VALIDATE.read_text()
+    assert "_validate_email" in text
+
+
+# ---------------------------------------------------------------------------
+# ValidatedConstOptional — const on a oneof field (ConstLiteral on optional)
+# ---------------------------------------------------------------------------
+
+
+def test_validated_const_optional_fixed_token_valid():
+    m = ValidatedConstOptional(fixed_token="fixed")
+    assert m.fixed_token == "fixed"
+
+
+def test_validated_const_optional_fixed_token_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedConstOptional(fixed_token="other")
+
+
+def test_validated_const_optional_other_token_valid():
+    m = ValidatedConstOptional(other_token="anything")
+    assert m.other_token == "anything"
+
+
+def test_validated_const_optional_both_raises():
+    with pytest.raises(ValidationError, match="oneof 'token_type'"):
+        ValidatedConstOptional(fixed_token="fixed", other_token="x")
+
+
+def test_validated_const_optional_annotation_in_generated_file():
+    text = _GEN_VALIDATE.read_text()
+    assert "ValidatedConstOptional" in text
