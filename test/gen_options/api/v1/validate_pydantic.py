@@ -284,6 +284,18 @@ class ValidatedStringAffix(_ProtoModel):
         pattern="^[a-z]+$",
         # buf.validate: prefix (not translated)
     )
+    # Report must match a pattern; suffix is also set (conflict → suffix dropped).
+    report: str = _Field(
+        default="",
+        pattern="^report_",
+        # buf.validate: suffix (not translated)
+    )
+    # Notes must match a pattern; contains is also set (conflict → contains dropped).
+    notes: str = _Field(
+        default="",
+        pattern="^[a-z]+$",
+        # buf.validate: contains (not translated)
+    )
 
 
 class ValidatedExamples(_ProtoModel):
@@ -418,6 +430,12 @@ class ValidatedIn(_ProtoModel):
     ] = _Field(
         default=0,
     )
+    # Limit covers uint32.in (exercises the uint path in formatScalarLiteral).
+    limit: _Annotated[
+        int, _AfterValidator(_make_in_validator(frozenset({10, 50, 100})))
+    ] = _Field(
+        default=0,
+    )
 
 
 class ValidatedUnique(_ProtoModel):
@@ -539,3 +557,58 @@ class ValidatedRequired(_ProtoModel):
         default="",
         # buf.validate: required (not translated)
     )
+
+
+class ValidatedOneofFormat(_ProtoModel):
+    """
+    ValidatedOneofFormat exercises an AfterValidator-type constraint (email) on a
+    oneof field. In default mode the generated type is
+    _Annotated[str, _AfterValidator(_validate_email)] | None, exercising the
+    `| None` branch of wrapWithAnnotated. In gen_options mode it becomes
+    _Optional[_Annotated[str, _AfterValidator(_validate_email)]], exercising the
+    _Optional[...] branch.
+    """
+
+    # Must be a valid email address when set.
+    emailContact: _Optional[_Annotated[str, _AfterValidator(_validate_email)]] = _Field(
+        default=None,
+    )
+    phoneContact: _Optional[str] = _Field(default=None)
+
+    @_model_validator(mode="after")
+    def _validate_oneof_contact(self) -> "ValidatedOneofFormat":
+        _set = [
+            f
+            for f in ("email_contact", "phone_contact")
+            if getattr(self, f) is not None
+        ]
+        if len(_set) > 1:
+            raise ValueError(
+                f"oneof 'contact': only one field may be set, got {_set!r}"
+            )
+        return self
+
+
+class ValidatedConstOptional(_ProtoModel):
+    """
+    ValidatedConstOptional exercises const constraints on a oneof field, covering
+    the `| None` and `_Optional[...]` branches of ConstLiteral handling in
+    applyConstraintTypeOverrides (lines 1291-1294 in main.go).
+    """
+
+    # Only "fixed" is valid when set.
+    fixedToken: _Optional[_Literal["fixed"]] = _Field(
+        default=None,
+    )
+    otherToken: _Optional[str] = _Field(default=None)
+
+    @_model_validator(mode="after")
+    def _validate_oneof_token_type(self) -> "ValidatedConstOptional":
+        _set = [
+            f for f in ("fixed_token", "other_token") if getattr(self, f) is not None
+        ]
+        if len(_set) > 1:
+            raise ValueError(
+                f"oneof 'token_type': only one field may be set, got {_set!r}"
+            )
+        return self

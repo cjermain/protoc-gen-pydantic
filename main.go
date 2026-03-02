@@ -78,24 +78,15 @@ func init() {
 			}
 			return m
 		},
-		"pyStrTuple": func(ss []string) string {
-			parts := make([]string, len(ss))
-			for i, s := range ss {
-				parts[i] = fmt.Sprintf("%q", s)
-			}
-			result := "(" + strings.Join(parts, ", ")
-			if len(ss) == 1 {
-				result += ","
-			}
-			result += ")"
-			return result
-		},
 		// pyOneofSetLine returns a ruff-formatted "_set = [...]" assignment line for a
 		// oneof validator. bi is the class-body indent; the method body adds 4 more
-		// spaces. When the single-line form exceeds 88 characters, the multi-line
-		// ruff-compatible form is used instead.
+		// spaces. Three forms are tried in order to stay within ruff's 88-char limit:
+		//  1. Entire expression on one line.
+		//  2. Brackets split but comprehension body on one inner line.
+		//  3. f / for / if each on their own line (ruff's fallback for long tuples).
 		"pyOneofSetLine": func(bi string, fieldNames []string) string {
 			bodyIndent := bi + "    "
+			innerIndent := bi + "        "
 			parts := make([]string, len(fieldNames))
 			for i, n := range fieldNames {
 				parts[i] = fmt.Sprintf("%q", n)
@@ -105,15 +96,38 @@ func init() {
 				tuple += ","
 			}
 			tuple += ")"
+			// Case 1: entire expression fits on one line.
 			single := bodyIndent + "_set = [f for f in " + tuple + " if getattr(self, f) is not None]"
 			if len(single) <= 88 {
 				return single
 			}
+			// Case 2: body fits on one line inside the brackets.
+			bodyLine := innerIndent + "f for f in " + tuple + " if getattr(self, f) is not None"
+			if len(bodyLine) <= 88 {
+				return bodyIndent + "_set = [\n" +
+					bodyLine + "\n" +
+					bodyIndent + "]"
+			}
+			// Case 3: f / for / if on separate lines.
 			return bodyIndent + "_set = [\n" +
-				bodyIndent + "    f\n" +
-				bodyIndent + "    for f in " + tuple + "\n" +
-				bodyIndent + "    if getattr(self, f) is not None\n" +
+				innerIndent + "f\n" +
+				innerIndent + "for f in " + tuple + "\n" +
+				innerIndent + "if getattr(self, f) is not None\n" +
 				bodyIndent + "]"
+		},
+		// pyRaiseOneof returns a ruff-formatted raise ValueError(...) statement for a
+		// oneof validator. The single-line form is used when it fits within 88
+		// characters; otherwise the argument is placed on its own indented line.
+		"pyRaiseOneof": func(bi string, name string) string {
+			raiseIndent := bi + "        "
+			single := raiseIndent + `raise ValueError(f"oneof '` + name + `': only one field may be set, got {_set!r}")`
+			if len(single) <= 88 {
+				return single
+			}
+			argIndent := bi + "            "
+			return raiseIndent + "raise ValueError(\n" +
+				argIndent + `f"oneof '` + name + `': only one field may be set, got {_set!r}"` + "\n" +
+				raiseIndent + ")"
 		},
 	}).Parse(modelTemplate))
 }
@@ -452,7 +466,7 @@ class _ProtoEnum({{ if $config.UseIntegersForEnums }}int{{ else }}str{{ end }}, 
 {{$bi}}def _validate_oneof_{{ $oo.Name }}(self) -> "{{ $m.Name }}":
 {{ pyOneofSetLine $bi $oo.FieldNames }}
 {{$bi}}    if len(_set) > 1:
-{{$bi}}        raise ValueError(f"oneof '{{ $oo.Name }}': only one field may be set, got {_set!r}")
+{{ pyRaiseOneof $bi $oo.Name }}
 {{$bi}}    return self
 {{- end }}
 {{- if and (eq (len $m.Fields) 0) (eq (len $m.NestedEnums) 0) (eq (len $m.NestedMessages) 0) }}

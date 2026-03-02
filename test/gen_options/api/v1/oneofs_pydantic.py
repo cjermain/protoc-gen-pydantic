@@ -61,3 +61,19 @@ class Oneofs(_ProtoModel):
         if len(_set) > 1:
             raise ValueError(f"oneof 'union': only one field may be set, got {_set!r}")
         return self
+
+
+class SingleOneof(_ProtoModel):
+    """
+    SingleOneof has a oneof with exactly one field, exercising the single-element
+    tuple form ("field_name",) in the generated @model_validator.
+    """
+
+    theValue: _Optional[int] = _Field(default=None)
+
+    @_model_validator(mode="after")
+    def _validate_oneof_choice(self) -> "SingleOneof":
+        _set = [f for f in ("the_value",) if getattr(self, f) is not None]
+        if len(_set) > 1:
+            raise ValueError(f"oneof 'choice': only one field may be set, got {_set!r}")
+        return self
