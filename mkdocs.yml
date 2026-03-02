@@ -66,6 +66,7 @@ theme:
 
 extra_css:
   - stylesheets/lucide-icons.css
+  - stylesheets/hero.css
 
 extra_javascript:
   - https://unpkg.com/mermaid@11/dist/mermaid.min.js
