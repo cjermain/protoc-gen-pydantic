@@ -2,7 +2,12 @@
 
 from enum import Enum as _Enum
 
-from pydantic import BaseModel as _BaseModel, ConfigDict as _ConfigDict, Field as _Field
+from pydantic import (
+    BaseModel as _BaseModel,
+    ConfigDict as _ConfigDict,
+    Field as _Field,
+    model_validator as _model_validator,
+)
 
 
 class _ProtoModel(_BaseModel):
@@ -88,16 +93,27 @@ class Config(_ProtoModel):
 class Payment(_ProtoModel):
     credit_card: str | None = _Field(
         default=None,
-        description="Only one of the fields can be specified with: [credit_card paypal bank_iban] (oneof method)",
+        description='Only one of the fields can be specified with: ["credit_card", "paypal", "bank_iban"] (oneof method)',
     )
     paypal: str | None = _Field(
         default=None,
-        description="Only one of the fields can be specified with: [credit_card paypal bank_iban] (oneof method)",
+        description='Only one of the fields can be specified with: ["credit_card", "paypal", "bank_iban"] (oneof method)',
     )
     bank_iban: str | None = _Field(
         default=None,
-        description="Only one of the fields can be specified with: [credit_card paypal bank_iban] (oneof method)",
+        description='Only one of the fields can be specified with: ["credit_card", "paypal", "bank_iban"] (oneof method)',
     )
+
+    @_model_validator(mode="after")
+    def _validate_oneof_method(self) -> "Payment":
+        _set = [
+            f
+            for f in ("credit_card", "paypal", "bank_iban")
+            if getattr(self, f) is not None
+        ]
+        if len(_set) > 1:
+            raise ValueError(f"oneof 'method': only one field may be set, got {_set!r}")
+        return self
 
 
 class Address(_ProtoModel):

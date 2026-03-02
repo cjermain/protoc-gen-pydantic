@@ -365,6 +365,11 @@ def test_validated_oneof_description_contains_comment_and_oneof():
     assert "oneof" in field_info.description
 
 
+def test_validated_oneof_exclusivity():
+    with pytest.raises(ValidationError, match="oneof 'value'"):
+        ValidatedOneof(small=1, large=2)
+
+
 # ---------------------------------------------------------------------------
 # JSON roundtrip
 # ---------------------------------------------------------------------------

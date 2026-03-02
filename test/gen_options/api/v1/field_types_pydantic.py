@@ -3,7 +3,12 @@
 from enum import Enum as _Enum
 from typing import Optional as _Optional
 
-from pydantic import BaseModel as _BaseModel, ConfigDict as _ConfigDict, Field as _Field
+from pydantic import (
+    BaseModel as _BaseModel,
+    ConfigDict as _ConfigDict,
+    Field as _Field,
+    model_validator as _model_validator,
+)
 
 
 class _ProtoModel(_BaseModel):
@@ -90,6 +95,17 @@ class Payment(_ProtoModel):
     creditCard: _Optional[str] = _Field(default=None)
     paypal: _Optional[str] = _Field(default=None)
     bankIban: _Optional[str] = _Field(default=None)
+
+    @_model_validator(mode="after")
+    def _validate_oneof_method(self) -> "Payment":
+        _set = [
+            f
+            for f in ("credit_card", "paypal", "bank_iban")
+            if getattr(self, f) is not None
+        ]
+        if len(_set) > 1:
+            raise ValueError(f"oneof 'method': only one field may be set, got {_set!r}")
+        return self
 
 
 class Address(_ProtoModel):

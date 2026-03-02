@@ -8,6 +8,7 @@ from pydantic import (
     BaseModel as _BaseModel,
     ConfigDict as _ConfigDict,
     Field as _Field,
+    model_validator as _model_validator,
 )
 
 from ._proto_types import (
@@ -215,15 +216,22 @@ class ValidatedOneof(_ProtoModel):
     # Must be positive when set.
     small: int | None = _Field(
         default=None,
-        description="Must be positive when set.\nOnly one of the fields can be specified with: [small large] (oneof value)",
+        description='Must be positive when set.\nOnly one of the fields can be specified with: ["small", "large"] (oneof value)',
         gt=0,
     )
     # Must be positive when set.
     large: ProtoInt64 | None = _Field(
         default=None,
-        description="Must be positive when set.\nOnly one of the fields can be specified with: [small large] (oneof value)",
+        description='Must be positive when set.\nOnly one of the fields can be specified with: ["small", "large"] (oneof value)',
         gt=0,
     )
+
+    @_model_validator(mode="after")
+    def _validate_oneof_value(self) -> "ValidatedOneof":
+        _set = [f for f in ("small", "large") if getattr(self, f) is not None]
+        if len(_set) > 1:
+            raise ValueError(f"oneof 'value': only one field may be set, got {_set!r}")
+        return self
 
 
 class ValidatedDuration(_ProtoModel):
