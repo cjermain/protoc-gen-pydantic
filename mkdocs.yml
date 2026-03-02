@@ -72,6 +72,9 @@ extra_javascript:
   - https://unpkg.com/mermaid@11/dist/mermaid.min.js
 
 extra:
+  analytics:
+    provider: google
+    property: G-3BC1TN3EYQ
   social:
     - icon: fontawesome/brands/github
       link: https://github.com/cjermain/protoc-gen-pydantic
