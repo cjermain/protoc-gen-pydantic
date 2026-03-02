@@ -4,15 +4,17 @@ icon: lucide/home
 
 ---
 
-<div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:2rem;padding:1rem 0 1.25rem">
-  <div style="flex:1 1 280px;min-width:0">
-    <h1 style="margin:0 0 1.5rem;font-weight:bold">protoc-gen-pydantic</h1>
-    <p style="font-size:1rem;margin:0 0 1.25rem">Define your data schema once in Protobuf. Get validated, type-safe Python models automatically.</p>
-    <a href="guide/quickstart/" class="md-button md-button--primary">Get Started</a>
-    <a href="https://github.com/cjermain/protoc-gen-pydantic" class="md-button">View on GitHub</a>
+<div id="hero">
+  <div id="hero-text">
+    <h1>protoc-gen-pydantic</h1>
+    <p>Define your data schema once in Protobuf. Get validated, type-safe Python models automatically.</p>
+    <div id="hero-buttons">
+      <a href="guide/quickstart/" class="md-button md-button--primary">Get Started</a>
+      <a href="https://github.com/cjermain/protoc-gen-pydantic" class="md-button">View on GitHub</a>
+    </div>
   </div>
-  <div style="flex:0 0 auto">
-    <img src="assets/protoc-gen-pydantic.png" alt="protoc-gen-pydantic" style="width:320px;max-width:100%;display:block">
+  <div id="hero-image">
+    <img src="assets/protoc-gen-pydantic.png" alt="protoc-gen-pydantic">
   </div>
 </div>
 

@@ -15,7 +15,21 @@ svg.lucide {
   margin-top: 0.8em;
 }
 
-/* Hero title — ensure full contrast */
+/* Ensure h1 has full contrast in all colour schemes */
 .md-content h1 {
   color: var(--md-default-fg-color);
+}
+
+/* ── Mobile overrides ─────────────────────────────────────────────────────── */
+@media screen and (max-width: 44.9375em) {
+  /* Tighten the gap between the nav bar and page content */
+  .md-main__inner {
+    margin-top: 0.4rem;
+  }
+
+  /* Prevent Material from forcing buttons to full width on small screens */
+  .md-typeset .md-button {
+    display: inline-block !important;
+    width: auto !important;
+  }
 }
