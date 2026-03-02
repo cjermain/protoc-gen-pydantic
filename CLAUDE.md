@@ -11,7 +11,7 @@ protoc-gen-pydantic is a `protoc` plugin written in Go that generates Pydantic v
 **Single-file Go plugin** (`main.go`):
 - Reads `CodeGeneratorRequest` from stdin, writes `CodeGeneratorResponse` to stdout
 - Uses Go `text/template` to render Python code
-- Key types: `generator`, `Message` (has `NestedMessages []Message`, `NestedEnums []Enum`), `Field`, `Enum`, `EnumValue`, `CustomOption`, `OneOf`
+- Key types: `generator`, `Message` (has `NestedMessages []Message`, `NestedEnums []Enum`, `OneOfGroups []OneOf`), `Field`, `Enum`, `EnumValue`, `CustomOption`, `OneOf`
 - Key functions: `processFile()` → `processMessage()`/`processEnum()` → `resolveType()`/`resolveBaseType()`/`resolveQualifiedName()`
 
 **Code generation flow:**
@@ -161,6 +161,7 @@ the directory's proto files are emitted. `protoTypeDirs` in `main()` is
 - `resolveQualifiedName(d)` returns the dotted path from the file root (e.g. `Outer.Inner.Deepest`) used for type annotations; `string(d.Name())` is the leaf name used for the class definition itself
 - Proto comments become docstrings and `Field(description=...)` values
 - Forward references use string annotations: `"Message"` instead of `Message`
+- Each `oneof` group generates a `@_model_validator(mode="after")` method named `_validate_oneof_<name>` that raises `ValueError` if more than one field in the group is non-`None`; the `pyOneofSetLine` FuncMap function formats the `_set = [...]` comprehension as single-line or ruff-compatible multi-line depending on the 88-char limit
 
 ## Tests
 
