@@ -440,6 +440,25 @@ class _ProtoEnum({{ if $config.UseIntegersForEnums }}int{{ else }}str{{ end }}, 
 {{$bi}}# {{ . }}
 {{- end }}
 {{- if or (and (not $config.DisableFieldDescription) (or (ne (len $field.LeadingComments) 0) (ne $field.OneOf nil))) $field.Alias $field.IsDefaultFactory $field.HasConstraints }}
+{{- if $field.NeedsParenAssignment $bi }}
+{{$bi}}{{ $field.Name }}: {{ $field.TypeAnnotationFormatted $bi }} = (
+{{$bi}}    _Field(
+{{$bi}}        {{ $field.Default }},
+{{- if and (not $config.DisableFieldDescription) (or (ne (len $field.LeadingComments) 0) (ne $field.OneOf nil)) }}
+{{$bi}}        description={{ pyQuote $field.Description }},
+{{- end }}
+{{- if $field.Alias }}
+{{$bi}}        alias="{{ $field.Alias }}",
+{{- end }}
+{{- range $field.ConstraintArgs }}
+{{$bi}}        {{ . }},
+{{- end }}
+{{- range $field.DroppedConstraintComments }}
+{{$bi}}        {{ . }}
+{{- end }}
+{{$bi}}    )
+{{$bi}})
+{{- else }}
 {{$bi}}{{ $field.Name }}: {{ $field.TypeAnnotationFormatted $bi }} = _Field(
 {{$bi}}    {{ $field.Default }},
 {{- if and (not $config.DisableFieldDescription) (or (ne (len $field.LeadingComments) 0) (ne $field.OneOf nil)) }}
@@ -455,6 +474,7 @@ class _ProtoEnum({{ if $config.UseIntegersForEnums }}int{{ else }}str{{ end }}, 
 {{$bi}}    {{ . }}
 {{- end }}
 {{$bi}})
+{{- end }}
 {{- else }}
 {{$bi}}{{ $field.Name }}: {{ $field.TypeAnnotationFormatted $bi }} = _Field({{ $field.Default }})
 {{- end }}
@@ -651,12 +671,211 @@ def _make_const_validator(c):
     return _validate
 `
 
+const protoTypesHostnameFunc = `
+
+def _validate_hostname(v: str) -> str:
+    if not v:
+        return v
+    if len(v) > 253:
+        raise ValueError("invalid hostname: too long")
+    labels = v.rstrip(".").split(".")
+    for label in labels:
+        if not label or len(label) > 63:
+            raise ValueError("invalid hostname: label length")
+        if label.startswith("-") or label.endswith("-"):
+            raise ValueError("invalid hostname: label has leading/trailing hyphen")
+        if not _re.fullmatch(r"[A-Za-z0-9-]+", label):
+            raise ValueError("invalid hostname: invalid characters")
+    if labels[-1].isdigit():
+        raise ValueError("invalid hostname: TLD is all-numeric")
+    return v
+`
+
+const protoTypesURIRefFunc = `
+
+def _validate_uri_ref(v: str) -> str:
+    if not v:
+        return v
+    if _re.search(r"[\x00-\x1f\x7f\s]", v):
+        raise ValueError(
+            "invalid URI reference: contains control characters or whitespace"
+        )
+    return v
+`
+
+const protoTypesAddressFunc = `
+
+def _validate_address(v: str) -> str:
+    if not v:
+        return v
+    try:
+        _ipaddress.ip_address(v)
+        return v
+    except ValueError:
+        pass
+    return _validate_hostname(v)
+`
+
+const protoTypesTUUIDFunc = `
+
+def _validate_tuuid(v: str) -> str:
+    if not v:
+        return v
+    if not _re.fullmatch(r"[0-9a-fA-F]{32}", v):
+        raise ValueError("invalid trimmed UUID: must be 32 hex characters")
+    return v
+`
+
+const protoTypesULIDFunc = `
+
+def _validate_ulid(v: str) -> str:
+    if not v:
+        return v
+    if len(v) != 26:
+        raise ValueError("invalid ULID: must be 26 characters")
+    if not _re.fullmatch(r"[0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{26}", v):
+        raise ValueError("invalid ULID: invalid characters")
+    if v[0].upper() > "7":
+        raise ValueError("invalid ULID: timestamp overflow")
+    return v
+`
+
+const protoTypesIPWithPrefixlenFunc = `
+
+def _validate_ip_with_prefixlen(v: str) -> str:
+    if not v:
+        return v
+    _ipaddress.ip_interface(v)
+    return v
+`
+
+const protoTypesIPv4WithPrefixlenFunc = `
+
+def _validate_ipv4_with_prefixlen(v: str) -> str:
+    if not v:
+        return v
+    _ipaddress.IPv4Interface(v)
+    return v
+`
+
+const protoTypesIPv6WithPrefixlenFunc = `
+
+def _validate_ipv6_with_prefixlen(v: str) -> str:
+    if not v:
+        return v
+    _ipaddress.IPv6Interface(v)
+    return v
+`
+
+const protoTypesIPPrefixFunc = `
+
+def _validate_ip_prefix(v: str) -> str:
+    if not v:
+        return v
+    _ipaddress.ip_network(v, strict=True)
+    return v
+`
+
+const protoTypesIPv4PrefixFunc = `
+
+def _validate_ipv4_prefix(v: str) -> str:
+    if not v:
+        return v
+    _ipaddress.IPv4Network(v, strict=True)
+    return v
+`
+
+const protoTypesIPv6PrefixFunc = `
+
+def _validate_ipv6_prefix(v: str) -> str:
+    if not v:
+        return v
+    _ipaddress.IPv6Network(v, strict=True)
+    return v
+`
+
+const protoTypesHostAndPortFunc = `
+
+def _validate_host_and_port(v: str) -> str:
+    if not v:
+        return v
+    if v.startswith("["):
+        end = v.find("]")
+        if end == -1:
+            raise ValueError("invalid host_and_port: unmatched '['")
+        host = v[1:end]
+        rest = v[end + 1 :]
+        if not rest.startswith(":"):
+            raise ValueError("invalid host_and_port: missing port after ']'")
+        port_str = rest[1:]
+        _ipaddress.IPv6Address(host)
+    else:
+        colon = v.rfind(":")
+        if colon == -1:
+            raise ValueError("invalid host_and_port: missing port")
+        host, port_str = v[:colon], v[colon + 1 :]
+        try:
+            _ipaddress.IPv4Address(host)
+        except ValueError:
+            _validate_hostname(host)
+    if not port_str.isdigit() or not 0 <= int(port_str) <= 65535:
+        raise ValueError(f"invalid port: {port_str!r}")
+    return v
+`
+
+const protoTypesHTTPHeaderNameFunc = `
+
+def _validate_http_header_name(v: str) -> str:
+    if not v:
+        return v
+    if not _re.fullmatch(r"[!#$%&'*+\-.^_` + "`" + `|~0-9A-Za-z]+", v):
+        raise ValueError("invalid HTTP header name")
+    return v
+`
+
+const protoTypesHTTPHeaderValueFunc = `
+
+def _validate_http_header_value(v: str) -> str:
+    if not v:
+        return v
+    if not _re.fullmatch(r"[\t\x20-\x7e]*", v):
+        raise ValueError("invalid HTTP header value")
+    return v
+`
+
+const protoTypesBytesUUIDFunc = `
+
+def _validate_bytes_uuid(v: bytes) -> bytes:
+    if not v:
+        return v
+    if len(v) != 16:
+        raise ValueError("invalid UUID bytes: must be exactly 16 bytes")
+    return v
+`
+
+const protoTypesNotContainsFunc = `
+
+def _make_not_contains_validator(s):
+    def _validate(v):
+        if s in v:
+            raise ValueError(f"value must not contain {s!r}")
+        return v
+
+    return _validate
+`
+
 // buildProtoTypesContent assembles the content for _proto_types.py, including
 // only the format validator functions (and their imports) that are actually
 // used by files in the same output directory.
 func buildProtoTypesContent(needed map[string]bool) string {
-	needIP := needed["_validate_ip"] || needed["_validate_ipv4"] || needed["_validate_ipv6"]
+	needIP := needed["_validate_ip"] || needed["_validate_ipv4"] || needed["_validate_ipv6"] ||
+		needed["_validate_ip_with_prefixlen"] || needed["_validate_ipv4_with_prefixlen"] ||
+		needed["_validate_ipv6_with_prefixlen"] || needed["_validate_ip_prefix"] ||
+		needed["_validate_ipv4_prefix"] || needed["_validate_ipv6_prefix"] ||
+		needed["_validate_address"] || needed["_validate_host_and_port"]
 	needURI := needed["_validate_uri"]
+	// hostname is a dependency for address and host_and_port — emit it whenever those are needed.
+	needHostnameAsDep := needed["_validate_address"] || needed["_validate_host_and_port"]
 
 	var b strings.Builder
 
@@ -719,6 +938,57 @@ func buildProtoTypesContent(needed map[string]bool) string {
 	}
 	if needed["_make_const_validator"] {
 		b.WriteString(protoTypesConstValidatorFunc)
+	}
+
+	// New format validators (Tier 1 additions).
+	// hostname must come before address and host_and_port (they call it internally).
+	if needHostnameAsDep || needed["_validate_hostname"] {
+		b.WriteString(protoTypesHostnameFunc)
+	}
+	if needed["_validate_uri_ref"] {
+		b.WriteString(protoTypesURIRefFunc)
+	}
+	if needed["_validate_address"] {
+		b.WriteString(protoTypesAddressFunc)
+	}
+	if needed["_validate_tuuid"] {
+		b.WriteString(protoTypesTUUIDFunc)
+	}
+	if needed["_validate_ulid"] {
+		b.WriteString(protoTypesULIDFunc)
+	}
+	if needed["_validate_ip_with_prefixlen"] {
+		b.WriteString(protoTypesIPWithPrefixlenFunc)
+	}
+	if needed["_validate_ipv4_with_prefixlen"] {
+		b.WriteString(protoTypesIPv4WithPrefixlenFunc)
+	}
+	if needed["_validate_ipv6_with_prefixlen"] {
+		b.WriteString(protoTypesIPv6WithPrefixlenFunc)
+	}
+	if needed["_validate_ip_prefix"] {
+		b.WriteString(protoTypesIPPrefixFunc)
+	}
+	if needed["_validate_ipv4_prefix"] {
+		b.WriteString(protoTypesIPv4PrefixFunc)
+	}
+	if needed["_validate_ipv6_prefix"] {
+		b.WriteString(protoTypesIPv6PrefixFunc)
+	}
+	if needed["_validate_host_and_port"] {
+		b.WriteString(protoTypesHostAndPortFunc)
+	}
+	if needed["_validate_http_header_name"] {
+		b.WriteString(protoTypesHTTPHeaderNameFunc)
+	}
+	if needed["_validate_http_header_value"] {
+		b.WriteString(protoTypesHTTPHeaderValueFunc)
+	}
+	if needed["_validate_bytes_uuid"] {
+		b.WriteString(protoTypesBytesUUIDFunc)
+	}
+	if needed["_make_not_contains_validator"] {
+		b.WriteString(protoTypesNotContainsFunc)
 	}
 
 	return b.String()
@@ -891,23 +1161,52 @@ func (f Field) TypeAnnotation() string {
 // definition line at the given base indent level. For unquoted _Annotated[...]
 // types whose definition line would exceed 88 characters, it wraps the
 // annotation across multiple lines to match ruff's output style.
+//
+// Splitting only happens when the annotation itself with the field name prefix
+// exceeds 88 chars; when the annotation fits on one line but the trailing
+// " = _Field(" pushes the line over, NeedsParenAssignment should be used
+// instead so the template can emit the parenthesized assignment form.
 func (f Field) TypeAnnotationFormatted(bi string) string {
 	annotation := f.TypeAnnotation()
 	// Only wrap unquoted _Annotated[...] types (quoted types are never split).
 	if f.NeedsQuote || !strings.HasPrefix(annotation, "_Annotated[") || !strings.HasSuffix(annotation, "]") {
 		return annotation
 	}
-	// Check whether the full field definition opening line fits within 88 chars.
-	fullLine := bi + f.Name + ": " + annotation + " = _Field("
-	if len(fullLine) <= 88 {
+	annotationLine := bi + f.Name + ": " + annotation
+	// Case 1: full line fits — no wrapping needed.
+	if len(annotationLine+" = _Field(") <= 88 {
 		return annotation
 	}
-	// Wrap as:
-	//   _Annotated[
-	//   {bi}    inner
-	//   {bi}]
+	// Case 2: ruff-stable paren form — "name: annotation = (" fits in 88.
+	// NeedsParenAssignment handles the template rendering; return annotation unsplit.
+	if len(annotationLine+" = (") <= 88 {
+		return annotation
+	}
+	// Case 3: annotation itself is too long — split across multiple lines.
 	inner := annotation[len("_Annotated[") : len(annotation)-1]
 	return "_Annotated[\n" + bi + "    " + inner + "\n" + bi + "]"
+}
+
+// NeedsParenAssignment reports whether this field should use the ruff-stable
+// parenthesized assignment form. Ruff uses this form when the annotation fits
+// on one line with the field name (i.e. "name: annotation = (" ≤ 88 chars)
+// but the full "name: annotation = _Field(" line would exceed 88 chars.
+//
+//	name: _Annotated[...] = (
+//	    _Field(
+//	        ...
+//	    )
+//	)
+func (f Field) NeedsParenAssignment(bi string) bool {
+	annotation := f.TypeAnnotation()
+	if f.NeedsQuote || !strings.HasPrefix(annotation, "_Annotated[") || !strings.HasSuffix(annotation, "]") {
+		return false
+	}
+	annotationLine := bi + f.Name + ": " + annotation
+	if len(annotationLine+" = _Field(") <= 88 {
+		return false // full line fits; no paren needed
+	}
+	return len(annotationLine+" = (") <= 88 // paren form is stable
 }
 
 func (f Field) ConstraintArgs() []string {
@@ -962,9 +1261,10 @@ type FieldConstraints struct {
 	InValues           []string // Python literals for AfterValidator in-set
 	NotInValues        []string // Python literals for AfterValidator exclusion-set
 	UniqueItems        bool     // true when repeated.unique = true
-	FormatValidator    *string  // one of: "email", "uri", "ip", "ipv4", "ipv6", "uuid"
+	FormatValidator    *string  // one of: "email", "uri", "ip", "ipv4", "ipv6", "uuid", "hostname", etc.
 	RequireFinite      bool     // true when float/double.finite = true
 	Contains           *string  // string.contains substring — intermediate; resolved into Pattern by combinePatternConstraints
+	NotContains        *string  // string.not_contains substring — translated to _AfterValidator
 	ConstFloatLiteral  *string  // Python float literal for float/double const (Literal[] is invalid per PEP 586)
 	Required           bool     // true when buf.validate required = true is set
 	IsNonScalar        bool     // true when field kind is MessageKind or EnumKind
@@ -979,6 +1279,7 @@ func (c *FieldConstraints) HasAny() bool {
 		len(c.InValues) > 0 || len(c.NotInValues) > 0 || c.UniqueItems ||
 		c.Gt != nil || c.Gte != nil || c.Lt != nil || c.Lte != nil ||
 		c.MinLength != nil || c.MaxLength != nil || c.Pattern != nil || c.Contains != nil ||
+		c.NotContains != nil ||
 		len(c.Examples) > 0 || c.FormatValidator != nil ||
 		len(c.DroppedConstraints) > 0
 }
@@ -1327,6 +1628,10 @@ func (e *generator) applyConstraintTypeOverrides(f *Field) {
 	if fc.UniqueItems {
 		validators = append(validators, "_AfterValidator(_require_unique)")
 		e.addRuntimeImport("_require_unique")
+	}
+	if fc.NotContains != nil {
+		validators = append(validators, "_AfterValidator(_make_not_contains_validator("+pyQuote(*fc.NotContains)+"))")
+		e.addRuntimeImport("_make_not_contains_validator")
 	}
 	if fc.FormatValidator != nil {
 		helperName := "_validate_" + *fc.FormatValidator
@@ -1990,6 +2295,7 @@ func (e *generator) extractFieldConstraints(
 
 	result := &FieldConstraints{}
 	isFloat := field.Kind() == protoreflect.FloatKind || field.Kind() == protoreflect.DoubleKind
+	isBytesField := field.Kind() == protoreflect.BytesKind
 	result.IsNonScalar = field.Kind() == protoreflect.MessageKind || field.Kind() == protoreflect.EnumKind
 
 	// Walk the top-level FieldConstraints message fields. The type-specific
@@ -2005,7 +2311,7 @@ func (e *generator) extractFieldConstraints(
 		case fd.Kind() == protoreflect.MessageKind && !fd.IsList():
 			// Type-specific rules sub-message (int32, string, repeated, map, etc.)
 			v.Message().Range(func(rfd protoreflect.FieldDescriptor, rv protoreflect.Value) bool {
-				extractRuleField(result, rfd, rv, isFloat)
+				extractRuleField(result, rfd, rv, isFloat, isBytesField)
 				return true
 			})
 			// Combine prefix/suffix into pattern after all sub-fields are visited.
@@ -2024,14 +2330,14 @@ func (e *generator) extractFieldConstraints(
 		e.addStdImport("_Literal")
 	}
 	if len(result.InValues) > 0 || len(result.NotInValues) > 0 || result.UniqueItems || result.FormatValidator != nil ||
-		result.RequireFinite || result.ConstFloatLiteral != nil {
+		result.RequireFinite || result.ConstFloatLiteral != nil || result.NotContains != nil {
 		e.addStdImport("_Annotated")
 		e.addStdImport("_AfterValidator")
 	}
 	return result
 }
 
-func extractRuleField(fc *FieldConstraints, fd protoreflect.FieldDescriptor, v protoreflect.Value, isFloat bool) {
+func extractRuleField(fc *FieldConstraints, fd protoreflect.FieldDescriptor, v protoreflect.Value, isFloat bool, isBytesField bool) {
 	switch string(fd.Name()) {
 	case "gt":
 		if s, ok := formatNumericLiteral(fd, v, isFloat); ok {
@@ -2079,11 +2385,19 @@ func extractRuleField(fc *FieldConstraints, fd protoreflect.FieldDescriptor, v p
 		s := v.String()
 		fc.Pattern = &s
 	case "prefix":
-		s := v.String()
-		fc.Prefix = &s
+		if fd.Kind() == protoreflect.BytesKind {
+			fc.DroppedConstraints = append(fc.DroppedConstraints, "prefix")
+		} else {
+			s := v.String()
+			fc.Prefix = &s
+		}
 	case "suffix":
-		s := v.String()
-		fc.Suffix = &s
+		if fd.Kind() == protoreflect.BytesKind {
+			fc.DroppedConstraints = append(fc.DroppedConstraints, "suffix")
+		} else {
+			s := v.String()
+			fc.Suffix = &s
+		}
 	case "example":
 		if fd.IsList() {
 			list := v.List()
@@ -2121,7 +2435,17 @@ func extractRuleField(fc *FieldConstraints, fd protoreflect.FieldDescriptor, v p
 			list := v.List()
 			var lits []string
 			for i := 0; i < list.Len(); i++ {
-				if l := formatScalarLiteral(fd, list.Get(i)); l != "" {
+				item := list.Get(i)
+				l := formatScalarLiteral(fd, item)
+				if l == "" {
+					switch fd.Kind() {
+					case protoreflect.FloatKind:
+						l = formatPythonFloat(float64(float32(item.Float())))
+					case protoreflect.DoubleKind:
+						l = formatPythonFloat(item.Float())
+					}
+				}
+				if l != "" {
 					lits = append(lits, l)
 				}
 			}
@@ -2136,7 +2460,17 @@ func extractRuleField(fc *FieldConstraints, fd protoreflect.FieldDescriptor, v p
 			list := v.List()
 			var lits []string
 			for i := 0; i < list.Len(); i++ {
-				if l := formatScalarLiteral(fd, list.Get(i)); l != "" {
+				item := list.Get(i)
+				l := formatScalarLiteral(fd, item)
+				if l == "" {
+					switch fd.Kind() {
+					case protoreflect.FloatKind:
+						l = formatPythonFloat(float64(float32(item.Float())))
+					case protoreflect.DoubleKind:
+						l = formatPythonFloat(item.Float())
+					}
+				}
+				if l != "" {
 					lits = append(lits, l)
 				}
 			}
@@ -2155,12 +2489,55 @@ func extractRuleField(fc *FieldConstraints, fd protoreflect.FieldDescriptor, v p
 			fc.RequireFinite = true
 		}
 	case "contains":
-		s := v.String()
-		fc.Contains = &s
-	case "email", "uri", "ip", "ipv4", "ipv6", "uuid":
+		if fd.Kind() == protoreflect.BytesKind {
+			fc.DroppedConstraints = append(fc.DroppedConstraints, "contains")
+		} else {
+			s := v.String()
+			fc.Contains = &s
+		}
+	case "not_contains":
+		if fd.Kind() == protoreflect.BytesKind {
+			fc.DroppedConstraints = append(fc.DroppedConstraints, "not_contains")
+		} else {
+			s := v.String()
+			fc.NotContains = &s
+		}
+	case "email", "uri", "ip", "ipv4", "ipv6":
 		if v.Bool() {
 			name := string(fd.Name())
 			fc.FormatValidator = &name
+		}
+	case "uuid":
+		if v.Bool() {
+			if isBytesField {
+				name := "bytes_uuid"
+				fc.FormatValidator = &name
+			} else {
+				name := string(fd.Name())
+				fc.FormatValidator = &name
+			}
+		}
+	case "hostname", "uri_ref", "address", "tuuid",
+		"ip_with_prefixlen", "ipv4_with_prefixlen", "ipv6_with_prefixlen",
+		"ip_prefix", "ipv4_prefix", "ipv6_prefix",
+		"host_and_port", "ulid":
+		if v.Bool() {
+			name := string(fd.Name())
+			fc.FormatValidator = &name
+		}
+	case "well_known_regex":
+		switch v.Enum() {
+		case 1: // KNOWN_REGEX_HTTP_HEADER_NAME
+			name := "http_header_name"
+			fc.FormatValidator = &name
+		case 2: // KNOWN_REGEX_HTTP_HEADER_VALUE
+			name := "http_header_value"
+			fc.FormatValidator = &name
+		}
+	case "strict":
+		// strict=false loosens well_known_regex validation; not supported — use strict always.
+		if !v.Bool() {
+			fc.DroppedConstraints = append(fc.DroppedConstraints, "strict=false")
 		}
 	default:
 		fc.DroppedConstraints = append(fc.DroppedConstraints, string(fd.Name()))

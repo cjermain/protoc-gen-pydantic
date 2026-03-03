@@ -162,3 +162,164 @@ def _make_const_validator(c):
         return v
 
     return _validate
+
+
+def _validate_hostname(v: str) -> str:
+    if not v:
+        return v
+    if len(v) > 253:
+        raise ValueError("invalid hostname: too long")
+    labels = v.rstrip(".").split(".")
+    for label in labels:
+        if not label or len(label) > 63:
+            raise ValueError("invalid hostname: label length")
+        if label.startswith("-") or label.endswith("-"):
+            raise ValueError("invalid hostname: label has leading/trailing hyphen")
+        if not _re.fullmatch(r"[A-Za-z0-9-]+", label):
+            raise ValueError("invalid hostname: invalid characters")
+    if labels[-1].isdigit():
+        raise ValueError("invalid hostname: TLD is all-numeric")
+    return v
+
+
+def _validate_uri_ref(v: str) -> str:
+    if not v:
+        return v
+    if _re.search(r"[\x00-\x1f\x7f\s]", v):
+        raise ValueError(
+            "invalid URI reference: contains control characters or whitespace"
+        )
+    return v
+
+
+def _validate_address(v: str) -> str:
+    if not v:
+        return v
+    try:
+        _ipaddress.ip_address(v)
+        return v
+    except ValueError:
+        pass
+    return _validate_hostname(v)
+
+
+def _validate_tuuid(v: str) -> str:
+    if not v:
+        return v
+    if not _re.fullmatch(r"[0-9a-fA-F]{32}", v):
+        raise ValueError("invalid trimmed UUID: must be 32 hex characters")
+    return v
+
+
+def _validate_ulid(v: str) -> str:
+    if not v:
+        return v
+    if len(v) != 26:
+        raise ValueError("invalid ULID: must be 26 characters")
+    if not _re.fullmatch(r"[0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{26}", v):
+        raise ValueError("invalid ULID: invalid characters")
+    if v[0].upper() > "7":
+        raise ValueError("invalid ULID: timestamp overflow")
+    return v
+
+
+def _validate_ip_with_prefixlen(v: str) -> str:
+    if not v:
+        return v
+    _ipaddress.ip_interface(v)
+    return v
+
+
+def _validate_ipv4_with_prefixlen(v: str) -> str:
+    if not v:
+        return v
+    _ipaddress.IPv4Interface(v)
+    return v
+
+
+def _validate_ipv6_with_prefixlen(v: str) -> str:
+    if not v:
+        return v
+    _ipaddress.IPv6Interface(v)
+    return v
+
+
+def _validate_ip_prefix(v: str) -> str:
+    if not v:
+        return v
+    _ipaddress.ip_network(v, strict=True)
+    return v
+
+
+def _validate_ipv4_prefix(v: str) -> str:
+    if not v:
+        return v
+    _ipaddress.IPv4Network(v, strict=True)
+    return v
+
+
+def _validate_ipv6_prefix(v: str) -> str:
+    if not v:
+        return v
+    _ipaddress.IPv6Network(v, strict=True)
+    return v
+
+
+def _validate_host_and_port(v: str) -> str:
+    if not v:
+        return v
+    if v.startswith("["):
+        end = v.find("]")
+        if end == -1:
+            raise ValueError("invalid host_and_port: unmatched '['")
+        host = v[1:end]
+        rest = v[end + 1 :]
+        if not rest.startswith(":"):
+            raise ValueError("invalid host_and_port: missing port after ']'")
+        port_str = rest[1:]
+        _ipaddress.IPv6Address(host)
+    else:
+        colon = v.rfind(":")
+        if colon == -1:
+            raise ValueError("invalid host_and_port: missing port")
+        host, port_str = v[:colon], v[colon + 1 :]
+        try:
+            _ipaddress.IPv4Address(host)
+        except ValueError:
+            _validate_hostname(host)
+    if not port_str.isdigit() or not 0 <= int(port_str) <= 65535:
+        raise ValueError(f"invalid port: {port_str!r}")
+    return v
+
+
+def _validate_http_header_name(v: str) -> str:
+    if not v:
+        return v
+    if not _re.fullmatch(r"[!#$%&'*+\-.^_`|~0-9A-Za-z]+", v):
+        raise ValueError("invalid HTTP header name")
+    return v
+
+
+def _validate_http_header_value(v: str) -> str:
+    if not v:
+        return v
+    if not _re.fullmatch(r"[\t\x20-\x7e]*", v):
+        raise ValueError("invalid HTTP header value")
+    return v
+
+
+def _validate_bytes_uuid(v: bytes) -> bytes:
+    if not v:
+        return v
+    if len(v) != 16:
+        raise ValueError("invalid UUID bytes: must be exactly 16 bytes")
+    return v
+
+
+def _make_not_contains_validator(s):
+    def _validate(v):
+        if s in v:
+            raise ValueError(f"value must not contain {s!r}")
+        return v
+
+    return _validate

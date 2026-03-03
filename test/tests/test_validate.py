@@ -13,14 +13,17 @@ from api.v1.validate_pydantic import (
     ValidatedDuration,
     ValidatedExamples,
     ValidatedFinite,
+    ValidatedFloatIn,
+    ValidatedFormats,
+    ValidatedFormatsExtended,
     ValidatedIn,
     ValidatedMap,
+    ValidatedNotContains,
     ValidatedOneof,
     ValidatedOneofFormat,
     ValidatedRepeated,
     ValidatedReserved,
     ValidatedScalars,
-    ValidatedFormats,
     ValidatedStringAffix,
     ValidatedRequired,
     ValidatedStringContains,
@@ -28,6 +31,7 @@ from api.v1.validate_pydantic import (
     ValidatedStrings,
     ValidatedTimestamp,
     ValidatedUnique,
+    ValidatedWellKnownRegex,
 )
 
 
@@ -1071,3 +1075,333 @@ def test_validated_const_optional_both_raises():
 def test_validated_const_optional_annotation_in_generated_file():
     text = _GEN_VALIDATE.read_text()
     assert "ValidatedConstOptional" in text
+
+
+# ---------------------------------------------------------------------------
+# ValidatedBytes — bytes.uuid (16-byte binary UUID)
+# ---------------------------------------------------------------------------
+
+
+def test_validated_bytes_uuid_valid():
+    m = ValidatedBytes(uuid=b"\x00" * 16)
+    assert m.uuid == b"\x00" * 16
+
+
+def test_validated_bytes_uuid_empty_skips_validation():
+    # Empty bytes is the proto3 zero value; validator is skipped.
+    m = ValidatedBytes()
+    assert m.uuid == b""
+
+
+def test_validated_bytes_uuid_too_short():
+    with pytest.raises(ValidationError):
+        ValidatedBytes(uuid=b"\x00" * 15)
+
+
+def test_validated_bytes_uuid_too_long():
+    with pytest.raises(ValidationError):
+        ValidatedBytes(uuid=b"\x00" * 17)
+
+
+# ---------------------------------------------------------------------------
+# ValidatedFormatsExtended — new format validators (Tier 1)
+# ---------------------------------------------------------------------------
+
+
+def test_validated_formats_extended_defaults():
+    # All default empty strings skip validation.
+    m = ValidatedFormatsExtended()
+    assert m.hostname == ""
+    assert m.uri_ref == ""
+    assert m.addr == ""
+    assert m.tuuid == ""
+    assert m.ulid == ""
+    assert m.cidr == ""
+    assert m.cidr_v4 == ""
+    assert m.cidr_v6 == ""
+    assert m.ip_net == ""
+    assert m.ipv4_net == ""
+    assert m.ipv6_net == ""
+    assert m.endpoint == ""
+
+
+@pytest.mark.parametrize(
+    "host",
+    ["example.com", "localhost", "sub.domain.example.co.uk", "xn--nxasmq6b.com"],
+)
+def test_validated_formats_extended_hostname_valid(host):
+    m = ValidatedFormatsExtended(hostname=host)
+    assert m.hostname == host
+
+
+@pytest.mark.parametrize(
+    "host",
+    ["-bad.com", "bad-.com", "label..double.dot", "has space.com", "123.456"],
+)
+def test_validated_formats_extended_hostname_invalid(host):
+    with pytest.raises(ValidationError):
+        ValidatedFormatsExtended(hostname=host)
+
+
+@pytest.mark.parametrize(
+    "ref",
+    ["/path/to/resource", "https://example.com/x?y=1", "../relative", "#fragment"],
+)
+def test_validated_formats_extended_uri_ref_valid(ref):
+    m = ValidatedFormatsExtended(uri_ref=ref)
+    assert m.uri_ref == ref
+
+
+@pytest.mark.parametrize("ref", ["has space", "line\nnewline", "tab\there"])
+def test_validated_formats_extended_uri_ref_invalid(ref):
+    with pytest.raises(ValidationError):
+        ValidatedFormatsExtended(uri_ref=ref)
+
+
+@pytest.mark.parametrize("addr", ["1.2.3.4", "::1", "example.com", "localhost"])
+def test_validated_formats_extended_address_valid(addr):
+    m = ValidatedFormatsExtended(addr=addr)
+    assert m.addr == addr
+
+
+@pytest.mark.parametrize("addr", ["-bad-host", "has space", "label..double"])
+def test_validated_formats_extended_address_invalid(addr):
+    with pytest.raises(ValidationError):
+        ValidatedFormatsExtended(addr=addr)
+
+
+@pytest.mark.parametrize(
+    "u",
+    ["550e8400e29b41d4a716446655440000", "6ba7b8109dad11d180b400c04fd430c8"],
+)
+def test_validated_formats_extended_tuuid_valid(u):
+    m = ValidatedFormatsExtended(tuuid=u)
+    assert m.tuuid == u
+
+
+@pytest.mark.parametrize(
+    "u",
+    [
+        "550e8400-e29b-41d4-a716-446655440000",  # has dashes
+        "short",
+        "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz",  # non-hex
+    ],
+)
+def test_validated_formats_extended_tuuid_invalid(u):
+    with pytest.raises(ValidationError):
+        ValidatedFormatsExtended(tuuid=u)
+
+
+@pytest.mark.parametrize(
+    "u",
+    ["01ARZ3NDEKTSV4RRFFQ69G5FAV", "7ZZZZZZZZZZZZZZZZZZZZZZZZZ"],
+)
+def test_validated_formats_extended_ulid_valid(u):
+    m = ValidatedFormatsExtended(ulid=u)
+    assert m.ulid == u
+
+
+@pytest.mark.parametrize(
+    "u",
+    [
+        "INVALID_CHARS!!!!!!!!!!!!!",  # invalid characters
+        "TOOSHORT",  # too short
+        "01ARZ3NDEKTSV4RRFFQ69G5FAVXX",  # too long
+        "8ZZZZZZZZZZZZZZZZZZZZZZZZ",  # timestamp overflow (first char > 7)
+    ],
+)
+def test_validated_formats_extended_ulid_invalid(u):
+    with pytest.raises(ValidationError):
+        ValidatedFormatsExtended(ulid=u)
+
+
+@pytest.mark.parametrize(
+    "cidr",
+    ["192.168.0.1/24", "10.0.0.1/8", "::1/128", "2001:db8::1/32"],
+)
+def test_validated_formats_extended_ip_with_prefixlen_valid(cidr):
+    m = ValidatedFormatsExtended(cidr=cidr)
+    assert m.cidr == cidr
+
+
+@pytest.mark.parametrize("cidr", ["not/valid", "1.2.3.4/33", "999.999.999.999/24"])
+def test_validated_formats_extended_ip_with_prefixlen_invalid(cidr):
+    with pytest.raises(ValidationError):
+        ValidatedFormatsExtended(cidr=cidr)
+
+
+@pytest.mark.parametrize("cidr", ["192.168.0.1/24", "10.0.0.0/8"])
+def test_validated_formats_extended_ipv4_with_prefixlen_valid(cidr):
+    m = ValidatedFormatsExtended(cidr_v4=cidr)
+    assert m.cidr_v4 == cidr
+
+
+@pytest.mark.parametrize("cidr", ["::1/128", "not-an-ip/24", "1.2.3.4/33"])
+def test_validated_formats_extended_ipv4_with_prefixlen_invalid(cidr):
+    with pytest.raises(ValidationError):
+        ValidatedFormatsExtended(cidr_v4=cidr)
+
+
+@pytest.mark.parametrize("cidr", ["::1/128", "2001:db8::1/32"])
+def test_validated_formats_extended_ipv6_with_prefixlen_valid(cidr):
+    m = ValidatedFormatsExtended(cidr_v6=cidr)
+    assert m.cidr_v6 == cidr
+
+
+@pytest.mark.parametrize("cidr", ["192.168.0.1/24", "not-an-ip/32", "::1/129"])
+def test_validated_formats_extended_ipv6_with_prefixlen_invalid(cidr):
+    with pytest.raises(ValidationError):
+        ValidatedFormatsExtended(cidr_v6=cidr)
+
+
+@pytest.mark.parametrize(
+    "net",
+    ["192.168.0.0/24", "10.0.0.0/8", "2001:db8::/32"],
+)
+def test_validated_formats_extended_ip_prefix_valid(net):
+    m = ValidatedFormatsExtended(ip_net=net)
+    assert m.ip_net == net
+
+
+@pytest.mark.parametrize(
+    "net",
+    ["192.168.0.1/24", "not/valid"],  # host bits set → invalid network
+)
+def test_validated_formats_extended_ip_prefix_invalid(net):
+    with pytest.raises(ValidationError):
+        ValidatedFormatsExtended(ip_net=net)
+
+
+@pytest.mark.parametrize("net", ["192.168.0.0/24", "10.0.0.0/8"])
+def test_validated_formats_extended_ipv4_prefix_valid(net):
+    m = ValidatedFormatsExtended(ipv4_net=net)
+    assert m.ipv4_net == net
+
+
+@pytest.mark.parametrize("net", ["192.168.0.1/24", "::1/128"])
+def test_validated_formats_extended_ipv4_prefix_invalid(net):
+    with pytest.raises(ValidationError):
+        ValidatedFormatsExtended(ipv4_net=net)
+
+
+@pytest.mark.parametrize("net", ["2001:db8::/32", "::/0"])
+def test_validated_formats_extended_ipv6_prefix_valid(net):
+    m = ValidatedFormatsExtended(ipv6_net=net)
+    assert m.ipv6_net == net
+
+
+@pytest.mark.parametrize("net", ["2001:db8::1/32", "192.168.0.0/24"])
+def test_validated_formats_extended_ipv6_prefix_invalid(net):
+    with pytest.raises(ValidationError):
+        ValidatedFormatsExtended(ipv6_net=net)
+
+
+@pytest.mark.parametrize(
+    "ep",
+    ["example.com:80", "1.2.3.4:443", "[::1]:8080", "localhost:0"],
+)
+def test_validated_formats_extended_host_and_port_valid(ep):
+    m = ValidatedFormatsExtended(endpoint=ep)
+    assert m.endpoint == ep
+
+
+@pytest.mark.parametrize(
+    "ep",
+    ["nocolon", "host:99999", "[::1", "example.com:abc"],
+)
+def test_validated_formats_extended_host_and_port_invalid(ep):
+    with pytest.raises(ValidationError):
+        ValidatedFormatsExtended(endpoint=ep)
+
+
+# ---------------------------------------------------------------------------
+# ValidatedWellKnownRegex — well_known_regex enum validator
+# ---------------------------------------------------------------------------
+
+
+def test_validated_well_known_regex_defaults():
+    m = ValidatedWellKnownRegex()
+    assert m.header_name == ""
+    assert m.header_value == ""
+
+
+@pytest.mark.parametrize("name", ["Content-Type", "X-Custom-Header", "Accept-Encoding"])
+def test_validated_well_known_regex_header_name_valid(name):
+    m = ValidatedWellKnownRegex(header_name=name)
+    assert m.header_name == name
+
+
+@pytest.mark.parametrize("name", ["has space", "has:colon", "has\nnewline"])
+def test_validated_well_known_regex_header_name_invalid(name):
+    with pytest.raises(ValidationError):
+        ValidatedWellKnownRegex(header_name=name)
+
+
+@pytest.mark.parametrize(
+    "val", ["application/json", "gzip, deflate", "text/html; charset=utf-8"]
+)
+def test_validated_well_known_regex_header_value_valid(val):
+    m = ValidatedWellKnownRegex(header_value=val)
+    assert m.header_value == val
+
+
+@pytest.mark.parametrize("val", ["has\nnewline", "has\x00null"])
+def test_validated_well_known_regex_header_value_invalid(val):
+    with pytest.raises(ValidationError):
+        ValidatedWellKnownRegex(header_value=val)
+
+
+# ---------------------------------------------------------------------------
+# ValidatedNotContains — string.not_contains AfterValidator
+# ---------------------------------------------------------------------------
+
+
+def test_validated_not_contains_default():
+    m = ValidatedNotContains()
+    assert m.username == ""
+
+
+@pytest.mark.parametrize("name", ["user", "alice", "bob123"])
+def test_validated_not_contains_valid(name):
+    m = ValidatedNotContains(username=name)
+    assert m.username == name
+
+
+@pytest.mark.parametrize("name", ["admin", "superadmin", "admin_user"])
+def test_validated_not_contains_invalid(name):
+    with pytest.raises(ValidationError):
+        ValidatedNotContains(username=name)
+
+
+# ---------------------------------------------------------------------------
+# ValidatedFloatIn — float.in / double.not_in with float literals
+# ---------------------------------------------------------------------------
+
+
+def test_validated_float_in_defaults():
+    # Defaults (0.0) are not validated by AfterValidator in Pydantic v2.
+    ValidatedFloatIn()
+
+
+@pytest.mark.parametrize("v", [0.25, 0.5, 0.75, 1.0])
+def test_validated_float_in_ratio_valid(v):
+    m = ValidatedFloatIn(ratio=v)
+    assert m.ratio == pytest.approx(v)
+
+
+@pytest.mark.parametrize("v", [0.3, 0.1, 2.0])
+def test_validated_float_in_ratio_invalid(v):
+    with pytest.raises(ValidationError):
+        ValidatedFloatIn(ratio=v)
+
+
+@pytest.mark.parametrize("v", [0.0, 1.0, 100.0])
+def test_validated_float_in_score_valid(v):
+    m = ValidatedFloatIn(score=v)
+    assert m.score == pytest.approx(v)
+
+
+@pytest.mark.parametrize("v", [-1.0, -2.0])
+def test_validated_float_in_score_invalid(v):
+    with pytest.raises(ValidationError):
+        ValidatedFloatIn(score=v)

@@ -211,6 +211,8 @@ message ValidatedBytes {
   bytes hash = 2 [(buf.validate.field).bytes.len = 32];
   // Payload must be at most 1024 bytes.
   bytes payload = 3 [(buf.validate.field).bytes.max_len = 1024];
+  // Uuid must be a valid 16-byte binary UUID.
+  bytes uuid = 4 [(buf.validate.field).bytes.uuid = true];
 }
 
 // ValidatedStringContains exercises the string.contains constraint.
@@ -293,4 +295,55 @@ message ValidatedConstOptional {
     string fixed_token = 1 [(buf.validate.field).string.const = "fixed"];
     string other_token = 2;
   }
+}
+
+// ValidatedFormatsExtended exercises additional format validators beyond the
+// original six (email, uri, ip, ipv4, ipv6, uuid).
+message ValidatedFormatsExtended {
+  // Hostname must be a valid DNS hostname.
+  string hostname = 1 [(buf.validate.field).string.hostname = true];
+  // UriRef must be a valid URI reference (absolute or relative).
+  string uri_ref = 2 [(buf.validate.field).string.uri_ref = true];
+  // Addr must be a valid IP address or hostname.
+  string addr = 3 [(buf.validate.field).string.address = true];
+  // Tuuid must be a trimmed UUID (32 hex chars, no dashes).
+  string tuuid = 4 [(buf.validate.field).string.tuuid = true];
+  // Ulid must be a valid ULID.
+  string ulid = 5 [(buf.validate.field).string.ulid = true];
+  // Cidr must be a valid IP address with prefix length (host address).
+  string cidr = 6 [(buf.validate.field).string.ip_with_prefixlen = true];
+  // CidrV4 must be a valid IPv4 address with prefix length.
+  string cidr_v4 = 7 [(buf.validate.field).string.ipv4_with_prefixlen = true];
+  // CidrV6 must be a valid IPv6 address with prefix length.
+  string cidr_v6 = 8 [(buf.validate.field).string.ipv6_with_prefixlen = true];
+  // IpNet must be a valid IP network (host bits must be zero).
+  string ip_net = 9 [(buf.validate.field).string.ip_prefix = true];
+  // Ipv4Net must be a valid IPv4 network (host bits must be zero).
+  string ipv4_net = 10 [(buf.validate.field).string.ipv4_prefix = true];
+  // Ipv6Net must be a valid IPv6 network (host bits must be zero).
+  string ipv6_net = 11 [(buf.validate.field).string.ipv6_prefix = true];
+  // Endpoint must be a valid host:port pair.
+  string endpoint = 12 [(buf.validate.field).string.host_and_port = true];
+}
+
+// ValidatedWellKnownRegex exercises the well_known_regex enum validator.
+message ValidatedWellKnownRegex {
+  // HeaderName must be a valid HTTP header name.
+  string header_name = 1 [(buf.validate.field).string.well_known_regex = KNOWN_REGEX_HTTP_HEADER_NAME];
+  // HeaderValue must be a valid HTTP header value.
+  string header_value = 2 [(buf.validate.field).string.well_known_regex = KNOWN_REGEX_HTTP_HEADER_VALUE];
+}
+
+// ValidatedNotContains exercises the string.not_contains constraint.
+message ValidatedNotContains {
+  // Username must not contain "admin".
+  string username = 1 [(buf.validate.field).string.not_contains = "admin"];
+}
+
+// ValidatedFloatIn exercises float.in and double.not_in constraints.
+message ValidatedFloatIn {
+  // Ratio must be one of the allowed values.
+  float ratio = 1 [(buf.validate.field) = {float: {in: [0.25, 0.5, 0.75, 1.0]}}];
+  // Score must not be a negative sentinel value.
+  double score = 2 [(buf.validate.field) = {double: {not_in: [-1.0, -2.0]}}];
 }
