@@ -1426,7 +1426,7 @@ def test_validated_float_examples_in_generated_file():
     text = _GEN_VALIDATE.read_text()
     assert "examples=[1.5, 0.25]" in text
     assert "examples=[3.14, 2.71]" in text
-    assert "examples=[False]" in text
+    assert "examples=[False, True]" in text
     assert "examples=[7, 42]" in text
 
 
@@ -1495,3 +1495,34 @@ def test_validated_const_code_enforced():
 def test_validated_const_code_in_generated_file():
     text = _GEN_VALIDATE.read_text()
     assert "_Literal[100]" in text
+
+
+# ---------------------------------------------------------------------------
+# ValidatedConst inactive — BoolKind false branch in formatScalarLiteral
+# ---------------------------------------------------------------------------
+
+
+def test_validated_const_inactive_default():
+    m = ValidatedConst()
+    assert m.inactive is False
+
+
+def test_validated_const_inactive_enforced():
+    with pytest.raises(ValidationError):
+        ValidatedConst(inactive=True)
+
+
+def test_validated_const_inactive_in_generated_file():
+    text = _GEN_VALIDATE.read_text()
+    assert "_Literal[False]" in text
+
+
+# ---------------------------------------------------------------------------
+# ValidatedUser role — EnumKind in formatExampleItem
+# ---------------------------------------------------------------------------
+
+
+def test_validated_user_role_example_in_generated_file():
+    text = _GEN_VALIDATE.read_text()
+    # enum example annotation produces examples=[1]
+    assert "examples=[1]" in text

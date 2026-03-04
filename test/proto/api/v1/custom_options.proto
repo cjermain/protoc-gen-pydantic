@@ -8,17 +8,29 @@ option go_package = "github.com/cjermain/protoc-gen-pydantic/test/api";
 
 extend google.protobuf.EnumValueOptions {
   optional string display_name = 51234;
-  optional int32 priority = 51235;
-  optional bool is_default = 51236;
-  optional int64 version = 51237;
-  optional float weight = 51238;
+  optional int32  priority     = 51235;
+  optional bool   is_default   = 51236;
+  optional int64  version      = 51237;
+  optional float  weight       = 51238;
+  optional uint32 rank         = 51239;
+  optional uint64 serial       = 51240;
+  optional double rate         = 51241;
 }
 
 // Currency enum with custom options.
 enum Currency {
   CURRENCY_UNSPECIFIED = 0;
-  CURRENCY_USD = 1 [(display_name) = "US Dollar", (priority) = 1, (is_default) = true, (version) = 1, (weight) = 1.0];
-  CURRENCY_EUR = 2 [(display_name) = "Euro", (priority) = 2];
+  CURRENCY_USD = 1 [
+    (display_name) = "US Dollar",
+    (priority) = 1,
+    (is_default) = true,
+    (version) = 1,
+    (weight) = 1.0,
+    (rank) = 1,
+    (serial) = 1000,
+    (rate) = 1.5
+  ];
+  CURRENCY_EUR = 2 [(display_name) = "Euro", (priority) = 2, (is_default) = false];
   CURRENCY_GBP = 3 [(display_name) = "British Pound"];
 }
 

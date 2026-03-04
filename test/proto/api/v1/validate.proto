@@ -187,6 +187,8 @@ message ValidatedConst {
   bool active = 3 [(buf.validate.field).bool.const = true];
   double score = 4 [(buf.validate.field).double.const = 3.14];
   uint32 code = 5 [(buf.validate.field).uint32.const = 100];
+  // inactive covers the BoolKind false branch in formatScalarLiteral.
+  bool inactive = 6 [(buf.validate.field).bool.const = false];
 }
 
 // ValidatedIn exercises in and not_in constraints translated to AfterValidator.
@@ -249,7 +251,8 @@ message ValidatedUser {
     ROLE_ADMIN       = 3;
   }
 
-  Role role = 4;
+  // Role with an enum example (covers EnumKind in formatExampleItem).
+  Role role = 4 [(buf.validate.field).enum.example = 1];
 }
 
 // ValidatedRequired exercises required = true on proto3 optional scalar fields
@@ -360,8 +363,8 @@ message ValidatedFloatExamples {
   float ratio = 1 [(buf.validate.field).float = {gt: 0.0, example: 1.5, example: 0.25}];
   // Score must be positive with double examples.
   double score = 2 [(buf.validate.field).double = {gt: 0.0, example: 3.14, example: 2.71}];
-  // Flag with bool false example.
-  bool flag = 3 [(buf.validate.field).bool.example = false];
+  // Flag with bool false and true examples (covers both BoolKind branches in formatExampleItem).
+  bool flag = 3 [(buf.validate.field).bool.example = false, (buf.validate.field).bool.example = true];
   // Code must be positive with uint32 examples.
   uint32 code = 4 [(buf.validate.field).uint32 = {gt: 0, example: 7, example: 42}];
 }
