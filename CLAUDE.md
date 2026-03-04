@@ -8,11 +8,13 @@ protoc-gen-pydantic is a `protoc` plugin written in Go that generates Pydantic v
 
 ## Architecture
 
-**Single-file Go plugin** (`main.go`):
-- Reads `CodeGeneratorRequest` from stdin, writes `CodeGeneratorResponse` to stdout
-- Uses Go `text/template` to render Python code
-- Key types: `generator`, `Message` (has `NestedMessages []Message`, `NestedEnums []Enum`, `OneOfGroups []OneOf`), `Field`, `Enum`, `EnumValue`, `CustomOption`, `OneOf`
-- Key functions: `processFile()` → `processMessage()`/`processEnum()` → `resolveType()`/`resolveBaseType()`/`resolveQualifiedName()`
+**Six-file Go plugin** (`package main`):
+- `main.go` — entry point + `buildFieldConstraintExt()` for buf.validate extension resolution
+- `generator.go` — processing + type resolution: `processFile()` → `processMessage()`/`processEnum()` → `resolveType()`/`resolveBaseType()`/`resolveQualifiedName()`
+- `types.go` — domain types (`generator`, `Message`, `Field`, `Enum`, `EnumValue`, `CustomOption`, `OneOf`) and data maps (`wellKnownTypes`, `reservedNames`)
+- `constraints.go` — buf.validate translation: `extractFieldConstraints()`, `applyConstraintTypeOverrides()`
+- `template.go` — Python template constants (`modelTemplate`) + `buildProtoTypesContent()`
+- `format.go` — formatting utilities
 
 **Code generation flow:**
 1. Parse plugin options from protoc/buf
@@ -50,7 +52,12 @@ just docs-preview       # Build docs and preview locally
 ## Project Structure
 
 ```
-├── main.go                          # All Go plugin code
+├── main.go                          # Entry point + proto option builders
+├── generator.go                     # Processing + type resolution
+├── types.go                         # Domain types + data maps (wellKnownTypes, reservedNames)
+├── constraints.go                   # buf.validate translation
+├── template.go                      # Python template constants + buildProtoTypesContent
+├── format.go                        # Formatting utilities
 ├── go.mod                           # Go module (github.com/cjermain/protoc-gen-pydantic)
 ├── go.sum                           # Go dependency checksums
 ├── Justfile                         # Command runner recipes (just)
@@ -112,7 +119,7 @@ Implementation Details below.
 ## Key Implementation Details
 
 ### Python Builtin Shadowing
-Proto fields named `bool`, `float`, `bytes` etc. shadow Python builtins. The generator renames these with a PEP 8 trailing underscore (e.g., `bool_`) and adds `Field(alias="bool")` with `ConfigDict(populate_by_name=True)`. The `reservedNames` map in main.go controls which names trigger this (Python builtins, keywords, and Pydantic BaseModel attributes).
+Proto fields named `bool`, `float`, `bytes` etc. shadow Python builtins. The generator renames these with a PEP 8 trailing underscore (e.g., `bool_`) and adds `Field(alias="bool")` with `ConfigDict(populate_by_name=True)`. The `reservedNames` map in types.go controls which names trigger this (Python builtins, keywords, and Pydantic BaseModel attributes).
 
 ### Well-Known Types
 Protobuf WKTs are mapped to native Python types (not raw `_pb2` classes):
@@ -121,27 +128,35 @@ Protobuf WKTs are mapped to native Python types (not raw `_pb2` classes):
 - Wrapper types (`BoolValue`, `Int32Value`, etc.) → native Python equivalents
 - `Empty` → `None`, `FieldMask` → `list[str]`, `Any` → `Any`
 
-The `wellKnownTypes` map in main.go defines these mappings.
+The `wellKnownTypes` map in types.go defines these mappings.
 
 ### buf.validate / protovalidate
-`buf.validate` field constraints are translated to Pydantic constructs using
-the same `dynamicpb` extension-resolution pattern as enum value options; see
-`buildFieldConstraintExt()` and `extractFieldConstraints()` in main.go.
+`buf.validate` field constraints are translated to Pydantic constructs.
+`buildFieldConstraintExt()` in `main.go` resolves the extension descriptor;
+`extractFieldConstraints()` and `applyConstraintTypeOverrides()` in `constraints.go`
+perform the translation.
 
 Supported translations:
 - Numeric `gt`/`ge`/`lt`/`le` → `Field(gt=..., ge=..., lt=..., le=...)`
 - `string.min_len`/`max_len`/`len`, `repeated.min_items`/`max_items`, `map.min_pairs`/`max_pairs` → `Field(min_length=..., max_length=...)`
 - `string.pattern` → `Field(pattern=...)`
 - `string.prefix`/`suffix` → `Field(pattern=...)` (anchored regex; conflicts with `pattern` → dropped comment)
+- `string.contains` → `Field(pattern=...)` (dropped if conflicts with prefix/suffix pattern)
+- `string.not_contains` → `Annotated[str, AfterValidator(_make_not_contains_validator("s"))]`
 - `field.example` → `Field(examples=[...])`
-- `string.const`/`int.const`/`bool.const` → `Literal[value]` type + matching default (float/double/bytes excluded — not valid in `Literal[]`)
-- `string.in`/`int.in`/etc. → `Annotated[T, AfterValidator(_make_in_validator(frozenset({...})))]`
+- `string.const`/`int.const`/`bool.const` → `Literal[value]` type + matching default
+- `float.const`/`double.const` → `Annotated[float, AfterValidator(_make_const_validator(v))]` (Literal[float] is invalid per PEP 586)
+- `float.finite`/`double.finite` → `Annotated[float, AfterValidator(_require_finite)]`
+- `string.in`/`int.in`/`float.in`/etc. → `Annotated[T, AfterValidator(_make_in_validator(frozenset({...})))]`
 - `string.not_in`/etc. → `Annotated[T, AfterValidator(_make_not_in_validator(frozenset({...})))]`
 - `repeated.unique` → `Annotated[list[T], AfterValidator(_require_unique)]`
 - `string.email`/`uri`/`ip`/`ipv4`/`ipv6`/`uuid` → `Annotated[str, AfterValidator(_validate_*)]`
+- `string.hostname`/`uri_ref`/`address`/`tuuid`/`ulid`/`ip_with_prefixlen`/`ipv4_with_prefixlen`/`ipv6_with_prefixlen`/`ip_prefix`/`ipv4_prefix`/`ipv6_prefix`/`host_and_port` → `Annotated[str, AfterValidator(_validate_*)]`
+- `string.well_known_regex = HTTP_HEADER_NAME/HTTP_HEADER_VALUE` → `Annotated[str, AfterValidator(_validate_http_header_name/_validate_http_header_value)]`; `strict=false` → dropped comment
+- `bytes.uuid` → `Annotated[bytes, AfterValidator(_validate_bytes_uuid)]` (16-byte check)
 
 Emitted as `# buf.validate: X (not translated)` comments: `required`, CEL,
-float/double/bytes `const`, message-typed bounds (duration, timestamp).
+`bytes.const`, message-typed bounds (duration, timestamp).
 `enum.defined_only` is a no-op (Python enums enforce this natively).
 
 Format and set validator helpers live in `_proto_types.py` (generated
@@ -195,9 +210,9 @@ Format/type issues in generated files are caught by `just test`, not `just lint`
 ## Code Style
 
 ### Go
-- Code is organized across six files in `package main`: `main.go` (entry point + proto option builders), `generator.go` (processing + type resolution), `types.go` (domain types + data maps), `constraints.go` (buf.validate translation), `template.go` (Python template constants + `buildProtoTypesContent`), `format.go` (formatting utilities)
 - Template rendering uses Go `text/template` with the `modelTemplate` constant in `template.go`
 - Add new type mappings to the appropriate map (`wellKnownTypes`, `reservedNames`) in `types.go`
+- Add new buf.validate constraint translations to `extractRuleField()` / `applyConstraintTypeOverrides()` in `constraints.go`
 - New plugin options: add to `GeneratorConfig` struct, parse in flag setup, wire through template
 
 ### Python (generated output)
