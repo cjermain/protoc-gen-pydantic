@@ -332,11 +332,12 @@ since `Literal[float]` is invalid per PEP 586:
 
     ```proto
     message ValidatedConst {
-      string tag    = 1 [(buf.validate.field).string.const  = "fixed"];
-      int32  count  = 2 [(buf.validate.field).int32.const   = 42];
-      bool   active = 3 [(buf.validate.field).bool.const    = true];
-      double score  = 4 [(buf.validate.field).double.const  = 3.14];
-      uint32 code   = 5 [(buf.validate.field).uint32.const  = 100];
+      string tag      = 1 [(buf.validate.field).string.const  = "fixed"];
+      int32  count    = 2 [(buf.validate.field).int32.const   = 42];
+      bool   active   = 3 [(buf.validate.field).bool.const    = true];
+      double score    = 4 [(buf.validate.field).double.const  = 3.14];
+      uint32 code     = 5 [(buf.validate.field).uint32.const  = 100];
+      bool   inactive = 6 [(buf.validate.field).bool.const    = false];
     }
     ```
 
@@ -351,6 +352,7 @@ vc = ValidatedConst()
 assert vc.tag == "fixed"
 assert vc.count == 42
 assert vc.active is True
+assert vc.inactive is False
 ```
 
 ### Required (proto3 optional + required)

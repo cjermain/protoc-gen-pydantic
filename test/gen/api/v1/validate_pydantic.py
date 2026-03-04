@@ -467,10 +467,8 @@ class ValidatedConst(_ProtoModel):
     code: _Literal[100] = _Field(
         default=100,
     )
-    # inactive covers the BoolKind false branch in formatScalarLiteral.
     inactive: _Literal[False] = _Field(
         default=False,
-        description="inactive covers the BoolKind false branch in formatScalarLiteral.",
     )
 
 
@@ -600,10 +598,8 @@ class ValidatedUser(_ProtoModel):
         default="",
         description="Contact email address.",
     )
-    # Role with an enum example (covers EnumKind in formatExampleItem).
     role: "ValidatedUser.Role | None" = _Field(
         default=None,
-        description="Role with an enum example (covers EnumKind in formatExampleItem).",
         examples=[1],
     )
 
@@ -856,10 +852,10 @@ class ValidatedFloatExamples(_ProtoModel):
         gt=0.0,
         examples=[3.14, 2.71],
     )
-    # Flag with bool false and true examples (covers both BoolKind branches in formatExampleItem).
+    # Flag with bool examples.
     flag: bool = _Field(
         default=False,
-        description="Flag with bool false and true examples (covers both BoolKind branches in formatExampleItem).",
+        description="Flag with bool examples.",
         examples=[False, True],
     )
     # Code must be positive with uint32 examples.
