@@ -194,10 +194,10 @@ Format/type issues in generated files are caught by `just test`, not `just lint`
 
 ## Code Style
 
-### Go (main.go)
-- All code lives in a single `main.go` file
-- Template rendering uses Go `text/template` with the `modelTemplate` constant
-- Add new type mappings to the appropriate map (`wellKnownTypes`, `reservedNames`)
+### Go
+- Code is organized across six files in `package main`: `main.go` (entry point + proto option builders), `generator.go` (processing + type resolution), `types.go` (domain types + data maps), `constraints.go` (buf.validate translation), `template.go` (Python template constants + `buildProtoTypesContent`), `format.go` (formatting utilities)
+- Template rendering uses Go `text/template` with the `modelTemplate` constant in `template.go`
+- Add new type mappings to the appropriate map (`wellKnownTypes`, `reservedNames`) in `types.go`
 - New plugin options: add to `GeneratorConfig` struct, parse in flag setup, wire through template
 
 ### Python (generated output)
