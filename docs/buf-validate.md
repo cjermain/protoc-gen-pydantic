@@ -19,12 +19,16 @@ from api.v1.validate_pydantic import (
     ValidatedConst,
     ValidatedDropped,
     ValidatedFinite,
+    ValidatedFloatIn,
     ValidatedFormats,
+    ValidatedFormatsExtended,
     ValidatedIn,
+    ValidatedNotContains,
     ValidatedRequired,
     ValidatedScalars,
     ValidatedStrings,
     ValidatedUnique,
+    ValidatedWellKnownRegex,
 )
 ```
 
@@ -89,6 +93,22 @@ import "buf/validate/validate.proto";
 | `string.ipv4` | `Annotated[str, AfterValidator(_validate_ipv4)]` |
 | `string.ipv6` | `Annotated[str, AfterValidator(_validate_ipv6)]` |
 | `string.uuid` | `Annotated[str, AfterValidator(_validate_uuid)]` |
+| `string.hostname` | `Annotated[str, AfterValidator(_validate_hostname)]` |
+| `string.uri_ref` | `Annotated[str, AfterValidator(_validate_uri_ref)]` |
+| `string.address` | `Annotated[str, AfterValidator(_validate_address)]` |
+| `string.tuuid` | `Annotated[str, AfterValidator(_validate_tuuid)]` |
+| `string.ulid` | `Annotated[str, AfterValidator(_validate_ulid)]` |
+| `string.ip_with_prefixlen` | `Annotated[str, AfterValidator(_validate_ip_with_prefixlen)]` |
+| `string.ipv4_with_prefixlen` | `Annotated[str, AfterValidator(_validate_ipv4_with_prefixlen)]` |
+| `string.ipv6_with_prefixlen` | `Annotated[str, AfterValidator(_validate_ipv6_with_prefixlen)]` |
+| `string.ip_prefix` | `Annotated[str, AfterValidator(_validate_ip_prefix)]` |
+| `string.ipv4_prefix` | `Annotated[str, AfterValidator(_validate_ipv4_prefix)]` |
+| `string.ipv6_prefix` | `Annotated[str, AfterValidator(_validate_ipv6_prefix)]` |
+| `string.host_and_port` | `Annotated[str, AfterValidator(_validate_host_and_port)]` |
+| `string.well_known_regex = KNOWN_REGEX_HTTP_HEADER_NAME` | `Annotated[str, AfterValidator(_validate_http_header_name)]` |
+| `string.well_known_regex = KNOWN_REGEX_HTTP_HEADER_VALUE` | `Annotated[str, AfterValidator(_validate_http_header_value)]` |
+| `string.not_contains` | `Annotated[str, AfterValidator(_make_not_contains_validator(...))]` |
+| `bytes.uuid` | `Annotated[bytes, AfterValidator(_validate_bytes_uuid)]` |
 
 ## Examples
 
@@ -168,7 +188,7 @@ except ValidationError:
     pass
 ```
 
-### Format validators (email, URI, IP, UUID)
+### Format validators
 
 Format validators are translated to `AfterValidator` wrappers. The validators are
 generated into `_proto_types.py` alongside the model files.
@@ -397,6 +417,154 @@ gen/
     ├── user_pydantic.py
     ├── order_pydantic.py
     └── _proto_types.py        # generated helpers (only what's needed)
+```
+
+### Extended format validators
+
+In addition to the core six (`email`, `uri`, `ip`, `ipv4`, `ipv6`, `uuid`), the following
+string format constraints are also translated to `AfterValidator` wrappers:
+
+=== ":lucide-file-code: validate.proto"
+
+    ```proto
+    message ValidatedFormatsExtended {
+      // Hostname must be a valid DNS hostname.
+      string hostname = 1 [(buf.validate.field).string.hostname = true];
+      // UriRef must be a valid URI reference (absolute or relative).
+      string uri_ref = 2 [(buf.validate.field).string.uri_ref = true];
+      // Addr must be a valid IP address or hostname.
+      string addr = 3 [(buf.validate.field).string.address = true];
+      // Tuuid must be a trimmed UUID (32 hex chars, no dashes).
+      string tuuid = 4 [(buf.validate.field).string.tuuid = true];
+      // Ulid must be a valid ULID.
+      string ulid = 5 [(buf.validate.field).string.ulid = true];
+      // Cidr must be a valid IP address with prefix length (host address).
+      string cidr = 6 [(buf.validate.field).string.ip_with_prefixlen = true];
+      // CidrV4 must be a valid IPv4 address with prefix length.
+      string cidr_v4 = 7 [(buf.validate.field).string.ipv4_with_prefixlen = true];
+      // CidrV6 must be a valid IPv6 address with prefix length.
+      string cidr_v6 = 8 [(buf.validate.field).string.ipv6_with_prefixlen = true];
+      // IpNet must be a valid IP network (host bits must be zero).
+      string ip_net = 9 [(buf.validate.field).string.ip_prefix = true];
+      // Ipv4Net must be a valid IPv4 network (host bits must be zero).
+      string ipv4_net = 10 [(buf.validate.field).string.ipv4_prefix = true];
+      // Ipv6Net must be a valid IPv6 network (host bits must be zero).
+      string ipv6_net = 11 [(buf.validate.field).string.ipv6_prefix = true];
+      // Endpoint must be a valid host:port pair.
+      string endpoint = 12 [(buf.validate.field).string.host_and_port = true];
+    }
+    ```
+
+=== ":simple-python: validate_pydantic.py"
+
+    ```python exec="on" session="validate"
+    print(f"```python\n{inspect.getsource(ValidatedFormatsExtended).rstrip()}\n```")
+    ```
+
+```python exec="on" session="validate"
+vfe = ValidatedFormatsExtended()  # empty strings are allowed (proto3 zero value)
+assert vfe.hostname == ""
+assert vfe.endpoint == ""
+```
+
+### `well_known_regex` (HTTP header names and values)
+
+`string.well_known_regex` validates HTTP header names and values per RFC 7230:
+
+=== ":lucide-file-code: validate.proto"
+
+    ```proto
+    message ValidatedWellKnownRegex {
+      // HeaderName must be a valid HTTP header name.
+      string header_name = 1 [(buf.validate.field).string.well_known_regex = KNOWN_REGEX_HTTP_HEADER_NAME];
+      // HeaderValue must be a valid HTTP header value.
+      string header_value = 2 [(buf.validate.field).string.well_known_regex = KNOWN_REGEX_HTTP_HEADER_VALUE];
+    }
+    ```
+
+=== ":simple-python: validate_pydantic.py"
+
+    ```python exec="on" session="validate"
+    print(f"```python\n{inspect.getsource(ValidatedWellKnownRegex).rstrip()}\n```")
+    ```
+
+```python exec="on" session="validate"
+from pydantic import ValidationError
+
+vwkr = ValidatedWellKnownRegex(
+    header_name="Content-Type", header_value="application/json"
+)
+assert vwkr.header_name == "Content-Type"
+try:
+    ValidatedWellKnownRegex(header_name="Invalid Header\x00")
+except ValidationError:
+    pass
+```
+
+> **Note:** `strict=false` (which loosens HTTP header validation) is not translated — the
+> strict validator is always applied.
+
+### String `not_contains`
+
+`string.not_contains` rejects strings that include a given substring:
+
+=== ":lucide-file-code: validate.proto"
+
+    ```proto
+    message ValidatedNotContains {
+      // Username must not contain "admin".
+      string username = 1 [(buf.validate.field).string.not_contains = "admin"];
+    }
+    ```
+
+=== ":simple-python: validate_pydantic.py"
+
+    ```python exec="on" session="validate"
+    print(f"```python\n{inspect.getsource(ValidatedNotContains).rstrip()}\n```")
+    ```
+
+```python exec="on" session="validate"
+from pydantic import ValidationError
+
+vnc = ValidatedNotContains(username="alice")
+assert vnc.username == "alice"
+try:
+    ValidatedNotContains(username="superadmin")  # contains "admin"
+except ValidationError:
+    pass
+```
+
+### Float / double `in` and `not_in`
+
+`float.in`, `double.in`, `float.not_in`, and `double.not_in` work the same as their
+integer and string counterparts:
+
+=== ":lucide-file-code: validate.proto"
+
+    ```proto
+    message ValidatedFloatIn {
+      // Ratio must be one of the allowed values.
+      float ratio = 1 [(buf.validate.field) = {float: {in: [0.25, 0.5, 0.75, 1.0]}}];
+      // Score must not be a negative sentinel value.
+      double score = 2 [(buf.validate.field) = {double: {not_in: [-1.0, -2.0]}}];
+    }
+    ```
+
+=== ":simple-python: validate_pydantic.py"
+
+    ```python exec="on" session="validate"
+    print(f"```python\n{inspect.getsource(ValidatedFloatIn).rstrip()}\n```")
+    ```
+
+```python exec="on" session="validate"
+from pydantic import ValidationError
+
+vfi = ValidatedFloatIn(ratio=0.5, score=0.0)
+assert vfi.ratio == 0.5
+try:
+    ValidatedFloatIn(ratio=0.3)  # not in allowed set
+except ValidationError:
+    pass
 ```
 
 ## Constraints not translated

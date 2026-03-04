@@ -47,7 +47,12 @@ Run `just --list` to see all available recipes.
 ## Project structure
 
 ```
-├── main.go                          # All Go plugin code (single file)
+├── main.go                          # Entry point + proto option builders
+├── generator.go                     # Processing + type resolution
+├── types.go                         # Domain types + data maps
+├── constraints.go                   # buf.validate translation
+├── template.go                      # Python template constants + buildProtoTypesContent
+├── format.go                        # Formatting utilities
 ├── go.mod / go.sum
 ├── Justfile                         # just command runner recipes
 ├── buf.yaml / buf.gen.yaml          # Buf workspace and codegen config
@@ -60,7 +65,18 @@ Run `just --list` to see all available recipes.
 
 ## Architecture
 
-The entire plugin lives in `main.go`. Key components:
+The plugin is split across six files in `package main`:
+
+| File | Responsibility |
+|---|---|
+| `main.go` | Entry point, plugin options, proto option builders |
+| `generator.go` | `processFile()`, `processMessage()`, type resolution |
+| `types.go` | Domain types (`Message`, `Field`, `Enum`, …), `wellKnownTypes`, `reservedNames` |
+| `constraints.go` | buf.validate extraction (`extractFieldConstraints()`, `applyConstraintTypeOverrides()`) |
+| `template.go` | `modelTemplate` constant, `buildProtoTypesContent()` |
+| `format.go` | Formatting utilities |
+
+Key functions:
 
 - **`processFile()`** — iterates messages and enums in a proto file
 - **`processMessage()`** — builds `Message` structs with fields, nested types, constraints
@@ -74,7 +90,7 @@ The entire plugin lives in `main.go`. Key components:
 
 ### Adding a field type mapping
 
-Edit the `wellKnownTypes` map in `main.go` to add a new WKT → Python type mapping.
+Edit the `wellKnownTypes` map in `types.go` to add a new WKT → Python type mapping.
 
 ### Adding a plugin option
 
@@ -87,7 +103,7 @@ Edit the `wellKnownTypes` map in `main.go` to add a new WKT → Python type mapp
 
 1. Add constraint extraction logic in `extractFieldConstraints()`
 2. Apply type overrides (if needed) in `applyConstraintTypeOverrides()`
-3. Add any new helper functions to the `protoTypes*` constants in `main.go`
+3. Add any new helper functions to the `protoTypes*` constants in `template.go`
 4. Update `buildProtoTypesContent()` to conditionally include new helpers
 
 ## Adding tests
@@ -118,7 +134,7 @@ Edit the `wellKnownTypes` map in `main.go` to add a new WKT → Python type mapp
 
 ### Verifying generated files
 
-The CI checks that generated files match what's committed. After any change to `main.go`,
+The CI checks that generated files match what's committed. After any Go changes,
 regenerate and commit the updated output:
 
 ```sh
