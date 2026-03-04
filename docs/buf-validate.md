@@ -323,10 +323,10 @@ except ValidationError:
 
 ### Const (fixed values)
 
-`string.const`, `int.const`, and `bool.const` translate to `Literal[value]` type with a
-matching default — the field is essentially fixed at that value. `float.const` and
-`double.const` use `AfterValidator(_make_const_validator(value))` since `Literal[float]`
-is invalid per PEP 586:
+`string.const`, integer `const` (int32, uint32, etc.), and `bool.const` translate to
+`Literal[value]` type with a matching default — the field is essentially fixed at that
+value. `float.const` and `double.const` use `AfterValidator(_make_const_validator(value))`
+since `Literal[float]` is invalid per PEP 586:
 
 === ":lucide-file-code: validate.proto"
 
@@ -336,6 +336,7 @@ is invalid per PEP 586:
       int32  count  = 2 [(buf.validate.field).int32.const   = 42];
       bool   active = 3 [(buf.validate.field).bool.const    = true];
       double score  = 4 [(buf.validate.field).double.const  = 3.14];
+      uint32 code   = 5 [(buf.validate.field).uint32.const  = 100];
     }
     ```
 
@@ -479,6 +480,11 @@ assert vfe.endpoint == ""
       string header_name = 1 [(buf.validate.field).string.well_known_regex = KNOWN_REGEX_HTTP_HEADER_NAME];
       // HeaderValue must be a valid HTTP header value.
       string header_value = 2 [(buf.validate.field).string.well_known_regex = KNOWN_REGEX_HTTP_HEADER_VALUE];
+      // LooseHeader uses well_known_regex with strict=false (strict is not translated).
+      string loose_header = 3 [(buf.validate.field).string = {
+        well_known_regex: KNOWN_REGEX_HTTP_HEADER_NAME,
+        strict: false
+      }];
     }
     ```
 
