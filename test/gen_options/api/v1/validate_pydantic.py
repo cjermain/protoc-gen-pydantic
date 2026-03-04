@@ -18,14 +18,30 @@ from ._proto_types import (
     ProtoUInt64,
     _make_const_validator,
     _make_in_validator,
+    _make_not_contains_validator,
     _make_not_in_validator,
     _require_finite,
     _require_unique,
+    _validate_address,
+    _validate_bytes_uuid,
     _validate_email,
+    _validate_host_and_port,
+    _validate_hostname,
+    _validate_http_header_name,
+    _validate_http_header_value,
     _validate_ip,
+    _validate_ip_prefix,
+    _validate_ip_with_prefixlen,
     _validate_ipv4,
+    _validate_ipv4_prefix,
+    _validate_ipv4_with_prefixlen,
     _validate_ipv6,
+    _validate_ipv6_prefix,
+    _validate_ipv6_with_prefixlen,
+    _validate_tuuid,
+    _validate_ulid,
     _validate_uri,
+    _validate_uri_ref,
     _validate_uuid,
 )
 
@@ -408,6 +424,12 @@ class ValidatedConst(_ProtoModel):
     score: _Annotated[float, _AfterValidator(_make_const_validator(3.14))] = _Field(
         default=3.14,
     )
+    code: _Literal[100] = _Field(
+        default=100,
+    )
+    inactive: _Literal[False] = _Field(
+        default=False,
+    )
 
 
 class ValidatedIn(_ProtoModel):
@@ -475,6 +497,10 @@ class ValidatedBytes(_ProtoModel):
         default=b"",
         max_length=1024,
     )
+    # Uuid must be a valid 16-byte binary UUID.
+    uuid: _Annotated[bytes, _AfterValidator(_validate_bytes_uuid)] = _Field(
+        default=b"",
+    )
 
 
 class ValidatedStringContains(_ProtoModel):
@@ -522,7 +548,10 @@ class ValidatedUser(_ProtoModel):
     email: _Annotated[str, _AfterValidator(_validate_email)] = _Field(
         default="",
     )
-    role: "_Optional[ValidatedUser.Role]" = _Field(default=None)
+    role: "_Optional[ValidatedUser.Role]" = _Field(
+        default=None,
+        examples=[1],
+    )
 
 
 class ValidatedRequired(_ProtoModel):
@@ -612,3 +641,153 @@ class ValidatedConstOptional(_ProtoModel):
                 f"oneof 'token_type': only one field may be set, got {_set!r}"
             )
         return self
+
+
+class ValidatedFormatsExtended(_ProtoModel):
+    """
+    ValidatedFormatsExtended exercises additional format validators beyond the
+    original six (email, uri, ip, ipv4, ipv6, uuid).
+    """
+
+    # Hostname must be a valid DNS hostname.
+    hostname: _Annotated[str, _AfterValidator(_validate_hostname)] = _Field(
+        default="",
+    )
+    # UriRef must be a valid URI reference (absolute or relative).
+    uriRef: _Annotated[str, _AfterValidator(_validate_uri_ref)] = _Field(
+        default="",
+    )
+    # Addr must be a valid IP address or hostname.
+    addr: _Annotated[str, _AfterValidator(_validate_address)] = _Field(
+        default="",
+    )
+    # Tuuid must be a trimmed UUID (32 hex chars, no dashes).
+    tuuid: _Annotated[str, _AfterValidator(_validate_tuuid)] = _Field(
+        default="",
+    )
+    # Ulid must be a valid ULID.
+    ulid: _Annotated[str, _AfterValidator(_validate_ulid)] = _Field(
+        default="",
+    )
+    # Cidr must be a valid IP address with prefix length (host address).
+    cidr: _Annotated[str, _AfterValidator(_validate_ip_with_prefixlen)] = _Field(
+        default="",
+    )
+    # CidrV4 must be a valid IPv4 address with prefix length.
+    cidrV4: _Annotated[str, _AfterValidator(_validate_ipv4_with_prefixlen)] = _Field(
+        default="",
+    )
+    # CidrV6 must be a valid IPv6 address with prefix length.
+    cidrV6: _Annotated[str, _AfterValidator(_validate_ipv6_with_prefixlen)] = _Field(
+        default="",
+    )
+    # IpNet must be a valid IP network (host bits must be zero).
+    ipNet: _Annotated[str, _AfterValidator(_validate_ip_prefix)] = _Field(
+        default="",
+    )
+    # Ipv4Net must be a valid IPv4 network (host bits must be zero).
+    ipv4Net: _Annotated[str, _AfterValidator(_validate_ipv4_prefix)] = _Field(
+        default="",
+    )
+    # Ipv6Net must be a valid IPv6 network (host bits must be zero).
+    ipv6Net: _Annotated[str, _AfterValidator(_validate_ipv6_prefix)] = _Field(
+        default="",
+    )
+    # Endpoint must be a valid host:port pair.
+    endpoint: _Annotated[str, _AfterValidator(_validate_host_and_port)] = _Field(
+        default="",
+    )
+
+
+class ValidatedWellKnownRegex(_ProtoModel):
+    """
+    ValidatedWellKnownRegex exercises the well_known_regex enum validator.
+    """
+
+    # HeaderName must be a valid HTTP header name.
+    headerName: _Annotated[str, _AfterValidator(_validate_http_header_name)] = _Field(
+        default="",
+    )
+    # HeaderValue must be a valid HTTP header value.
+    headerValue: _Annotated[str, _AfterValidator(_validate_http_header_value)] = _Field(
+        default="",
+    )
+    # LooseHeader uses well_known_regex with strict=false (strict is not translated).
+    looseHeader: _Annotated[str, _AfterValidator(_validate_http_header_name)] = _Field(
+        default="",
+        # buf.validate: strict=false (not translated)
+    )
+
+
+class ValidatedNotContains(_ProtoModel):
+    """
+    ValidatedNotContains exercises the string.not_contains constraint.
+    """
+
+    # Username must not contain "admin".
+    username: _Annotated[
+        str, _AfterValidator(_make_not_contains_validator("admin"))
+    ] = _Field(
+        default="",
+    )
+
+
+class ValidatedFloatIn(_ProtoModel):
+    """
+    ValidatedFloatIn exercises float.in and double.not_in constraints.
+    """
+
+    # Ratio must be one of the allowed values.
+    ratio: _Annotated[
+        float, _AfterValidator(_make_in_validator(frozenset({0.25, 0.5, 0.75, 1.0})))
+    ] = _Field(
+        default=0.0,
+    )
+    # Score must not be a negative sentinel value.
+    score: _Annotated[
+        float, _AfterValidator(_make_not_in_validator(frozenset({-1.0, -2.0})))
+    ] = _Field(
+        default=0.0,
+    )
+
+
+class ValidatedFloatExamples(_ProtoModel):
+    """
+    ValidatedFloatExamples exercises float/double/bool/uint32 example annotations.
+    """
+
+    # Ratio must be positive with float examples.
+    ratio: float = _Field(
+        default=0.0,
+        gt=0.0,
+        examples=[1.5, 0.25],
+    )
+    # Score must be positive with double examples.
+    score: float = _Field(
+        default=0.0,
+        gt=0.0,
+        examples=[3.14, 2.71],
+    )
+    # Flag with bool examples.
+    flag: bool = _Field(
+        default=False,
+        examples=[False, True],
+    )
+    # Code must be positive with uint32 examples.
+    code: int = _Field(
+        default=0,
+        gt=0,
+        examples=[7, 42],
+    )
+
+
+class ValidatedCEL(_ProtoModel):
+    """
+    ValidatedCEL exercises the cel constraint drop path.
+    """
+
+    # Age with a CEL expression that is not translated.
+    age: int = _Field(
+        default=0,
+        # buf.validate: cel (not translated)
+    )

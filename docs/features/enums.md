@@ -100,7 +100,7 @@ become nested classes of that message:
       enum Kind {
         KIND_UNSPECIFIED = 0;
         KIND_CIRCLE      = 1;
-        KIND_SQUARE      = 2;
+        KIND_SQUARE      = 2 [deprecated = true];
       }
 
       Hue  color = 1;
@@ -122,6 +122,10 @@ shape = Shape(color=Hue.RED, kind=Shape.Kind.CIRCLE)
 assert shape.color == "RED"
 assert shape.kind == "CIRCLE"
 ```
+
+> **Note:** `KIND_SQUARE` carries `[deprecated = true]`, so `Shape.Kind` is generated as
+> `_ProtoEnum` with value tuples instead of plain `str, _Enum`. See
+> [Enum value options](#enum-value-options) below.
 
 ## Enum value options
 

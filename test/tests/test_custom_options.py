@@ -10,24 +10,40 @@ def test_custom_options_usd():
     assert Currency.USD.options.display_name == "US Dollar"
     assert Currency.USD.options.priority == 1
     assert Currency.USD.options.is_default is True
+    assert Currency.USD.options.version == 1
+    assert Currency.USD.options.weight == pytest.approx(1.0)
+    assert Currency.USD.options.rank == 1
+    assert Currency.USD.options.serial == 1000
+    assert Currency.USD.options.rate == pytest.approx(1.5)
 
 
 def test_custom_options_eur():
     assert Currency.EUR.options.display_name == "Euro"
     assert Currency.EUR.options.priority == 2
-    assert Currency.EUR.options.is_default is None
+    assert Currency.EUR.options.is_default is False
+    assert Currency.EUR.options.version is None
+    assert Currency.EUR.options.weight is None
+    assert Currency.EUR.options.rank is None
+    assert Currency.EUR.options.serial is None
+    assert Currency.EUR.options.rate is None
 
 
 def test_custom_options_gbp():
     assert Currency.GBP.options.display_name == "British Pound"
     assert Currency.GBP.options.priority is None
     assert Currency.GBP.options.is_default is None
+    assert Currency.GBP.options.rank is None
+    assert Currency.GBP.options.serial is None
+    assert Currency.GBP.options.rate is None
 
 
 def test_custom_options_default_none():
     assert Currency.UNSPECIFIED.options.display_name is None
     assert Currency.UNSPECIFIED.options.priority is None
     assert Currency.UNSPECIFIED.options.is_default is None
+    assert Currency.UNSPECIFIED.options.rank is None
+    assert Currency.UNSPECIFIED.options.serial is None
+    assert Currency.UNSPECIFIED.options.rate is None
 
 
 # --- built-in options still work ---

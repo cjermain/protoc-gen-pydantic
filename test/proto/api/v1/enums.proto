@@ -21,7 +21,7 @@ message Shape {
   enum Kind {
     KIND_UNSPECIFIED = 0;
     KIND_CIRCLE      = 1;
-    KIND_SQUARE      = 2;
+    KIND_SQUARE      = 2 [deprecated = true];
   }
 
   optional Hue  color = 1;
