@@ -44,7 +44,6 @@ var reservedNames = map[string]bool{
 // wellKnownTypes maps protobuf well-known type full names to native Python types.
 type wktMapping struct {
 	pythonType  string
-	importLine  string // added to external imports if non-empty
 	runtimeType string // if set, imported from _proto_types instead
 }
 
@@ -405,10 +404,6 @@ type Message struct {
 	LeadingComments  []string
 	TrailingComments []string
 	OneOfGroups      []OneOf // deduplicated oneof groups; populated after all fields are processed
-}
-
-func (m Message) TopoKey() string {
-	return m.Name
 }
 
 func (m Message) HasAlias() bool {

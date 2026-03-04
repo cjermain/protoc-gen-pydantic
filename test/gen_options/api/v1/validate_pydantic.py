@@ -424,6 +424,9 @@ class ValidatedConst(_ProtoModel):
     score: _Annotated[float, _AfterValidator(_make_const_validator(3.14))] = _Field(
         default=3.14,
     )
+    code: _Literal[100] = _Field(
+        default=100,
+    )
 
 
 class ValidatedIn(_ProtoModel):
@@ -703,6 +706,11 @@ class ValidatedWellKnownRegex(_ProtoModel):
     headerValue: _Annotated[str, _AfterValidator(_validate_http_header_value)] = _Field(
         default="",
     )
+    # LooseHeader uses well_known_regex with strict=false (strict is not translated).
+    looseHeader: _Annotated[str, _AfterValidator(_validate_http_header_name)] = _Field(
+        default="",
+        # buf.validate: strict=false (not translated)
+    )
 
 
 class ValidatedNotContains(_ProtoModel):
@@ -734,4 +742,46 @@ class ValidatedFloatIn(_ProtoModel):
         float, _AfterValidator(_make_not_in_validator(frozenset({-1.0, -2.0})))
     ] = _Field(
         default=0.0,
+    )
+
+
+class ValidatedFloatExamples(_ProtoModel):
+    """
+    ValidatedFloatExamples exercises float/double/bool/uint32 example annotations.
+    """
+
+    # Ratio must be positive with float examples.
+    ratio: float = _Field(
+        default=0.0,
+        gt=0.0,
+        examples=[1.5, 0.25],
+    )
+    # Score must be positive with double examples.
+    score: float = _Field(
+        default=0.0,
+        gt=0.0,
+        examples=[3.14, 2.71],
+    )
+    # Flag with bool false example.
+    flag: bool = _Field(
+        default=False,
+        examples=[False],
+    )
+    # Code must be positive with uint32 examples.
+    code: int = _Field(
+        default=0,
+        gt=0,
+        examples=[7, 42],
+    )
+
+
+class ValidatedCEL(_ProtoModel):
+    """
+    ValidatedCEL exercises the cel constraint drop path.
+    """
+
+    # Age with a CEL expression that is not translated.
+    age: int = _Field(
+        default=0,
+        # buf.validate: cel (not translated)
     )

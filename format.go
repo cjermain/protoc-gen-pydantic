@@ -124,10 +124,7 @@ func formatNumericLiteral(fd protoreflect.FieldDescriptor, v protoreflect.Value,
 		// as a simple numeric literal.
 		return "", false
 	default:
-		if isFloat {
-			return formatPythonFloat(v.Float()), true
-		}
-		return fmt.Sprintf("%d", v.Int()), true
+		panic("unreachable: unexpected Kind in formatNumericLiteral")
 	}
 }
 

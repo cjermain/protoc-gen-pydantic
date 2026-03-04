@@ -464,6 +464,9 @@ class ValidatedConst(_ProtoModel):
     score: _Annotated[float, _AfterValidator(_make_const_validator(3.14))] = _Field(
         default=3.14,
     )
+    code: _Literal[100] = _Field(
+        default=100,
+    )
 
 
 class ValidatedIn(_ProtoModel):
@@ -781,6 +784,12 @@ class ValidatedWellKnownRegex(_ProtoModel):
             description="HeaderValue must be a valid HTTP header value.",
         )
     )
+    # LooseHeader uses well_known_regex with strict=false (strict is not translated).
+    loose_header: _Annotated[str, _AfterValidator(_validate_http_header_name)] = _Field(
+        default="",
+        description="LooseHeader uses well_known_regex with strict=false (strict is not translated).",
+        # buf.validate: strict=false (not translated)
+    )
 
 
 class ValidatedNotContains(_ProtoModel):
@@ -815,4 +824,51 @@ class ValidatedFloatIn(_ProtoModel):
     ] = _Field(
         default=0.0,
         description="Score must not be a negative sentinel value.",
+    )
+
+
+class ValidatedFloatExamples(_ProtoModel):
+    """
+    ValidatedFloatExamples exercises float/double/bool/uint32 example annotations.
+    """
+
+    # Ratio must be positive with float examples.
+    ratio: float = _Field(
+        default=0.0,
+        description="Ratio must be positive with float examples.",
+        gt=0.0,
+        examples=[1.5, 0.25],
+    )
+    # Score must be positive with double examples.
+    score: float = _Field(
+        default=0.0,
+        description="Score must be positive with double examples.",
+        gt=0.0,
+        examples=[3.14, 2.71],
+    )
+    # Flag with bool false example.
+    flag: bool = _Field(
+        default=False,
+        description="Flag with bool false example.",
+        examples=[False],
+    )
+    # Code must be positive with uint32 examples.
+    code: int = _Field(
+        default=0,
+        description="Code must be positive with uint32 examples.",
+        gt=0,
+        examples=[7, 42],
+    )
+
+
+class ValidatedCEL(_ProtoModel):
+    """
+    ValidatedCEL exercises the cel constraint drop path.
+    """
+
+    # Age with a CEL expression that is not translated.
+    age: int = _Field(
+        default=0,
+        description="Age with a CEL expression that is not translated.",
+        # buf.validate: cel (not translated)
     )

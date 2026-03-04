@@ -10,12 +10,16 @@ def test_custom_options_usd():
     assert Currency.USD.options.display_name == "US Dollar"
     assert Currency.USD.options.priority == 1
     assert Currency.USD.options.is_default is True
+    assert Currency.USD.options.version == 1
+    assert Currency.USD.options.weight == pytest.approx(1.0)
 
 
 def test_custom_options_eur():
     assert Currency.EUR.options.display_name == "Euro"
     assert Currency.EUR.options.priority == 2
     assert Currency.EUR.options.is_default is None
+    assert Currency.EUR.options.version is None
+    assert Currency.EUR.options.weight is None
 
 
 def test_custom_options_gbp():

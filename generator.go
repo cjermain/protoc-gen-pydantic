@@ -514,8 +514,6 @@ func (e *generator) resolveBaseType(referer string, field protoreflect.FieldDesc
 	if wkt, ok := wellKnownTypes[string(msg.FullName())]; ok {
 		if wkt.runtimeType != "" {
 			e.addRuntimeImport(wkt.runtimeType)
-		} else if wkt.importLine != "" {
-			e.addExternalImport(wkt.importLine)
 		}
 		if strings.Contains(wkt.pythonType, "_Any") {
 			e.addStdImport("_Any")

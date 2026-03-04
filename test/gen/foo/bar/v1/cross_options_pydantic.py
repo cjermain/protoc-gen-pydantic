@@ -12,6 +12,8 @@ class _EnumValueOptions:
     display_name: str | None = None
     is_default: bool | None = None
     priority: int | None = None
+    version: int | None = None
+    weight: float | None = None
 
 
 class _ProtoEnum(str, _Enum):

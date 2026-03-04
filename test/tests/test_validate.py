@@ -7,12 +7,14 @@ import datetime
 
 from api.v1.validate_pydantic import (
     ValidatedBytes,
+    ValidatedCEL,
     ValidatedConst,
     ValidatedConstOptional,
     ValidatedDropped,
     ValidatedDuration,
     ValidatedExamples,
     ValidatedFinite,
+    ValidatedFloatExamples,
     ValidatedFloatIn,
     ValidatedFormats,
     ValidatedFormatsExtended,
@@ -1405,3 +1407,91 @@ def test_validated_float_in_score_valid(v):
 def test_validated_float_in_score_invalid(v):
     with pytest.raises(ValidationError):
         ValidatedFloatIn(score=v)
+
+
+# ---------------------------------------------------------------------------
+# ValidatedFloatExamples — float/double/bool/uint32 example annotations
+# ---------------------------------------------------------------------------
+
+
+def test_validated_float_examples_valid():
+    m = ValidatedFloatExamples(ratio=1.5, score=3.14, flag=False, code=7)
+    assert m.ratio == pytest.approx(1.5)
+    assert m.score == pytest.approx(3.14)
+    assert m.flag is False
+    assert m.code == 7
+
+
+def test_validated_float_examples_in_generated_file():
+    text = _GEN_VALIDATE.read_text()
+    assert "examples=[1.5, 0.25]" in text
+    assert "examples=[3.14, 2.71]" in text
+    assert "examples=[False]" in text
+    assert "examples=[7, 42]" in text
+
+
+def test_validated_float_examples_gt_enforced():
+    with pytest.raises(ValidationError):
+        ValidatedFloatExamples(ratio=0.0)
+
+
+# ---------------------------------------------------------------------------
+# ValidatedCEL — cel constraint drop path
+# ---------------------------------------------------------------------------
+
+
+def test_validated_cel_default():
+    m = ValidatedCEL()
+    assert m.age == 0
+
+
+def test_validated_cel_in_generated_file():
+    text = _GEN_VALIDATE.read_text()
+    assert "# buf.validate: cel (not translated)" in text
+
+
+# ---------------------------------------------------------------------------
+# ValidatedWellKnownRegex loose_header — strict=false drop
+# ---------------------------------------------------------------------------
+
+
+def test_validated_well_known_regex_loose_header_default():
+    m = ValidatedWellKnownRegex()
+    assert m.loose_header == ""
+
+
+@pytest.mark.parametrize("name", ["Content-Type", "X-Custom-Header"])
+def test_validated_well_known_regex_loose_header_valid(name):
+    m = ValidatedWellKnownRegex(loose_header=name)
+    assert m.loose_header == name
+
+
+@pytest.mark.parametrize("name", ["has space", "has\nnewline"])
+def test_validated_well_known_regex_loose_header_invalid(name):
+    with pytest.raises(ValidationError):
+        ValidatedWellKnownRegex(loose_header=name)
+
+
+def test_validated_well_known_regex_loose_header_strict_false_comment():
+    text = _GEN_VALIDATE.read_text()
+    assert "# buf.validate: strict=false (not translated)" in text
+
+
+# ---------------------------------------------------------------------------
+# ValidatedConst uint32 code — Uint32Kind in formatScalarLiteral
+# ---------------------------------------------------------------------------
+
+
+def test_validated_const_code_default():
+    m = ValidatedConst()
+    assert m.code == 100
+
+
+def test_validated_const_code_enforced():
+    with pytest.raises(ValidationError):
+        ValidatedConst(code=99)
+
+
+def test_validated_const_code_in_generated_file():
+    text = _GEN_VALIDATE.read_text()
+    assert "_Literal[100]" in text

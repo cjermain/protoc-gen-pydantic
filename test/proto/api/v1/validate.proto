@@ -186,6 +186,7 @@ message ValidatedConst {
   int32 count = 2 [(buf.validate.field).int32.const = 42];
   bool active = 3 [(buf.validate.field).bool.const = true];
   double score = 4 [(buf.validate.field).double.const = 3.14];
+  uint32 code = 5 [(buf.validate.field).uint32.const = 100];
 }
 
 // ValidatedIn exercises in and not_in constraints translated to AfterValidator.
@@ -332,6 +333,11 @@ message ValidatedWellKnownRegex {
   string header_name = 1 [(buf.validate.field).string.well_known_regex = KNOWN_REGEX_HTTP_HEADER_NAME];
   // HeaderValue must be a valid HTTP header value.
   string header_value = 2 [(buf.validate.field).string.well_known_regex = KNOWN_REGEX_HTTP_HEADER_VALUE];
+  // LooseHeader uses well_known_regex with strict=false (strict is not translated).
+  string loose_header = 3 [(buf.validate.field).string = {
+    well_known_regex: KNOWN_REGEX_HTTP_HEADER_NAME,
+    strict: false
+  }];
 }
 
 // ValidatedNotContains exercises the string.not_contains constraint.
@@ -346,4 +352,26 @@ message ValidatedFloatIn {
   float ratio = 1 [(buf.validate.field) = {float: {in: [0.25, 0.5, 0.75, 1.0]}}];
   // Score must not be a negative sentinel value.
   double score = 2 [(buf.validate.field) = {double: {not_in: [-1.0, -2.0]}}];
+}
+
+// ValidatedFloatExamples exercises float/double/bool/uint32 example annotations.
+message ValidatedFloatExamples {
+  // Ratio must be positive with float examples.
+  float ratio = 1 [(buf.validate.field).float = {gt: 0.0, example: 1.5, example: 0.25}];
+  // Score must be positive with double examples.
+  double score = 2 [(buf.validate.field).double = {gt: 0.0, example: 3.14, example: 2.71}];
+  // Flag with bool false example.
+  bool flag = 3 [(buf.validate.field).bool.example = false];
+  // Code must be positive with uint32 examples.
+  uint32 code = 4 [(buf.validate.field).uint32 = {gt: 0, example: 7, example: 42}];
+}
+
+// ValidatedCEL exercises the cel constraint drop path.
+message ValidatedCEL {
+  // Age with a CEL expression that is not translated.
+  int32 age = 1 [(buf.validate.field).cel = {
+    id: "positive",
+    expression: "this > 0",
+    message: "age must be positive"
+  }];
 }
