@@ -1215,7 +1215,7 @@ def test_validated_formats_extended_hostname_valid(host):
 )
 def test_validated_formats_extended_hostname_invalid(host):
     with pytest.raises(ValidationError):
-        ValidatedFormatsExtended(hostname=host)
+        ValidatedFormatsExtended(**{**_VALID_FORMATS_EXT, "hostname": host})
 
 
 @pytest.mark.parametrize(

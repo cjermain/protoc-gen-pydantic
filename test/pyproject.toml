@@ -44,3 +44,10 @@ unresolved-attribute = "ignore"
 invalid-assignment = "ignore"
 # Dynamically-loaded modules (gen_pb2) created at pytest collection time
 unresolved-import = "ignore"
+
+[[tool.ty.overrides]]
+include = ["tests/test_validate.py"]
+
+[tool.ty.overrides.rules]
+# ConstrainedRequired models called with zero/partial args inside pytest.raises(ValidationError)
+missing-argument = "ignore"
