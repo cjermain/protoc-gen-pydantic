@@ -22,6 +22,7 @@ from api.v1.validate_pydantic import (
     ValidatedFloatIn,
     ValidatedFormats,
     ValidatedFormatsExtended,
+    ValidatedIgnore,
     ValidatedIn,
     ValidatedNotContains,
     ValidatedRequired,
@@ -144,10 +145,10 @@ import "buf/validate/validate.proto";
 ```python exec="on" session="validate"
 from pydantic import ValidationError
 
-vs = ValidatedScalars(age=5, score=50.0)
+vs = ValidatedScalars(age=5, score=50.0, priority=1, rank=5)
 assert vs.age == 5
 try:
-    ValidatedScalars(age=200)  # exceeds le=150
+    ValidatedScalars(age=200, priority=1, rank=5)  # exceeds le=150
 except ValidationError:
     pass
 ```
@@ -220,16 +221,30 @@ generated into `_proto_types.py` alongside the model files.
     print(f"```python\n{inspect.getsource(ValidatedFormats).rstrip()}\n```")
     ```
 
-> **Note:** Empty strings skip format validation — this matches proto3 semantics where the
-> zero value of a string field is `""`. Use `string.min_len = 1` to require a non-empty value.
+> **Note:** Non-optional proto3 scalar fields with format validators become **required** in the
+> generated model — the empty string (proto3 zero value) would fail format validation. To allow
+> empty strings, mark the field `optional` in proto3 or annotate it with
+> `ignore = IGNORE_IF_ZERO_VALUE` (see [Zero-value validation](#zero-value-validation)).
 
 The `string.email` validator requires the [`email-validator`](https://pypi.org/project/email-validator/)
 package (`pip install email-validator` or add to your project dependencies).
 
 ```python exec="on" session="validate"
-vf = ValidatedFormats()  # empty strings are allowed (proto3 zero value)
-assert vf.email == ""
-assert vf.website == ""
+from pydantic import ValidationError
+
+try:
+    ValidatedFormats()  # email, website, address, token, host_v4, host_v6 are required
+except ValidationError:
+    pass
+vf = ValidatedFormats(
+    email="user@example.com",
+    website="https://example.com",
+    address="1.2.3.4",
+    token="550e8400-e29b-41d4-a716-446655440000",
+    host_v4="1.2.3.4",
+    host_v6="::1",
+)
+assert vf.email == "user@example.com"
 ```
 
 ### Finite float / double
@@ -285,10 +300,10 @@ except ValidationError:
 ```python exec="on" session="validate"
 from pydantic import ValidationError
 
-vi = ValidatedIn(status="active")
+vi = ValidatedIn(status="active", priority=1, limit=10)
 assert vi.status == "active"
 try:
-    ValidatedIn(status="pending")  # not in allowed set
+    ValidatedIn(status="pending", priority=1, limit=10)  # "pending" not in allowed set
 except ValidationError:
     pass
 ```
@@ -465,9 +480,28 @@ string format constraints are also translated to `AfterValidator` wrappers:
     ```
 
 ```python exec="on" session="validate"
-vfe = ValidatedFormatsExtended()  # empty strings are allowed (proto3 zero value)
-assert vfe.hostname == ""
-assert vfe.endpoint == ""
+from pydantic import ValidationError
+
+try:
+    ValidatedFormatsExtended()  # all format fields are required
+except ValidationError:
+    pass
+vfe = ValidatedFormatsExtended(
+    hostname="example.com",
+    uri_ref="https://example.com",
+    addr="example.com",
+    tuuid="550e8400e29b41d4a716446655440000",
+    ulid="01ARZ3NDEKTSV4RRFFQ69G5FAV",
+    cidr="192.168.0.1/24",
+    cidr_v4="192.168.0.1/24",
+    cidr_v6="::1/128",
+    ip_net="192.168.0.0/24",
+    ipv4_net="192.168.0.0/24",
+    ipv6_net="2001:db8::/32",
+    endpoint="example.com:80",
+)
+assert vfe.hostname == "example.com"
+assert vfe.endpoint == "example.com:80"
 ```
 
 ### `well_known_regex` (HTTP header names and values)
@@ -500,11 +534,17 @@ assert vfe.endpoint == ""
 from pydantic import ValidationError
 
 vwkr = ValidatedWellKnownRegex(
-    header_name="Content-Type", header_value="application/json"
+    header_name="Content-Type",
+    header_value="application/json",
+    loose_header="Content-Type",
 )
 assert vwkr.header_name == "Content-Type"
 try:
-    ValidatedWellKnownRegex(header_name="Invalid Header\x00")
+    ValidatedWellKnownRegex(
+        header_name="Invalid Header\x00",
+        header_value="application/json",
+        loose_header="Content-Type",
+    )  # header_name contains invalid character
 except ValidationError:
     pass
 ```
@@ -613,6 +653,68 @@ vd = ValidatedDropped(score=1)  # score gt=0 is still enforced
 assert vd.score == 1
 try:
     ValidatedDropped(score=0)  # score must be > 0
+except ValidationError:
+    pass
+```
+
+## Zero-value validation
+
+In proto3, non-optional scalar fields always have a zero value (`""` for strings, `0` for
+integers and floats, `false` for booleans, `b""` for bytes). If a field's constraints reject
+that zero value, the generator makes the field **required** in the generated Pydantic model —
+construction without an explicit value raises `ValidationError`.
+
+This affects fields with:
+
+- Format validators (`string.email`, `string.uri`, `string.ip`, etc.)
+- `gt = N` where N ≥ 0, or `gte = N` where N > 0
+- `string.min_len = N` where N > 0
+- `string.pattern` (any pattern rejects the empty string)
+- `in` constraints where the zero value is not a member of the allowed set
+
+Fields with `const` constraints, repeated/map fields, `optional` proto3 fields, and oneof
+members are not affected.
+
+### Opting out with `ignore = IGNORE_IF_ZERO_VALUE`
+
+To allow the zero value even when constraints would reject it, annotate the field with
+`ignore = IGNORE_IF_ZERO_VALUE`. The generated field keeps its zero default, and validators
+only run for explicitly-provided values:
+
+=== ":lucide-file-code: validate.proto"
+
+    ```proto
+    message ValidatedIgnore {
+      // Email allows empty string via ignore (not required).
+      string email = 1 [
+        (buf.validate.field).string.email = true,
+        (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE
+      ];
+      // Age allows zero via ignore (not required).
+      int32 age = 2 [
+        (buf.validate.field).int32.gt = 0,
+        (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE
+      ];
+    }
+    ```
+
+=== ":simple-python: validate_pydantic.py"
+
+    ```python exec="on" session="validate"
+    print(f"```python\n{inspect.getsource(ValidatedIgnore).rstrip()}\n```")
+    ```
+
+```python exec="on" session="validate"
+from pydantic import ValidationError
+
+# Zero values are allowed — construction without arguments works
+vi = ValidatedIgnore()
+assert vi.email == ""
+assert vi.age == 0
+
+# Non-zero values are still validated
+try:
+    ValidatedIgnore(email="not-an-email")
 except ValidationError:
     pass
 ```

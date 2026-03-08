@@ -151,7 +151,6 @@ class ValidatedUser(_ProtoModel):
 
     # Display name (1–50 characters).
     name: str = _Field(
-        default="",
         description="Display name (1–50 characters).",
         min_length=1,
         max_length=50,
@@ -164,7 +163,6 @@ class ValidatedUser(_ProtoModel):
     )
     # Contact email address.
     email: _Annotated[str, _AfterValidator(_validate_email)] = _Field(
-        default="",
         description="Contact email address.",
     )
     role: "ValidatedUser.Role | None" = _Field(default=None)
@@ -184,7 +182,7 @@ print(user.to_proto_json())
 # {"name":"Alice","age":30,"email":"alice@example.com","role":"EDITOR"}
 
 # Validation errors are raised immediately
-ValidatedUser(name="", age=-1)  # raises ValidationError (2 validation errors)
+ValidatedUser(name="", age=-1)  # raises ValidationError (3 validation errors)
 ```
 
 ## Options
