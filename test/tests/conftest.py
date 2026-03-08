@@ -56,16 +56,50 @@ def load_module():
 
 def _load_module(name, filepath):
     """Load a module from an arbitrary path under a unique name to avoid conflicts."""
+    import types
+
     full_name = f"gen_options_test.{name}"
     if full_name in sys.modules:
         return sys.modules[full_name]
+
+    directory = Path(filepath).parent
+
+    # Register a synthetic parent package so relative imports (._proto_types)
+    # resolve correctly when the module is loaded under the gen_options_test namespace.
+    if "gen_options_test" not in sys.modules:
+        pkg = types.ModuleType("gen_options_test")
+        pkg.__path__ = []
+        pkg.__package__ = "gen_options_test"
+        sys.modules["gen_options_test"] = pkg
+
+    # Pre-load _proto_types from the same directory so the relative import succeeds.
+    _load_sibling(directory, "_proto_types")
+
     spec = importlib.util.spec_from_file_location(full_name, filepath)
     if spec is None or spec.loader is None:
         raise ImportError(f"Cannot load module from {filepath}")
     mod = importlib.util.module_from_spec(spec)
+    mod.__package__ = "gen_options_test"
     sys.modules[full_name] = mod
     spec.loader.exec_module(mod)
     return mod
+
+
+def _load_sibling(directory, module_name):
+    """Load module_name.py from directory into gen_options_test.<module_name>."""
+    full_name = f"gen_options_test.{module_name}"
+    if full_name in sys.modules:
+        return
+    filepath = directory / f"{module_name}.py"
+    if not filepath.exists():
+        return
+    spec = importlib.util.spec_from_file_location(full_name, filepath)
+    if spec is None or spec.loader is None:
+        return
+    mod = importlib.util.module_from_spec(spec)
+    mod.__package__ = "gen_options_test"
+    sys.modules[full_name] = mod
+    spec.loader.exec_module(mod)
 
 
 def make_scalars(**overrides):

@@ -94,7 +94,6 @@ class ValidatedScalars(_ProtoModel):
 
     # Age must be between 0 and 150 exclusive of 0.
     age: int = _Field(
-        default=0,
         description="Age must be between 0 and 150 exclusive of 0.",
         gt=0,
         le=150,
@@ -108,7 +107,6 @@ class ValidatedScalars(_ProtoModel):
     )
     # Priority must be positive.
     priority: ProtoInt64 = _Field(
-        default=0,
         description="Priority must be positive.",
         gt=0,
     )
@@ -121,7 +119,6 @@ class ValidatedScalars(_ProtoModel):
     )
     # Rank must be in [1, 10].
     rank: int = _Field(
-        default=0,
         description="Rank must be in [1, 10].",
         ge=1,
         le=10,
@@ -147,14 +144,12 @@ class ValidatedStrings(_ProtoModel):
 
     # Name must be between 1 and 100 characters.
     name: str = _Field(
-        default="",
         description="Name must be between 1 and 100 characters.",
         min_length=1,
         max_length=100,
     )
     # Code must match uppercase letters only.
     code: str = _Field(
-        default="",
         description="Code must match uppercase letters only.",
         pattern="^[A-Z]+$",
     )
@@ -166,7 +161,6 @@ class ValidatedStrings(_ProtoModel):
     )
     # Tag has only a min length.
     tag: str = _Field(
-        default="",
         description="Tag has only a min length.",
         min_length=2,
     )
@@ -217,7 +211,6 @@ class ValidatedReserved(_ProtoModel):
 
     # Score must be positive.
     float_: float = _Field(
-        default=0.0,
         description="Score must be positive.",
         alias="float",
         gt=0.0,
@@ -287,7 +280,6 @@ class ValidatedStringLen(_ProtoModel):
 
     # Code must be exactly 5 characters.
     code: str = _Field(
-        default="",
         description="Code must be exactly 5 characters.",
         min_length=5,
         max_length=5,
@@ -301,39 +293,33 @@ class ValidatedStringAffix(_ProtoModel):
 
     # Url must start with "https://".
     url: str = _Field(
-        default="",
         description='Url must start with "https://".',
         pattern="^https://",
     )
     # Filename must end with ".go".
     filename: str = _Field(
-        default="",
         description='Filename must end with ".go".',
         pattern="\\.go$",
     )
     # Path must start with "/home/" and end with ".txt".
     path: str = _Field(
-        default="",
         description='Path must start with "/home/" and end with ".txt".',
         pattern="^/home/.*\\.txt$",
     )
     # Content must match a pattern; prefix is also set (conflict → prefix dropped).
     content: str = _Field(
-        default="",
         description="Content must match a pattern; prefix is also set (conflict → prefix dropped).",
         pattern="^[a-z]+$",
         # buf.validate: prefix (not translated)
     )
     # Report must match a pattern; suffix is also set (conflict → suffix dropped).
     report: str = _Field(
-        default="",
         description="Report must match a pattern; suffix is also set (conflict → suffix dropped).",
         pattern="^report_",
         # buf.validate: suffix (not translated)
     )
     # Notes must match a pattern; contains is also set (conflict → contains dropped).
     notes: str = _Field(
-        default="",
         description="Notes must match a pattern; contains is also set (conflict → contains dropped).",
         pattern="^[a-z]+$",
         # buf.validate: contains (not translated)
@@ -347,14 +333,12 @@ class ValidatedExamples(_ProtoModel):
 
     # Count with integer examples.
     count: int = _Field(
-        default=0,
         description="Count with integer examples.",
         gt=0,
         examples=[1, 42],
     )
     # Name with string examples.
     name: str = _Field(
-        default="",
         description="Name with string examples.",
         min_length=1,
         examples=["alice", "bob"],
@@ -369,17 +353,14 @@ class ValidatedFormats(_ProtoModel):
 
     # Email must be a valid email address.
     email: _Annotated[str, _AfterValidator(_validate_email)] = _Field(
-        default="",
         description="Email must be a valid email address.",
     )
     # Website must be a valid URI.
     website: _Annotated[str, _AfterValidator(_validate_uri)] = _Field(
-        default="",
         description="Website must be a valid URI.",
     )
     # Address must be a valid IP address.
     address: _Annotated[str, _AfterValidator(_validate_ip)] = _Field(
-        default="",
         description="Address must be a valid IP address.",
     )
     # Ratio must be finite (not inf or NaN).
@@ -389,17 +370,14 @@ class ValidatedFormats(_ProtoModel):
     )
     # Token must be a valid UUID.
     token: _Annotated[str, _AfterValidator(_validate_uuid)] = _Field(
-        default="",
         description="Token must be a valid UUID.",
     )
     # Host must be a valid IPv4 address.
     host_v4: _Annotated[str, _AfterValidator(_validate_ipv4)] = _Field(
-        default="",
         description="Host must be a valid IPv4 address.",
     )
     # Host must be a valid IPv6 address.
     host_v6: _Annotated[str, _AfterValidator(_validate_ipv6)] = _Field(
-        default="",
         description="Host must be a valid IPv6 address.",
     )
 
@@ -440,7 +418,6 @@ class ValidatedDropped(_ProtoModel):
     )
     # Score must be positive; required is also set but not translated.
     score: int = _Field(
-        default=0,
         description="Score must be positive; required is also set but not translated.",
         gt=0,
         # buf.validate: required (not translated)
@@ -452,24 +429,14 @@ class ValidatedConst(_ProtoModel):
     ValidatedConst exercises the const constraint translated to Literal[...].
     """
 
-    tag: _Literal["fixed"] = _Field(
-        default="fixed",
-    )
-    count: _Literal[42] = _Field(
-        default=42,
-    )
-    active: _Literal[True] = _Field(
-        default=True,
-    )
+    tag: _Literal["fixed"] = _Field(default="fixed")
+    count: _Literal[42] = _Field(default=42)
+    active: _Literal[True] = _Field(default=True)
     score: _Annotated[float, _AfterValidator(_make_const_validator(3.14))] = _Field(
         default=3.14,
     )
-    code: _Literal[100] = _Field(
-        default=100,
-    )
-    inactive: _Literal[False] = _Field(
-        default=False,
-    )
+    code: _Literal[100] = _Field(default=100)
+    inactive: _Literal[False] = _Field(default=False)
 
 
 class ValidatedIn(_ProtoModel):
@@ -479,24 +446,17 @@ class ValidatedIn(_ProtoModel):
 
     status: _Annotated[
         str, _AfterValidator(_make_in_validator(frozenset({"active", "inactive"})))
-    ] = _Field(
-        default="",
-    )
+    ]
     code: _Annotated[
         str, _AfterValidator(_make_not_in_validator(frozenset({"deleted", "archived"})))
     ] = _Field(
         default="",
     )
-    priority: _Annotated[
-        int, _AfterValidator(_make_in_validator(frozenset({1, 2, 3})))
-    ] = _Field(
-        default=0,
-    )
+    priority: _Annotated[int, _AfterValidator(_make_in_validator(frozenset({1, 2, 3})))]
     # Limit covers uint32.in (exercises the uint path in formatScalarLiteral).
     limit: _Annotated[
         int, _AfterValidator(_make_in_validator(frozenset({10, 50, 100})))
     ] = _Field(
-        default=0,
         description="Limit covers uint32.in (exercises the uint path in formatScalarLiteral).",
     )
 
@@ -523,13 +483,11 @@ class ValidatedBytes(_ProtoModel):
 
     # Token must be at least 16 bytes.
     token: bytes = _Field(
-        default=b"",
         description="Token must be at least 16 bytes.",
         min_length=16,
     )
     # Hash must be exactly 32 bytes.
     hash_: bytes = _Field(
-        default=b"",
         description="Hash must be exactly 32 bytes.",
         alias="hash",
         min_length=32,
@@ -543,7 +501,6 @@ class ValidatedBytes(_ProtoModel):
     )
     # Uuid must be a valid 16-byte binary UUID.
     uuid: _Annotated[bytes, _AfterValidator(_validate_bytes_uuid)] = _Field(
-        default=b"",
         description="Uuid must be a valid 16-byte binary UUID.",
     )
 
@@ -555,14 +512,12 @@ class ValidatedStringContains(_ProtoModel):
 
     # Topic must contain "protobuf".
     topic: str = _Field(
-        default="",
         description='Topic must contain "protobuf".',
         pattern="protobuf",
     )
     # Label must start with "env-" and contain "prod".
     # The contains conflicts with prefix so contains is dropped.
     label: str = _Field(
-        default="",
         description='Label must start with "env-" and contain "prod".\nThe contains conflicts with prefix so contains is dropped.',
         pattern="^env-",
         # buf.validate: contains (not translated)
@@ -582,7 +537,6 @@ class ValidatedUser(_ProtoModel):
 
     # Display name (1–50 characters).
     name: str = _Field(
-        default="",
         description="Display name (1–50 characters).",
         min_length=1,
         max_length=50,
@@ -595,7 +549,6 @@ class ValidatedUser(_ProtoModel):
     )
     # Contact email address.
     email: _Annotated[str, _AfterValidator(_validate_email)] = _Field(
-        default="",
         description="Contact email address.",
     )
     role: "ValidatedUser.Role | None" = _Field(
@@ -713,62 +666,50 @@ class ValidatedFormatsExtended(_ProtoModel):
 
     # Hostname must be a valid DNS hostname.
     hostname: _Annotated[str, _AfterValidator(_validate_hostname)] = _Field(
-        default="",
         description="Hostname must be a valid DNS hostname.",
     )
     # UriRef must be a valid URI reference (absolute or relative).
     uri_ref: _Annotated[str, _AfterValidator(_validate_uri_ref)] = _Field(
-        default="",
         description="UriRef must be a valid URI reference (absolute or relative).",
     )
     # Addr must be a valid IP address or hostname.
     addr: _Annotated[str, _AfterValidator(_validate_address)] = _Field(
-        default="",
         description="Addr must be a valid IP address or hostname.",
     )
     # Tuuid must be a trimmed UUID (32 hex chars, no dashes).
     tuuid: _Annotated[str, _AfterValidator(_validate_tuuid)] = _Field(
-        default="",
         description="Tuuid must be a trimmed UUID (32 hex chars, no dashes).",
     )
     # Ulid must be a valid ULID.
     ulid: _Annotated[str, _AfterValidator(_validate_ulid)] = _Field(
-        default="",
         description="Ulid must be a valid ULID.",
     )
     # Cidr must be a valid IP address with prefix length (host address).
     cidr: _Annotated[str, _AfterValidator(_validate_ip_with_prefixlen)] = _Field(
-        default="",
         description="Cidr must be a valid IP address with prefix length (host address).",
     )
     # CidrV4 must be a valid IPv4 address with prefix length.
     cidr_v4: _Annotated[str, _AfterValidator(_validate_ipv4_with_prefixlen)] = _Field(
-        default="",
         description="CidrV4 must be a valid IPv4 address with prefix length.",
     )
     # CidrV6 must be a valid IPv6 address with prefix length.
     cidr_v6: _Annotated[str, _AfterValidator(_validate_ipv6_with_prefixlen)] = _Field(
-        default="",
         description="CidrV6 must be a valid IPv6 address with prefix length.",
     )
     # IpNet must be a valid IP network (host bits must be zero).
     ip_net: _Annotated[str, _AfterValidator(_validate_ip_prefix)] = _Field(
-        default="",
         description="IpNet must be a valid IP network (host bits must be zero).",
     )
     # Ipv4Net must be a valid IPv4 network (host bits must be zero).
     ipv4_net: _Annotated[str, _AfterValidator(_validate_ipv4_prefix)] = _Field(
-        default="",
         description="Ipv4Net must be a valid IPv4 network (host bits must be zero).",
     )
     # Ipv6Net must be a valid IPv6 network (host bits must be zero).
     ipv6_net: _Annotated[str, _AfterValidator(_validate_ipv6_prefix)] = _Field(
-        default="",
         description="Ipv6Net must be a valid IPv6 network (host bits must be zero).",
     )
     # Endpoint must be a valid host:port pair.
     endpoint: _Annotated[str, _AfterValidator(_validate_host_and_port)] = _Field(
-        default="",
         description="Endpoint must be a valid host:port pair.",
     )
 
@@ -780,19 +721,16 @@ class ValidatedWellKnownRegex(_ProtoModel):
 
     # HeaderName must be a valid HTTP header name.
     header_name: _Annotated[str, _AfterValidator(_validate_http_header_name)] = _Field(
-        default="",
         description="HeaderName must be a valid HTTP header name.",
     )
     # HeaderValue must be a valid HTTP header value.
     header_value: _Annotated[str, _AfterValidator(_validate_http_header_value)] = (
         _Field(
-            default="",
             description="HeaderValue must be a valid HTTP header value.",
         )
     )
     # LooseHeader uses well_known_regex with strict=false (strict is not translated).
     loose_header: _Annotated[str, _AfterValidator(_validate_http_header_name)] = _Field(
-        default="",
         description="LooseHeader uses well_known_regex with strict=false (strict is not translated).",
         # buf.validate: strict=false (not translated)
     )
@@ -821,7 +759,6 @@ class ValidatedFloatIn(_ProtoModel):
     ratio: _Annotated[
         float, _AfterValidator(_make_in_validator(frozenset({0.25, 0.5, 0.75, 1.0})))
     ] = _Field(
-        default=0.0,
         description="Ratio must be one of the allowed values.",
     )
     # Score must not be a negative sentinel value.
@@ -840,14 +777,12 @@ class ValidatedFloatExamples(_ProtoModel):
 
     # Ratio must be positive with float examples.
     ratio: float = _Field(
-        default=0.0,
         description="Ratio must be positive with float examples.",
         gt=0.0,
         examples=[1.5, 0.25],
     )
     # Score must be positive with double examples.
     score: float = _Field(
-        default=0.0,
         description="Score must be positive with double examples.",
         gt=0.0,
         examples=[3.14, 2.71],
@@ -860,7 +795,6 @@ class ValidatedFloatExamples(_ProtoModel):
     )
     # Code must be positive with uint32 examples.
     code: int = _Field(
-        default=0,
         description="Code must be positive with uint32 examples.",
         gt=0,
         examples=[7, 42],
@@ -877,4 +811,23 @@ class ValidatedCEL(_ProtoModel):
         default=0,
         description="Age with a CEL expression that is not translated.",
         # buf.validate: cel (not translated)
+    )
+
+
+class ValidatedIgnore(_ProtoModel):
+    """
+    ValidatedIgnore exercises ignore = IGNORE_IF_ZERO_VALUE, which opts a field
+    out of ConstrainedRequired even when its constraints reject the zero value.
+    """
+
+    # Email allows empty string via ignore (not ConstrainedRequired).
+    email: _Annotated[str, _AfterValidator(_validate_email)] = _Field(
+        default="",
+        description="Email allows empty string via ignore (not ConstrainedRequired).",
+    )
+    # Age allows zero via ignore (not ConstrainedRequired).
+    age: int = _Field(
+        default=0,
+        description="Age allows zero via ignore (not ConstrainedRequired).",
+        gt=0,
     )

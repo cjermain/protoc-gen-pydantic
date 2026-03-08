@@ -162,7 +162,7 @@ assert (
     proto_json
     == '{"name":"Alice","age":30,"email":"alice@example.com","role":"EDITOR"}'
 )
-assert n == 2
+assert n == 3
 ```
 
 [Get started →](guide/quickstart.md){ .md-button .md-button--primary }

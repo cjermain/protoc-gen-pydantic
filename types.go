@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -141,16 +142,17 @@ func (e Enum) HasOptions() bool {
 }
 
 type Field struct {
-	Name             string
-	Alias            string // non-empty when Name was renamed to avoid shadowing Python builtins
-	Type             string
-	NeedsQuote       bool // true when Type contains a user-defined class (message/enum) requiring a forward-reference string annotation
-	Optional         bool
-	Default          string // proto3 zero-value default (e.g. "0", "False", "None", "default_factory=list")
-	OneOf            *OneOf
-	Constraints      *FieldConstraints
-	LeadingComments  []string
-	TrailingComments []string
+	Name                string
+	Alias               string // non-empty when Name was renamed to avoid shadowing Python builtins
+	Type                string
+	NeedsQuote          bool // true when Type contains a user-defined class (message/enum) requiring a forward-reference string annotation
+	Optional            bool
+	Default             string // proto3 zero-value default (e.g. "0", "False", "None", "default_factory=list")
+	OneOf               *OneOf
+	Constraints         *FieldConstraints
+	ConstrainedRequired bool // no default; zero-arg construction requires explicit value
+	LeadingComments     []string
+	TrailingComments    []string
 }
 
 func (f Field) IsDefaultFactory() bool {
@@ -159,6 +161,16 @@ func (f Field) IsDefaultFactory() bool {
 
 func (f Field) HasConstraints() bool {
 	return f.Constraints != nil && f.Constraints.HasAny()
+}
+
+// HasConstraintKwargs returns true when the field has content for _Field() beyond
+// a default value: direct constraint kwargs or dropped constraint comments.
+// Used to decide whether a multi-line _Field(...) form is needed.
+func (f Field) HasConstraintKwargs() bool {
+	if f.Constraints == nil {
+		return false
+	}
+	return len(f.Constraints.PydanticArgs()) > 0 || len(f.Constraints.DroppedConstraints) > 0
 }
 
 // TypeAnnotation returns the type as it should appear in a Python annotation,
@@ -199,6 +211,35 @@ func (f Field) TypeAnnotationFormatted(bi string) string {
 	// Case 3: annotation itself is too long — split across multiple lines.
 	inner := annotation[len("_Annotated[") : len(annotation)-1]
 	return "_Annotated[\n" + bi + "    " + inner + "\n" + bi + "]"
+}
+
+// TypeAnnotationFormattedBare is like TypeAnnotationFormatted but for fields
+// that emit a bare annotation with no assignment. It only splits the annotation
+// when the bare "name: annotation" line alone exceeds 88 characters, rather
+// than when adding "= _Field(" would push it over.
+func (f Field) TypeAnnotationFormattedBare(bi string) string {
+	annotation := f.TypeAnnotation()
+	if f.NeedsQuote || !strings.HasPrefix(annotation, "_Annotated[") || !strings.HasSuffix(annotation, "]") {
+		return annotation
+	}
+	annotationLine := bi + f.Name + ": " + annotation
+	if len(annotationLine) <= 88 {
+		return annotation
+	}
+	inner := annotation[len("_Annotated[") : len(annotation)-1]
+	return "_Annotated[\n" + bi + "    " + inner + "\n" + bi + "]"
+}
+
+// NeedsMultilineDefault reports whether the field should use the multi-line
+// _Field() form because it has a default value but no constraint kwargs, and
+// the simple "name: annotation = _Field(default)" line would exceed 88 chars.
+func (f Field) NeedsMultilineDefault(bi string) bool {
+	if f.Default == "" || f.HasConstraintKwargs() {
+		return false
+	}
+	annotation := f.TypeAnnotation()
+	line := bi + f.Name + ": " + annotation + " = _Field(" + f.Default + ")"
+	return len(line) > 88
 }
 
 // NeedsParenAssignment reports whether this field should use the ruff-stable
@@ -282,6 +323,7 @@ type FieldConstraints struct {
 	ConstFloatLiteral  *string  // Python float literal for float/double const (Literal[] is invalid per PEP 586)
 	Required           bool     // true when buf.validate required = true is set
 	IsNonScalar        bool     // true when field kind is MessageKind or EnumKind
+	HasIgnore          bool     // true when ignore != IGNORE_UNSPECIFIED (any non-zero ignore enum value)
 }
 
 func (c *FieldConstraints) HasAny() bool {
@@ -394,6 +436,74 @@ func (c *FieldConstraints) combinePatternConstraints() {
 	pat := regexp.QuoteMeta(*c.Contains)
 	c.Pattern = &pat
 	c.Contains = nil
+}
+
+// ZeroValueFails reports whether the proto3 zero value for kind fails this
+// field's constraints, indicating the field should become ConstrainedRequired.
+// Const constraints are excluded: they supply their own valid default.
+// HasIgnore is checked by the caller before invoking this method.
+func (c *FieldConstraints) ZeroValueFails(kind protoreflect.Kind) bool {
+	if c == nil {
+		return false
+	}
+	if c.ConstLiteral != nil || c.ConstFloatLiteral != nil {
+		return false
+	}
+	if c.FormatValidator != nil {
+		return true
+	}
+	// gt=N where N >= 0: zero is not > N.
+	if c.Gt != nil {
+		if v, err := strconv.ParseFloat(*c.Gt, 64); err == nil && v >= 0 {
+			return true
+		}
+	}
+	// ge=N where N > 0: zero is not >= N.
+	if c.Gte != nil {
+		if v, err := strconv.ParseFloat(*c.Gte, 64); err == nil && v > 0 {
+			return true
+		}
+	}
+	if c.MinLength != nil && *c.MinLength > 0 {
+		return true
+	}
+	// All patterns produced by the generator (from prefix/suffix/contains/min_len
+	// or explicit string.pattern rules) reject the empty string. A user-supplied
+	// pattern that can match "" (e.g. "[a-z]*") would be a false positive here,
+	// but such patterns are not generated.
+	if c.Pattern != nil {
+		return true
+	}
+	if len(c.InValues) > 0 && !c.inValuesContainZero(kind) {
+		return true
+	}
+	return false
+}
+
+// zeroLiteralForKind returns the Python literal for the proto3 zero value of
+// kind, matching the format produced by formatScalarLiteral/formatPythonFloat,
+// so it can be compared directly against InValues entries.
+func zeroLiteralForKind(kind protoreflect.Kind) string {
+	switch kind {
+	case protoreflect.StringKind:
+		return `""`
+	case protoreflect.BoolKind:
+		return "False"
+	case protoreflect.FloatKind, protoreflect.DoubleKind:
+		return "0.0"
+	default: // all integer kinds
+		return "0"
+	}
+}
+
+func (c *FieldConstraints) inValuesContainZero(kind protoreflect.Kind) bool {
+	zero := zeroLiteralForKind(kind)
+	for _, v := range c.InValues {
+		if v == zero {
+			return true
+		}
+	}
+	return false
 }
 
 type Message struct {

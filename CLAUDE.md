@@ -159,6 +159,28 @@ Emitted as `# buf.validate: X (not translated)` comments: `required`, CEL,
 `bytes.const`, message-typed bounds (duration, timestamp).
 `enum.defined_only` is a no-op (Python enums enforce this natively).
 
+**Zero-value validation (ConstrainedRequired)**: Non-optional scalar fields whose constraints
+reject the proto3 zero value (`""`, `0`, `false`, `b""`) become required Pydantic fields (no
+default). Detection logic in `generator.go` (after `applyConstraintTypeOverrides`): checks
+`isScalar && isNotOptional && !hasConst && !ignoreZero && f.Constraints.ZeroValueFails(kind)`.
+Sets `f.ConstrainedRequired = true; f.Default = ""`. Affected constraint types: format
+validators, `gt` (N≥0), `gte` (N>0), `min_len` (N>0), `pattern` (any), `in` (zero not in set).
+**Not** ConstrainedRequired: AfterValidator-only constraints with Pydantic-unvalidated defaults
+(not_in, not_contains, finite, unique, const-float), dropped constraints (required, CEL),
+repeated/map fields, optional fields, oneof members, enum fields.
+
+`ignore = IGNORE_IF_ZERO_VALUE` (or any non-zero `ignore` enum value) opts a field out —
+sets `IgnoreZero = true` in `FieldConstraints` (parsed in `constraints.go` top-level Range
+switch). The field keeps its zero default; validators only run for explicitly-set values
+(Pydantic does not validate defaults by default).
+
+Key types added to `types.go`: `IgnoreZero bool` on `FieldConstraints`, `ConstrainedRequired
+bool` on `Field`, `HasConstraintKwargs() bool`, `ZeroValueFails(kind) bool`,
+`zeroLiteralForKind(kind)`, `inValuesContainZero(kind) bool`, `NeedsMultilineDefault(bi) bool`,
+`TypeAnnotationFormattedBare(bi) string`. Template uses `HasConstraintKwargs` (not
+`HasConstraints`) for the outer multi-line `_Field()` branch, and `NeedsMultilineDefault` to
+catch long `= _Field(Default)` lines that need multi-line form despite no constraint kwargs.
+
 Format and set validator helpers live in `_proto_types.py` (generated
 alongside model files). `buildProtoTypesContent(needed map[string]bool)`
 assembles the file conditionally — only imports and functions actually used by

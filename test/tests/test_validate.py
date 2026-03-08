@@ -34,12 +34,63 @@ from api.v1.validate_pydantic import (
     ValidatedTimestamp,
     ValidatedUnique,
     ValidatedWellKnownRegex,
+    ValidatedIgnore,
 )
 
+
+# Minimum valid kwargs for messages where multiple fields became ConstrainedRequired.
+_VALID_FORMATS = dict(
+    email="user@example.com",
+    website="https://example.com",
+    address="1.2.3.4",
+    token="550e8400-e29b-41d4-a716-446655440000",
+    host_v4="1.2.3.4",
+    host_v6="::1",
+)
+_VALID_FORMATS_EXT = dict(
+    hostname="example.com",
+    uri_ref="https://example.com",
+    addr="example.com",
+    tuuid="550e8400e29b41d4a716446655440000",
+    ulid="01ARZ3NDEKTSV4RRFFQ69G5FAV",
+    cidr="192.168.0.1/24",
+    cidr_v4="192.168.0.1/24",
+    cidr_v6="::1/128",
+    ip_net="192.168.0.0/24",
+    ipv4_net="192.168.0.0/24",
+    ipv6_net="2001:db8::/32",
+    endpoint="example.com:80",
+)
+_VALID_WKR = dict(
+    header_name="Content-Type",
+    header_value="application/json",
+    loose_header="Content-Type",
+)
+_VALID_IN = dict(status="active", priority=1, limit=10)
+_VALID_AFFIX = dict(
+    url="https://example.com",
+    filename="main.go",
+    path="/home/user/notes.txt",
+    content="abc",
+    report="report_2024",
+    notes="abcnote",
+)
+_VALID_BYTES = dict(
+    token=b"x" * 16,
+    hash=b"x" * 32,
+    uuid=b"\x55\x0e\x84\x00\xe2\x9b\x41\xd4\xa7\x16\x44\x66\x55\x44\x00\x00",
+)
+_VALID_CONTAINS = dict(topic="protobuf guide", label="env-prod-us")
 
 # ---------------------------------------------------------------------------
 # ValidatedScalars
 # ---------------------------------------------------------------------------
+
+
+def test_validated_scalars_required():
+    # age (gt=0), priority (gt=0), rank (ge=1) are ConstrainedRequired.
+    with pytest.raises(ValidationError):
+        ValidatedScalars()
 
 
 def test_validated_scalars_valid():
@@ -124,6 +175,12 @@ def test_validated_scalars_rank_exceeds_max():
 # ---------------------------------------------------------------------------
 # ValidatedStrings
 # ---------------------------------------------------------------------------
+
+
+def test_validated_strings_required():
+    # name (min_len=1), code (pattern), tag (min_len=2) are ConstrainedRequired.
+    with pytest.raises(ValidationError):
+        ValidatedStrings()
 
 
 def test_validated_strings_valid():
@@ -311,14 +368,15 @@ _GEN_VALIDATE = (
 
 
 def test_validated_dropped_required_not_enforced():
-    # required = true is not translated; default empty string is accepted.
-    d = ValidatedDropped()
+    # required = true is not translated (stays as dropped comment); name has no extra
+    # Pydantic constraint so it keeps its zero default "".
+    d = ValidatedDropped(score=1)
     assert d.name == ""
 
 
 def test_validated_dropped_bytes_const_not_enforced():
     # bytes.const is not translated (bytes kind unsupported); any bytes value is accepted.
-    d = ValidatedDropped(blob=b"\xff")
+    d = ValidatedDropped(score=1, blob=b"\xff")
     assert d.blob == b"\xff"
 
 
@@ -500,90 +558,88 @@ def test_validated_timestamp_comments_in_generated_file():
 
 
 def test_validated_format_defaults():
-    # Default empty strings skip validation (proto3 zero-value semantics).
-    d = ValidatedFormats()
-    assert d.email == ""
-    assert d.website == ""
-    assert d.address == ""
-    assert d.token == ""
-    assert d.host_v4 == ""
-    assert d.host_v6 == ""
+    # Format-validator fields (email, website, address, token, host_v4, host_v6) are now
+    # ConstrainedRequired — zero-arg construction raises ValidationError.
+    with pytest.raises(ValidationError):
+        ValidatedFormats()
+    # ratio (finite validator) is NOT ConstrainedRequired: 0.0 passes float.finite.
+    d = ValidatedFormats(**_VALID_FORMATS)
     assert d.ratio == pytest.approx(0.0)
 
 
 def test_validated_format_finite_enforced_inf():
     with pytest.raises(ValidationError):
-        ValidatedFormats(ratio=float("inf"))
+        ValidatedFormats(**_VALID_FORMATS, ratio=float("inf"))
 
 
 def test_validated_format_finite_enforced_nan():
     with pytest.raises(ValidationError):
-        ValidatedFormats(ratio=float("nan"))
+        ValidatedFormats(**_VALID_FORMATS, ratio=float("nan"))
 
 
 def test_validated_format_finite_valid():
-    d = ValidatedFormats(ratio=1.0)
+    d = ValidatedFormats(**_VALID_FORMATS, ratio=1.0)
     assert d.ratio == pytest.approx(1.0)
 
 
 @pytest.mark.parametrize("email", ["user@example.com", "a@b.co", "x.y+z@domain.org"])
 def test_validated_format_email_valid(email):
-    d = ValidatedFormats(email=email)
+    d = ValidatedFormats(**{**_VALID_FORMATS, "email": email})
     assert d.email == email
 
 
 @pytest.mark.parametrize("email", ["notanemail", "@domain.com", "user@", "nodot@nodot"])
 def test_validated_format_email_invalid(email):
     with pytest.raises(ValidationError):
-        ValidatedFormats(email=email)
+        ValidatedFormats(**{**_VALID_FORMATS, "email": email})
 
 
 @pytest.mark.parametrize("uri", ["https://example.com", "http://x.org/path?q=1"])
 def test_validated_format_uri_valid(uri):
-    d = ValidatedFormats(website=uri)
+    d = ValidatedFormats(**{**_VALID_FORMATS, "website": uri})
     assert d.website == uri
 
 
 @pytest.mark.parametrize("uri", ["notauri", "example.com", "ftp//missing-colon"])
 def test_validated_format_uri_invalid(uri):
     with pytest.raises(ValidationError):
-        ValidatedFormats(website=uri)
+        ValidatedFormats(**{**_VALID_FORMATS, "website": uri})
 
 
 @pytest.mark.parametrize("addr", ["1.2.3.4", "::1", "2001:db8::1"])
 def test_validated_format_ip_valid(addr):
-    d = ValidatedFormats(address=addr)
+    d = ValidatedFormats(**{**_VALID_FORMATS, "address": addr})
     assert d.address == addr
 
 
 @pytest.mark.parametrize("addr", ["999.0.0.1", "not-an-ip", "256.1.1.1"])
 def test_validated_format_ip_invalid(addr):
     with pytest.raises(ValidationError):
-        ValidatedFormats(address=addr)
+        ValidatedFormats(**{**_VALID_FORMATS, "address": addr})
 
 
 @pytest.mark.parametrize("v4", ["192.168.1.1", "0.0.0.0", "255.255.255.255"])
 def test_validated_format_ipv4_valid(v4):
-    d = ValidatedFormats(host_v4=v4)
+    d = ValidatedFormats(**{**_VALID_FORMATS, "host_v4": v4})
     assert d.host_v4 == v4
 
 
 @pytest.mark.parametrize("v4", ["::1", "not-an-ip", "256.0.0.1"])
 def test_validated_format_ipv4_invalid(v4):
     with pytest.raises(ValidationError):
-        ValidatedFormats(host_v4=v4)
+        ValidatedFormats(**{**_VALID_FORMATS, "host_v4": v4})
 
 
 @pytest.mark.parametrize("v6", ["::1", "2001:db8::1", "fe80::1"])
 def test_validated_format_ipv6_valid(v6):
-    d = ValidatedFormats(host_v6=v6)
+    d = ValidatedFormats(**{**_VALID_FORMATS, "host_v6": v6})
     assert d.host_v6 == v6
 
 
 @pytest.mark.parametrize("v6", ["1.2.3.4", "not-an-ip", "gggg::1"])
 def test_validated_format_ipv6_invalid(v6):
     with pytest.raises(ValidationError):
-        ValidatedFormats(host_v6=v6)
+        ValidatedFormats(**{**_VALID_FORMATS, "host_v6": v6})
 
 
 @pytest.mark.parametrize(
@@ -594,7 +650,7 @@ def test_validated_format_ipv6_invalid(v6):
     ],
 )
 def test_validated_format_uuid_valid(u):
-    d = ValidatedFormats(token=u)
+    d = ValidatedFormats(**{**_VALID_FORMATS, "token": u})
     assert d.token == u
 
 
@@ -603,12 +659,18 @@ def test_validated_format_uuid_valid(u):
 )
 def test_validated_format_uuid_invalid(u):
     with pytest.raises(ValidationError):
-        ValidatedFormats(token=u)
+        ValidatedFormats(**{**_VALID_FORMATS, "token": u})
 
 
 # ---------------------------------------------------------------------------
 # ValidatedStringLen — string.len → min_length=N, max_length=N (P2)
 # ---------------------------------------------------------------------------
+
+
+def test_validated_string_len_required():
+    # code (min_len=5 via len=5) is ConstrainedRequired.
+    with pytest.raises(ValidationError):
+        ValidatedStringLen()
 
 
 def test_validated_string_len_exact_length_valid():
@@ -640,47 +702,53 @@ def test_validated_string_len_boundary():
 # ---------------------------------------------------------------------------
 
 
+def test_validated_string_affix_required():
+    # All six affix fields produce patterns — all are ConstrainedRequired.
+    with pytest.raises(ValidationError):
+        ValidatedStringAffix()
+
+
 def test_validated_string_affix_prefix_valid():
-    m = ValidatedStringAffix(url="https://example.com")
+    m = ValidatedStringAffix(**{**_VALID_AFFIX, "url": "https://example.com"})
     assert m.url == "https://example.com"
 
 
 def test_validated_string_affix_prefix_invalid():
     with pytest.raises(ValidationError):
-        ValidatedStringAffix(url="http://example.com")
+        ValidatedStringAffix(**{**_VALID_AFFIX, "url": "http://example.com"})
 
 
 def test_validated_string_affix_suffix_valid():
-    m = ValidatedStringAffix(filename="main.go")
+    m = ValidatedStringAffix(**{**_VALID_AFFIX, "filename": "main.go"})
     assert m.filename == "main.go"
 
 
 def test_validated_string_affix_suffix_invalid():
     with pytest.raises(ValidationError):
-        ValidatedStringAffix(filename="main.py")
+        ValidatedStringAffix(**{**_VALID_AFFIX, "filename": "main.py"})
 
 
 def test_validated_string_affix_prefix_and_suffix_valid():
-    m = ValidatedStringAffix(path="/home/user/notes.txt")
+    m = ValidatedStringAffix(**{**_VALID_AFFIX, "path": "/home/user/notes.txt"})
     assert m.path == "/home/user/notes.txt"
 
 
 def test_validated_string_affix_prefix_and_suffix_invalid_prefix():
     with pytest.raises(ValidationError):
-        ValidatedStringAffix(path="/tmp/notes.txt")
+        ValidatedStringAffix(**{**_VALID_AFFIX, "path": "/tmp/notes.txt"})
 
 
 def test_validated_string_affix_prefix_and_suffix_invalid_suffix():
     with pytest.raises(ValidationError):
-        ValidatedStringAffix(path="/home/user/notes.py")
+        ValidatedStringAffix(**{**_VALID_AFFIX, "path": "/home/user/notes.py"})
 
 
 def test_validated_string_affix_conflict_pattern_wins():
     # content has both pattern and prefix; pattern is translated, prefix is dropped.
     # The explicit pattern ^[a-z]+$ is enforced.
-    ValidatedStringAffix(content="abc")
+    ValidatedStringAffix(**{**_VALID_AFFIX, "content": "abc"})
     with pytest.raises(ValidationError):
-        ValidatedStringAffix(content="ABC")
+        ValidatedStringAffix(**{**_VALID_AFFIX, "content": "ABC"})
 
 
 def test_validated_string_affix_conflict_comment_in_generated_file():
@@ -767,38 +835,39 @@ def test_validated_const_score_enforced():
 
 
 def test_validated_in_status_valid():
-    m = ValidatedIn(status="active")
+    m = ValidatedIn(**{**_VALID_IN, "status": "active"})
     assert m.status == "active"
 
 
 def test_validated_in_status_invalid():
     with pytest.raises(ValidationError):
-        ValidatedIn(status="banned")
+        ValidatedIn(**{**_VALID_IN, "status": "banned"})
 
 
 def test_validated_in_not_in_code_valid():
-    m = ValidatedIn(code="approved")
+    m = ValidatedIn(**_VALID_IN, code="approved")
     assert m.code == "approved"
 
 
 def test_validated_in_not_in_code_invalid():
     with pytest.raises(ValidationError):
-        ValidatedIn(code="deleted")
+        ValidatedIn(**_VALID_IN, code="deleted")
 
 
 def test_validated_in_priority_valid():
-    m = ValidatedIn(priority=1)
+    m = ValidatedIn(**{**_VALID_IN, "priority": 1})
     assert m.priority == 1
 
 
 def test_validated_in_priority_invalid():
     with pytest.raises(ValidationError):
-        ValidatedIn(priority=5)
+        ValidatedIn(**{**_VALID_IN, "priority": 5})
 
 
-def test_validated_in_default_accepted():
-    # AfterValidator does not run on defaults in Pydantic v2 — no error expected.
-    ValidatedIn()
+def test_validated_in_required():
+    # status, priority, limit are now ConstrainedRequired (zero values not in allowed set).
+    with pytest.raises(ValidationError):
+        ValidatedIn()
 
 
 # ---------------------------------------------------------------------------
@@ -831,19 +900,25 @@ def test_validated_unique_in_generated_file():
 # ---------------------------------------------------------------------------
 
 
+def test_validated_string_contains_required():
+    # topic (pattern from contains) and label (pattern from prefix) are ConstrainedRequired.
+    with pytest.raises(ValidationError):
+        ValidatedStringContains()
+
+
 def test_validated_string_contains_topic_valid():
-    m = ValidatedStringContains(topic="protobuf guide")
+    m = ValidatedStringContains(**{**_VALID_CONTAINS, "topic": "protobuf guide"})
     assert m.topic == "protobuf guide"
 
 
 def test_validated_string_contains_topic_invalid():
     with pytest.raises(ValidationError):
-        ValidatedStringContains(topic="avro guide")
+        ValidatedStringContains(**{**_VALID_CONTAINS, "topic": "avro guide"})
 
 
 def test_validated_string_contains_label_prefix_only():
     # prefix is used; contains conflicts with prefix and is dropped
-    m = ValidatedStringContains(label="env-prod-us")
+    m = ValidatedStringContains(**{**_VALID_CONTAINS, "label": "env-prod-us"})
     assert m.label == "env-prod-us"
 
 
@@ -857,35 +932,41 @@ def test_validated_string_contains_label_dropped_comment():
 # ---------------------------------------------------------------------------
 
 
+def test_validated_bytes_required():
+    # token (min_len=16), hash (min_len=32), uuid (bytes_uuid format) are ConstrainedRequired.
+    with pytest.raises(ValidationError):
+        ValidatedBytes()
+
+
 def test_validated_bytes_token_valid():
-    m = ValidatedBytes(token=b"x" * 16)
+    m = ValidatedBytes(**{**_VALID_BYTES, "token": b"x" * 16})
     assert m.token == b"x" * 16
 
 
 def test_validated_bytes_token_too_short():
     with pytest.raises(ValidationError):
-        ValidatedBytes(token=b"short")
+        ValidatedBytes(**{**_VALID_BYTES, "token": b"short"})
 
 
 def test_validated_bytes_hash_exact():
     # `hash` is a Python builtin → renamed to `hash_` with alias
-    m = ValidatedBytes(hash=b"x" * 32)
+    m = ValidatedBytes(**{**_VALID_BYTES, "hash": b"x" * 32})
     assert m.hash_ == b"x" * 32
 
 
 def test_validated_bytes_hash_wrong_length():
     with pytest.raises(ValidationError):
-        ValidatedBytes(hash=b"x" * 31)
+        ValidatedBytes(**{**_VALID_BYTES, "hash": b"x" * 31})
 
 
 def test_validated_bytes_payload_valid():
-    m = ValidatedBytes(payload=b"x" * 1024)
+    m = ValidatedBytes(**_VALID_BYTES, payload=b"x" * 1024)
     assert m.payload == b"x" * 1024
 
 
 def test_validated_bytes_payload_too_large():
     with pytest.raises(ValidationError):
-        ValidatedBytes(payload=b"x" * 1025)
+        ValidatedBytes(**_VALID_BYTES, payload=b"x" * 1025)
 
 
 # ---------------------------------------------------------------------------
@@ -943,20 +1024,20 @@ def test_validated_required_field_is_required_in_pydantic():
 
 
 def test_validated_in_limit_valid():
-    m = ValidatedIn(limit=10)
+    m = ValidatedIn(**{**_VALID_IN, "limit": 10})
     assert m.limit == 10
 
 
 def test_validated_in_limit_invalid():
     with pytest.raises(ValidationError):
-        ValidatedIn(limit=99)
+        ValidatedIn(**{**_VALID_IN, "limit": 99})
 
 
 def test_validated_in_limit_boundary():
-    ValidatedIn(limit=50)
-    ValidatedIn(limit=100)
+    ValidatedIn(**{**_VALID_IN, "limit": 50})
+    ValidatedIn(**{**_VALID_IN, "limit": 100})
     with pytest.raises(ValidationError):
-        ValidatedIn(limit=1)
+        ValidatedIn(**{**_VALID_IN, "limit": 1})
 
 
 # ---------------------------------------------------------------------------
@@ -966,10 +1047,12 @@ def test_validated_in_limit_boundary():
 
 def test_validated_string_affix_pattern_suffix_conflict_pattern_enforced():
     # report: pattern="^report_" wins; suffix=".csv" is dropped.
-    ValidatedStringAffix(report="report_2024.csv")
-    ValidatedStringAffix(report="report_2024.txt")  # suffix not enforced
+    ValidatedStringAffix(**{**_VALID_AFFIX, "report": "report_2024.csv"})
+    ValidatedStringAffix(
+        **{**_VALID_AFFIX, "report": "report_2024.txt"}
+    )  # suffix not enforced
     with pytest.raises(ValidationError):
-        ValidatedStringAffix(report="other_2024")
+        ValidatedStringAffix(**{**_VALID_AFFIX, "report": "other_2024"})
 
 
 def test_validated_string_affix_pattern_suffix_conflict_comment():
@@ -979,9 +1062,9 @@ def test_validated_string_affix_pattern_suffix_conflict_comment():
 
 def test_validated_string_affix_pattern_contains_conflict_pattern_enforced():
     # notes: pattern="^[a-z]+$" wins; contains="note" is dropped.
-    ValidatedStringAffix(notes="abcnote")
+    ValidatedStringAffix(**{**_VALID_AFFIX, "notes": "abcnote"})
     with pytest.raises(ValidationError):
-        ValidatedStringAffix(notes="ABC")
+        ValidatedStringAffix(**{**_VALID_AFFIX, "notes": "ABC"})
 
 
 # ---------------------------------------------------------------------------
@@ -1085,24 +1168,25 @@ def test_validated_const_optional_annotation_in_generated_file():
 
 
 def test_validated_bytes_uuid_valid():
-    m = ValidatedBytes(uuid=b"\x00" * 16)
+    m = ValidatedBytes(**{**_VALID_BYTES, "uuid": b"\x00" * 16})
     assert m.uuid == b"\x00" * 16
 
 
 def test_validated_bytes_uuid_empty_skips_validation():
     # Empty bytes is the proto3 zero value; validator is skipped.
-    m = ValidatedBytes()
+    # uuid (bytes_uuid) is ConstrainedRequired, but empty bytes is accepted when provided.
+    m = ValidatedBytes(**{**_VALID_BYTES, "uuid": b""})
     assert m.uuid == b""
 
 
 def test_validated_bytes_uuid_too_short():
     with pytest.raises(ValidationError):
-        ValidatedBytes(uuid=b"\x00" * 15)
+        ValidatedBytes(**{**_VALID_BYTES, "uuid": b"\x00" * 15})
 
 
 def test_validated_bytes_uuid_too_long():
     with pytest.raises(ValidationError):
-        ValidatedBytes(uuid=b"\x00" * 17)
+        ValidatedBytes(**{**_VALID_BYTES, "uuid": b"\x00" * 17})
 
 
 # ---------------------------------------------------------------------------
@@ -1111,20 +1195,9 @@ def test_validated_bytes_uuid_too_long():
 
 
 def test_validated_formats_extended_defaults():
-    # All default empty strings skip validation.
-    m = ValidatedFormatsExtended()
-    assert m.hostname == ""
-    assert m.uri_ref == ""
-    assert m.addr == ""
-    assert m.tuuid == ""
-    assert m.ulid == ""
-    assert m.cidr == ""
-    assert m.cidr_v4 == ""
-    assert m.cidr_v6 == ""
-    assert m.ip_net == ""
-    assert m.ipv4_net == ""
-    assert m.ipv6_net == ""
-    assert m.endpoint == ""
+    # All format-validator fields are ConstrainedRequired — zero-arg construction fails.
+    with pytest.raises(ValidationError):
+        ValidatedFormatsExtended()
 
 
 @pytest.mark.parametrize(
@@ -1132,7 +1205,7 @@ def test_validated_formats_extended_defaults():
     ["example.com", "localhost", "sub.domain.example.co.uk", "xn--nxasmq6b.com"],
 )
 def test_validated_formats_extended_hostname_valid(host):
-    m = ValidatedFormatsExtended(hostname=host)
+    m = ValidatedFormatsExtended(**{**_VALID_FORMATS_EXT, "hostname": host})
     assert m.hostname == host
 
 
@@ -1142,7 +1215,7 @@ def test_validated_formats_extended_hostname_valid(host):
 )
 def test_validated_formats_extended_hostname_invalid(host):
     with pytest.raises(ValidationError):
-        ValidatedFormatsExtended(hostname=host)
+        ValidatedFormatsExtended(**{**_VALID_FORMATS_EXT, "hostname": host})
 
 
 @pytest.mark.parametrize(
@@ -1150,26 +1223,26 @@ def test_validated_formats_extended_hostname_invalid(host):
     ["/path/to/resource", "https://example.com/x?y=1", "../relative", "#fragment"],
 )
 def test_validated_formats_extended_uri_ref_valid(ref):
-    m = ValidatedFormatsExtended(uri_ref=ref)
+    m = ValidatedFormatsExtended(**{**_VALID_FORMATS_EXT, "uri_ref": ref})
     assert m.uri_ref == ref
 
 
 @pytest.mark.parametrize("ref", ["has space", "line\nnewline", "tab\there"])
 def test_validated_formats_extended_uri_ref_invalid(ref):
     with pytest.raises(ValidationError):
-        ValidatedFormatsExtended(uri_ref=ref)
+        ValidatedFormatsExtended(**{**_VALID_FORMATS_EXT, "uri_ref": ref})
 
 
 @pytest.mark.parametrize("addr", ["1.2.3.4", "::1", "example.com", "localhost"])
 def test_validated_formats_extended_address_valid(addr):
-    m = ValidatedFormatsExtended(addr=addr)
+    m = ValidatedFormatsExtended(**{**_VALID_FORMATS_EXT, "addr": addr})
     assert m.addr == addr
 
 
 @pytest.mark.parametrize("addr", ["-bad-host", "has space", "label..double"])
 def test_validated_formats_extended_address_invalid(addr):
     with pytest.raises(ValidationError):
-        ValidatedFormatsExtended(addr=addr)
+        ValidatedFormatsExtended(**{**_VALID_FORMATS_EXT, "addr": addr})
 
 
 @pytest.mark.parametrize(
@@ -1177,7 +1250,7 @@ def test_validated_formats_extended_address_invalid(addr):
     ["550e8400e29b41d4a716446655440000", "6ba7b8109dad11d180b400c04fd430c8"],
 )
 def test_validated_formats_extended_tuuid_valid(u):
-    m = ValidatedFormatsExtended(tuuid=u)
+    m = ValidatedFormatsExtended(**{**_VALID_FORMATS_EXT, "tuuid": u})
     assert m.tuuid == u
 
 
@@ -1191,7 +1264,7 @@ def test_validated_formats_extended_tuuid_valid(u):
 )
 def test_validated_formats_extended_tuuid_invalid(u):
     with pytest.raises(ValidationError):
-        ValidatedFormatsExtended(tuuid=u)
+        ValidatedFormatsExtended(**{**_VALID_FORMATS_EXT, "tuuid": u})
 
 
 @pytest.mark.parametrize(
@@ -1199,7 +1272,7 @@ def test_validated_formats_extended_tuuid_invalid(u):
     ["01ARZ3NDEKTSV4RRFFQ69G5FAV", "7ZZZZZZZZZZZZZZZZZZZZZZZZZ"],
 )
 def test_validated_formats_extended_ulid_valid(u):
-    m = ValidatedFormatsExtended(ulid=u)
+    m = ValidatedFormatsExtended(**{**_VALID_FORMATS_EXT, "ulid": u})
     assert m.ulid == u
 
 
@@ -1214,7 +1287,7 @@ def test_validated_formats_extended_ulid_valid(u):
 )
 def test_validated_formats_extended_ulid_invalid(u):
     with pytest.raises(ValidationError):
-        ValidatedFormatsExtended(ulid=u)
+        ValidatedFormatsExtended(**{**_VALID_FORMATS_EXT, "ulid": u})
 
 
 @pytest.mark.parametrize(
@@ -1222,38 +1295,38 @@ def test_validated_formats_extended_ulid_invalid(u):
     ["192.168.0.1/24", "10.0.0.1/8", "::1/128", "2001:db8::1/32"],
 )
 def test_validated_formats_extended_ip_with_prefixlen_valid(cidr):
-    m = ValidatedFormatsExtended(cidr=cidr)
+    m = ValidatedFormatsExtended(**{**_VALID_FORMATS_EXT, "cidr": cidr})
     assert m.cidr == cidr
 
 
 @pytest.mark.parametrize("cidr", ["not/valid", "1.2.3.4/33", "999.999.999.999/24"])
 def test_validated_formats_extended_ip_with_prefixlen_invalid(cidr):
     with pytest.raises(ValidationError):
-        ValidatedFormatsExtended(cidr=cidr)
+        ValidatedFormatsExtended(**{**_VALID_FORMATS_EXT, "cidr": cidr})
 
 
 @pytest.mark.parametrize("cidr", ["192.168.0.1/24", "10.0.0.0/8"])
 def test_validated_formats_extended_ipv4_with_prefixlen_valid(cidr):
-    m = ValidatedFormatsExtended(cidr_v4=cidr)
+    m = ValidatedFormatsExtended(**{**_VALID_FORMATS_EXT, "cidr_v4": cidr})
     assert m.cidr_v4 == cidr
 
 
 @pytest.mark.parametrize("cidr", ["::1/128", "not-an-ip/24", "1.2.3.4/33"])
 def test_validated_formats_extended_ipv4_with_prefixlen_invalid(cidr):
     with pytest.raises(ValidationError):
-        ValidatedFormatsExtended(cidr_v4=cidr)
+        ValidatedFormatsExtended(**{**_VALID_FORMATS_EXT, "cidr_v4": cidr})
 
 
 @pytest.mark.parametrize("cidr", ["::1/128", "2001:db8::1/32"])
 def test_validated_formats_extended_ipv6_with_prefixlen_valid(cidr):
-    m = ValidatedFormatsExtended(cidr_v6=cidr)
+    m = ValidatedFormatsExtended(**{**_VALID_FORMATS_EXT, "cidr_v6": cidr})
     assert m.cidr_v6 == cidr
 
 
 @pytest.mark.parametrize("cidr", ["192.168.0.1/24", "not-an-ip/32", "::1/129"])
 def test_validated_formats_extended_ipv6_with_prefixlen_invalid(cidr):
     with pytest.raises(ValidationError):
-        ValidatedFormatsExtended(cidr_v6=cidr)
+        ValidatedFormatsExtended(**{**_VALID_FORMATS_EXT, "cidr_v6": cidr})
 
 
 @pytest.mark.parametrize(
@@ -1261,7 +1334,7 @@ def test_validated_formats_extended_ipv6_with_prefixlen_invalid(cidr):
     ["192.168.0.0/24", "10.0.0.0/8", "2001:db8::/32"],
 )
 def test_validated_formats_extended_ip_prefix_valid(net):
-    m = ValidatedFormatsExtended(ip_net=net)
+    m = ValidatedFormatsExtended(**{**_VALID_FORMATS_EXT, "ip_net": net})
     assert m.ip_net == net
 
 
@@ -1271,31 +1344,31 @@ def test_validated_formats_extended_ip_prefix_valid(net):
 )
 def test_validated_formats_extended_ip_prefix_invalid(net):
     with pytest.raises(ValidationError):
-        ValidatedFormatsExtended(ip_net=net)
+        ValidatedFormatsExtended(**{**_VALID_FORMATS_EXT, "ip_net": net})
 
 
 @pytest.mark.parametrize("net", ["192.168.0.0/24", "10.0.0.0/8"])
 def test_validated_formats_extended_ipv4_prefix_valid(net):
-    m = ValidatedFormatsExtended(ipv4_net=net)
+    m = ValidatedFormatsExtended(**{**_VALID_FORMATS_EXT, "ipv4_net": net})
     assert m.ipv4_net == net
 
 
 @pytest.mark.parametrize("net", ["192.168.0.1/24", "::1/128"])
 def test_validated_formats_extended_ipv4_prefix_invalid(net):
     with pytest.raises(ValidationError):
-        ValidatedFormatsExtended(ipv4_net=net)
+        ValidatedFormatsExtended(**{**_VALID_FORMATS_EXT, "ipv4_net": net})
 
 
 @pytest.mark.parametrize("net", ["2001:db8::/32", "::/0"])
 def test_validated_formats_extended_ipv6_prefix_valid(net):
-    m = ValidatedFormatsExtended(ipv6_net=net)
+    m = ValidatedFormatsExtended(**{**_VALID_FORMATS_EXT, "ipv6_net": net})
     assert m.ipv6_net == net
 
 
 @pytest.mark.parametrize("net", ["2001:db8::1/32", "192.168.0.0/24"])
 def test_validated_formats_extended_ipv6_prefix_invalid(net):
     with pytest.raises(ValidationError):
-        ValidatedFormatsExtended(ipv6_net=net)
+        ValidatedFormatsExtended(**{**_VALID_FORMATS_EXT, "ipv6_net": net})
 
 
 @pytest.mark.parametrize(
@@ -1303,7 +1376,7 @@ def test_validated_formats_extended_ipv6_prefix_invalid(net):
     ["example.com:80", "1.2.3.4:443", "[::1]:8080", "localhost:0"],
 )
 def test_validated_formats_extended_host_and_port_valid(ep):
-    m = ValidatedFormatsExtended(endpoint=ep)
+    m = ValidatedFormatsExtended(**{**_VALID_FORMATS_EXT, "endpoint": ep})
     assert m.endpoint == ep
 
 
@@ -1313,7 +1386,7 @@ def test_validated_formats_extended_host_and_port_valid(ep):
 )
 def test_validated_formats_extended_host_and_port_invalid(ep):
     with pytest.raises(ValidationError):
-        ValidatedFormatsExtended(endpoint=ep)
+        ValidatedFormatsExtended(**{**_VALID_FORMATS_EXT, "endpoint": ep})
 
 
 # ---------------------------------------------------------------------------
@@ -1322,35 +1395,35 @@ def test_validated_formats_extended_host_and_port_invalid(ep):
 
 
 def test_validated_well_known_regex_defaults():
-    m = ValidatedWellKnownRegex()
-    assert m.header_name == ""
-    assert m.header_value == ""
+    # All three header fields are ConstrainedRequired — zero-arg construction fails.
+    with pytest.raises(ValidationError):
+        ValidatedWellKnownRegex()
 
 
 @pytest.mark.parametrize("name", ["Content-Type", "X-Custom-Header", "Accept-Encoding"])
 def test_validated_well_known_regex_header_name_valid(name):
-    m = ValidatedWellKnownRegex(header_name=name)
+    m = ValidatedWellKnownRegex(**{**_VALID_WKR, "header_name": name})
     assert m.header_name == name
 
 
 @pytest.mark.parametrize("name", ["has space", "has:colon", "has\nnewline"])
 def test_validated_well_known_regex_header_name_invalid(name):
     with pytest.raises(ValidationError):
-        ValidatedWellKnownRegex(header_name=name)
+        ValidatedWellKnownRegex(**{**_VALID_WKR, "header_name": name})
 
 
 @pytest.mark.parametrize(
     "val", ["application/json", "gzip, deflate", "text/html; charset=utf-8"]
 )
 def test_validated_well_known_regex_header_value_valid(val):
-    m = ValidatedWellKnownRegex(header_value=val)
+    m = ValidatedWellKnownRegex(**{**_VALID_WKR, "header_value": val})
     assert m.header_value == val
 
 
 @pytest.mark.parametrize("val", ["has\nnewline", "has\x00null"])
 def test_validated_well_known_regex_header_value_invalid(val):
     with pytest.raises(ValidationError):
-        ValidatedWellKnownRegex(header_value=val)
+        ValidatedWellKnownRegex(**{**_VALID_WKR, "header_value": val})
 
 
 # ---------------------------------------------------------------------------
@@ -1381,8 +1454,9 @@ def test_validated_not_contains_invalid(name):
 
 
 def test_validated_float_in_defaults():
-    # Defaults (0.0) are not validated by AfterValidator in Pydantic v2.
-    ValidatedFloatIn()
+    # ratio (float.in, 0.0 not in allowed set) is ConstrainedRequired — zero-arg fails.
+    with pytest.raises(ValidationError):
+        ValidatedFloatIn()
 
 
 @pytest.mark.parametrize("v", [0.25, 0.5, 0.75, 1.0])
@@ -1399,14 +1473,14 @@ def test_validated_float_in_ratio_invalid(v):
 
 @pytest.mark.parametrize("v", [0.0, 1.0, 100.0])
 def test_validated_float_in_score_valid(v):
-    m = ValidatedFloatIn(score=v)
+    m = ValidatedFloatIn(ratio=0.25, score=v)
     assert m.score == pytest.approx(v)
 
 
 @pytest.mark.parametrize("v", [-1.0, -2.0])
 def test_validated_float_in_score_invalid(v):
     with pytest.raises(ValidationError):
-        ValidatedFloatIn(score=v)
+        ValidatedFloatIn(ratio=0.25, score=v)
 
 
 # ---------------------------------------------------------------------------
@@ -1431,8 +1505,13 @@ def test_validated_float_examples_in_generated_file():
 
 
 def test_validated_float_examples_gt_enforced():
+    # ratio, score, code are all ConstrainedRequired (gt=0 rejects zero value).
     with pytest.raises(ValidationError):
-        ValidatedFloatExamples(ratio=0.0)
+        ValidatedFloatExamples(ratio=0.0, score=1.0, code=1)
+    with pytest.raises(ValidationError):
+        ValidatedFloatExamples(ratio=1.0, score=0.0, code=1)
+    with pytest.raises(ValidationError):
+        ValidatedFloatExamples(ratio=1.0, score=1.0, code=0)
 
 
 # ---------------------------------------------------------------------------
@@ -1456,20 +1535,21 @@ def test_validated_cel_in_generated_file():
 
 
 def test_validated_well_known_regex_loose_header_default():
-    m = ValidatedWellKnownRegex()
-    assert m.loose_header == ""
+    # All WKR header fields are ConstrainedRequired — zero-arg construction fails.
+    with pytest.raises(ValidationError):
+        ValidatedWellKnownRegex()
 
 
 @pytest.mark.parametrize("name", ["Content-Type", "X-Custom-Header"])
 def test_validated_well_known_regex_loose_header_valid(name):
-    m = ValidatedWellKnownRegex(loose_header=name)
+    m = ValidatedWellKnownRegex(**{**_VALID_WKR, "loose_header": name})
     assert m.loose_header == name
 
 
 @pytest.mark.parametrize("name", ["has space", "has\nnewline"])
 def test_validated_well_known_regex_loose_header_invalid(name):
     with pytest.raises(ValidationError):
-        ValidatedWellKnownRegex(loose_header=name)
+        ValidatedWellKnownRegex(**{**_VALID_WKR, "loose_header": name})
 
 
 def test_validated_well_known_regex_loose_header_strict_false_comment():
@@ -1526,3 +1606,28 @@ def test_validated_user_role_example_in_generated_file():
     text = _GEN_VALIDATE.read_text()
     # enum example annotation produces examples=[1]
     assert "examples=[1]" in text
+
+
+# ---------------------------------------------------------------------------
+# ValidatedIgnore — ignore = IGNORE_IF_ZERO_VALUE opts out of ConstrainedRequired
+# ---------------------------------------------------------------------------
+
+
+def test_validated_ignore_zero_arg():
+    # Both fields keep their zero defaults because ignore = IGNORE_IF_ZERO_VALUE.
+    m = ValidatedIgnore()
+    assert m.email == ""
+    assert m.age == 0
+
+
+def test_validated_ignore_valid_values():
+    m = ValidatedIgnore(email="user@example.com", age=5)
+    assert m.email == "user@example.com"
+    assert m.age == 5
+
+
+def test_validated_ignore_invalid_nonzero():
+    with pytest.raises(ValidationError):
+        ValidatedIgnore(email="not-an-email")
+    with pytest.raises(ValidationError):
+        ValidatedIgnore(age=-1)
