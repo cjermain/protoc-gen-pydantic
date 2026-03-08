@@ -390,7 +390,7 @@ func (e *generator) processMessage(
 		isNotOptional := !field.HasOptionalKeyword() && field.ContainingOneof() == nil
 		hasConst := f.Constraints != nil &&
 			(f.Constraints.ConstLiteral != nil || f.Constraints.ConstFloatLiteral != nil)
-		ignoreZero := f.Constraints != nil && f.Constraints.IgnoreZero
+		ignoreZero := f.Constraints != nil && f.Constraints.HasIgnore
 		if isScalar && isNotOptional && !hasConst && !ignoreZero &&
 			f.Constraints.ZeroValueFails(field.Kind()) {
 			f.ConstrainedRequired = true

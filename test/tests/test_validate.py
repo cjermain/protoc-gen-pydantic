@@ -87,6 +87,12 @@ _VALID_CONTAINS = dict(topic="protobuf guide", label="env-prod-us")
 # ---------------------------------------------------------------------------
 
 
+def test_validated_scalars_required():
+    # age (gt=0), priority (gt=0), rank (ge=1) are ConstrainedRequired.
+    with pytest.raises(ValidationError):
+        ValidatedScalars()
+
+
 def test_validated_scalars_valid():
     s = ValidatedScalars(age=1, score=50.0, priority=1, ratio=0.5, rank=5)
     assert s.age == 1
@@ -169,6 +175,12 @@ def test_validated_scalars_rank_exceeds_max():
 # ---------------------------------------------------------------------------
 # ValidatedStrings
 # ---------------------------------------------------------------------------
+
+
+def test_validated_strings_required():
+    # name (min_len=1), code (pattern), tag (min_len=2) are ConstrainedRequired.
+    with pytest.raises(ValidationError):
+        ValidatedStrings()
 
 
 def test_validated_strings_valid():
@@ -655,6 +667,12 @@ def test_validated_format_uuid_invalid(u):
 # ---------------------------------------------------------------------------
 
 
+def test_validated_string_len_required():
+    # code (min_len=5 via len=5) is ConstrainedRequired.
+    with pytest.raises(ValidationError):
+        ValidatedStringLen()
+
+
 def test_validated_string_len_exact_length_valid():
     m = ValidatedStringLen(code="hello")
     assert m.code == "hello"
@@ -682,6 +700,12 @@ def test_validated_string_len_boundary():
 # ---------------------------------------------------------------------------
 # ValidatedStringAffix — prefix/suffix → pattern (P2)
 # ---------------------------------------------------------------------------
+
+
+def test_validated_string_affix_required():
+    # All six affix fields produce patterns — all are ConstrainedRequired.
+    with pytest.raises(ValidationError):
+        ValidatedStringAffix()
 
 
 def test_validated_string_affix_prefix_valid():
@@ -876,6 +900,12 @@ def test_validated_unique_in_generated_file():
 # ---------------------------------------------------------------------------
 
 
+def test_validated_string_contains_required():
+    # topic (pattern from contains) and label (pattern from prefix) are ConstrainedRequired.
+    with pytest.raises(ValidationError):
+        ValidatedStringContains()
+
+
 def test_validated_string_contains_topic_valid():
     m = ValidatedStringContains(**{**_VALID_CONTAINS, "topic": "protobuf guide"})
     assert m.topic == "protobuf guide"
@@ -900,6 +930,12 @@ def test_validated_string_contains_label_dropped_comment():
 # ---------------------------------------------------------------------------
 # ValidatedBytes — bytes min_len / len / max_len → min_length / max_length
 # ---------------------------------------------------------------------------
+
+
+def test_validated_bytes_required():
+    # token (min_len=16), hash (min_len=32), uuid (bytes_uuid format) are ConstrainedRequired.
+    with pytest.raises(ValidationError):
+        ValidatedBytes()
 
 
 def test_validated_bytes_token_valid():
@@ -1387,7 +1423,7 @@ def test_validated_well_known_regex_header_value_valid(val):
 @pytest.mark.parametrize("val", ["has\nnewline", "has\x00null"])
 def test_validated_well_known_regex_header_value_invalid(val):
     with pytest.raises(ValidationError):
-        ValidatedWellKnownRegex(header_value=val)
+        ValidatedWellKnownRegex(**{**_VALID_WKR, "header_value": val})
 
 
 # ---------------------------------------------------------------------------

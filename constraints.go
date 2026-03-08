@@ -156,7 +156,7 @@ func (e *generator) extractFieldConstraints(
 			result.Required = true
 		case name == "ignore":
 			if v.Enum() != 0 {
-				result.IgnoreZero = true
+				result.HasIgnore = true
 			}
 		case name == "cel":
 			// cel is a repeated Constraint message; not translated.

@@ -323,7 +323,7 @@ type FieldConstraints struct {
 	ConstFloatLiteral  *string  // Python float literal for float/double const (Literal[] is invalid per PEP 586)
 	Required           bool     // true when buf.validate required = true is set
 	IsNonScalar        bool     // true when field kind is MessageKind or EnumKind
-	IgnoreZero         bool     // true when ignore != IGNORE_UNSPECIFIED (any non-zero ignore enum value)
+	HasIgnore          bool     // true when ignore != IGNORE_UNSPECIFIED (any non-zero ignore enum value)
 }
 
 func (c *FieldConstraints) HasAny() bool {
@@ -441,7 +441,7 @@ func (c *FieldConstraints) combinePatternConstraints() {
 // ZeroValueFails reports whether the proto3 zero value for kind fails this
 // field's constraints, indicating the field should become ConstrainedRequired.
 // Const constraints are excluded: they supply their own valid default.
-// IgnoreZero is checked by the caller before invoking this method.
+// HasIgnore is checked by the caller before invoking this method.
 func (c *FieldConstraints) ZeroValueFails(kind protoreflect.Kind) bool {
 	if c == nil {
 		return false
@@ -467,6 +467,10 @@ func (c *FieldConstraints) ZeroValueFails(kind protoreflect.Kind) bool {
 	if c.MinLength != nil && *c.MinLength > 0 {
 		return true
 	}
+	// All patterns produced by the generator (from prefix/suffix/contains/min_len
+	// or explicit string.pattern rules) reject the empty string. A user-supplied
+	// pattern that can match "" (e.g. "[a-z]*") would be a false positive here,
+	// but such patterns are not generated.
 	if c.Pattern != nil {
 		return true
 	}
