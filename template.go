@@ -238,11 +238,13 @@ class _ProtoEnum({{ if $config.UseIntegersForEnums }}int{{ else }}str{{ end }}, 
 {{- range $field.LeadingComments }}
 {{$bi}}# {{ . }}
 {{- end }}
-{{- if or (and (not $config.DisableFieldDescription) (or (ne (len $field.LeadingComments) 0) (ne $field.OneOf nil))) $field.Alias $field.IsDefaultFactory $field.HasConstraints }}
+{{- if or (and (not $config.DisableFieldDescription) (or (ne (len $field.LeadingComments) 0) (ne $field.OneOf nil))) $field.Alias $field.IsDefaultFactory $field.HasConstraintKwargs ($field.NeedsMultilineDefault $bi) }}
 {{- if $field.NeedsParenAssignment $bi }}
 {{$bi}}{{ $field.Name }}: {{ $field.TypeAnnotationFormatted $bi }} = (
 {{$bi}}    _Field(
+{{- if $field.Default }}
 {{$bi}}        {{ $field.Default }},
+{{- end }}
 {{- if and (not $config.DisableFieldDescription) (or (ne (len $field.LeadingComments) 0) (ne $field.OneOf nil)) }}
 {{$bi}}        description={{ pyQuote $field.Description }},
 {{- end }}
@@ -259,7 +261,9 @@ class _ProtoEnum({{ if $config.UseIntegersForEnums }}int{{ else }}str{{ end }}, 
 {{$bi}})
 {{- else }}
 {{$bi}}{{ $field.Name }}: {{ $field.TypeAnnotationFormatted $bi }} = _Field(
+{{- if $field.Default }}
 {{$bi}}    {{ $field.Default }},
+{{- end }}
 {{- if and (not $config.DisableFieldDescription) (or (ne (len $field.LeadingComments) 0) (ne $field.OneOf nil)) }}
 {{$bi}}    description={{ pyQuote $field.Description }},
 {{- end }}
@@ -275,7 +279,7 @@ class _ProtoEnum({{ if $config.UseIntegersForEnums }}int{{ else }}str{{ end }}, 
 {{$bi}})
 {{- end }}
 {{- else }}
-{{$bi}}{{ $field.Name }}: {{ $field.TypeAnnotationFormatted $bi }} = _Field({{ $field.Default }})
+{{$bi}}{{ $field.Name }}: {{ if $field.Default }}{{ $field.TypeAnnotationFormatted $bi }} = _Field({{ $field.Default }}){{ else }}{{ $field.TypeAnnotationFormattedBare $bi }}{{ end }}
 {{- end }}
 {{- range $field.TrailingComments }}
 {{$bi}}# {{ . }}

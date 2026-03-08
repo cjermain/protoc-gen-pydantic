@@ -154,6 +154,10 @@ func (e *generator) extractFieldConstraints(
 		switch {
 		case name == "required" && v.Bool():
 			result.Required = true
+		case name == "ignore":
+			if v.Enum() != 0 {
+				result.IgnoreZero = true
+			}
 		case name == "cel":
 			// cel is a repeated Constraint message; not translated.
 			result.DroppedConstraints = append(result.DroppedConstraints, "cel")
