@@ -19,35 +19,27 @@ class _ProtoModel(_BaseModel):
         ser_json_inf_nan="strings",
     )
 
-    def to_proto_dict(self, **kwargs) -> dict:
+    def model_dump(self, **kwargs) -> dict:
         """Serialize to a dict using ProtoJSON conventions.
 
         Omits fields with default (zero) values and uses original proto
-        field names (camelCase aliases).
+        field names (aliases for reserved-name fields, proto names otherwise).
+        Override kwargs to change defaults.
         """
         kwargs.setdefault("exclude_defaults", True)
         kwargs.setdefault("by_alias", True)
         return super().model_dump(**kwargs)
 
-    def to_proto_json(self, **kwargs) -> str:
+    def model_dump_json(self, **kwargs) -> str:
         """Serialize to a JSON string using ProtoJSON conventions.
 
         Omits fields with default (zero) values and uses original proto
-        field names (camelCase aliases).
+        field names (aliases for reserved-name fields, proto names otherwise).
+        Override kwargs to change defaults.
         """
         kwargs.setdefault("exclude_defaults", True)
         kwargs.setdefault("by_alias", True)
         return super().model_dump_json(**kwargs)
-
-    @classmethod
-    def from_proto_dict(cls, data: dict, **kwargs):
-        """Deserialize from a dict using ProtoJSON conventions."""
-        return cls.model_validate(data, **kwargs)
-
-    @classmethod
-    def from_proto_json(cls, json_str: str, **kwargs):
-        """Deserialize from a JSON string using ProtoJSON conventions."""
-        return cls.model_validate_json(json_str, **kwargs)
 
 
 class Oneofs(_ProtoModel):

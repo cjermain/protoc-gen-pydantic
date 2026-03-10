@@ -99,8 +99,8 @@ wkt = WellKnownTypes(
     wkt_duration=datetime.timedelta(hours=1),
 )
 json_str = '{"wkt_timestamp":"2024-01-15T10:30:00Z","wkt_duration":"3600s"}'
-assert wkt.to_proto_json() == json_str
-parsed = WellKnownTypes.from_proto_json(json_str)
+assert wkt.model_dump_json() == json_str
+parsed = WellKnownTypes.model_validate_json(json_str)
 assert parsed.wkt_timestamp == datetime.datetime(
     2024, 1, 15, 10, 30, 0, tzinfo=datetime.timezone.utc
 )

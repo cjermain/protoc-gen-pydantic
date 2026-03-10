@@ -178,7 +178,7 @@ from pydantic import ValidationError
 user = ValidatedUser(name="Alice", age=30, email="alice@example.com", role=ValidatedUser.Role.EDITOR)
 
 # Serialize (ProtoJSON — omits zero values, uses original proto field names)
-print(user.to_proto_json())
+print(user.model_dump_json())
 # {"name":"Alice","age":30,"email":"alice@example.com","role":"EDITOR"}
 
 # Validation errors are raised immediately

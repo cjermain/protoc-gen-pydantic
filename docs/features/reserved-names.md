@@ -49,7 +49,7 @@ When a proto field name is a reserved word in Python, the generator:
 b = BuiltinNames(bool_=True, float_=3.14)
 assert b.bool_ is True
 assert b.float_ == 3.14
-assert b.to_proto_dict() == {"bool": True, "float": 3.14}
+assert b.model_dump() == {"bool": True, "float": 3.14}
 ```
 
 ## Reserved name categories
@@ -87,7 +87,7 @@ Pydantic internals
 ```python exec="on" session="reserved-names"
 r = ReservedFieldNames(model_config_="cfg", model_fields_="flds")
 assert r.model_config_ == "cfg"
-assert r.to_proto_dict() == {"model_config": "cfg", "model_fields": "flds"}
+assert r.model_dump() == {"model_config": "cfg", "model_fields": "flds"}
 ```
 
 ## Using the aliased fields
@@ -102,7 +102,7 @@ b = BuiltinNames(bool_=True, float_=3.14)
 b = BuiltinNames(**{"bool": True, "float": 3.14})
 
 # Serialization always uses the proto name (no trailing underscore)
-print(b.to_proto_dict())
+print(b.model_dump())
 # {"bool": True, "float": 3.14}
 ```
 
@@ -110,7 +110,7 @@ print(b.to_proto_dict())
 b1 = BuiltinNames(bool_=True, float_=3.14)
 b2 = BuiltinNames(**{"bool": True, "float": 3.14})
 assert b1 == b2
-assert b1.to_proto_dict() == {"bool": True, "float": 3.14}
+assert b1.model_dump() == {"bool": True, "float": 3.14}
 ```
 
 ## buf.validate + reserved names
