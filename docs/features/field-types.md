@@ -70,7 +70,7 @@ assert person.age == 30
 assert person.active is False
 assert person.score == 0.0
 assert person.avatar == b""
-assert person.to_proto_json() == '{"name":"Alice","age":30}'
+assert person.model_dump_json() == '{"name":"Alice","age":30}'
 ```
 
 ## Optional fields
@@ -99,9 +99,9 @@ req = SearchRequest()
 assert req.query is None
 assert req.page_size is None
 assert req.include_deleted is None
-assert req.to_proto_json() == "{}"
+assert req.model_dump_json() == "{}"
 req2 = SearchRequest(query="hello", page_size=10)
-assert req2.to_proto_json() == '{"query":"hello","page_size":10}'
+assert req2.model_dump_json() == '{"query":"hello","page_size":10}'
 ```
 
 ## Repeated fields
@@ -129,7 +129,7 @@ item = TaggedItem(name="widget", tags=["a", "b"], scores=[1, 2, 3])
 assert item.tags == ["a", "b"]
 assert item.scores == [1, 2, 3]
 assert TaggedItem().tags == []
-assert item.to_proto_json() == '{"name":"widget","tags":["a","b"],"scores":[1,2,3]}'
+assert item.model_dump_json() == '{"name":"widget","tags":["a","b"],"scores":[1,2,3]}'
 ```
 
 ## Map fields
@@ -156,7 +156,7 @@ cfg = Config(labels={"env": "prod"}, counters={"hits": 42})
 assert cfg.labels == {"env": "prod"}
 assert cfg.counters == {"hits": 42}
 assert Config().labels == {}
-assert cfg.to_proto_json() == '{"labels":{"env":"prod"},"counters":{"hits":42}}'
+assert cfg.model_dump_json() == '{"labels":{"env":"prod"},"counters":{"hits":42}}'
 ```
 
 ## Oneof fields
@@ -191,7 +191,7 @@ pay = Payment(credit_card="4242424242424242")
 assert pay.credit_card == "4242424242424242"
 assert pay.paypal is None
 assert pay.bank_iban is None
-assert pay.to_proto_json() == '{"credit_card":"4242424242424242"}'
+assert pay.model_dump_json() == '{"credit_card":"4242424242424242"}'
 try:
     Payment(credit_card="4242424242424242", paypal="me@paypal.com")  # raises
 except ValidationError:
@@ -229,7 +229,7 @@ order = Order(order_id="ord-1", address=Address(street="Main St", city="Springfi
 assert order.address.city == "Springfield"
 assert Order().address is None
 assert (
-    order.to_proto_json()
+    order.model_dump_json()
     == '{"order_id":"ord-1","address":{"street":"Main St","city":"Springfield"}}'
 )
 ```
@@ -263,5 +263,5 @@ Enum-typed fields also default to `None`. See the [Enums page](./enums.md) for f
 task = Task(status=Task.Status.OPEN)
 assert task.status == "OPEN"
 assert Task().status is None
-assert task.to_proto_json() == '{"status":"OPEN"}'
+assert task.model_dump_json() == '{"status":"OPEN"}'
 ```

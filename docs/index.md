@@ -37,8 +37,8 @@ flowchart LR
     B --> C["from user_pydantic import User"]
 ```
 
-Every generated message class inherits from `_ProtoModel`, a thin base class that adds
-ProtoJSON-aware serialization helpers on top of standard Pydantic. See
+Every generated message class inherits from `_ProtoModel`, a thin base class that overrides
+`model_dump` and `model_dump_json` with ProtoJSON defaults on top of standard Pydantic. See
 [Generated Model API](features/generated-model-api.md) for the full interface.
 
 ```python exec="on" session="index"
@@ -129,7 +129,7 @@ from pydantic import ValidationError
 user = ValidatedUser(
     name="Alice", age=30, email="alice@example.com", role=ValidatedUser.Role.EDITOR
 )
-proto_json = user.to_proto_json()
+proto_json = user.model_dump_json()
 
 try:
     ValidatedUser(name="", age=-1)
@@ -148,7 +148,7 @@ code = (
     'user = ValidatedUser(name="Alice", age=30, email="alice@example.com", role=ValidatedUser.Role.EDITOR)\n'
     "\n"
     "# Serialize (ProtoJSON — omits zero values, uses original proto field names)\n"
-    "print(user.to_proto_json())\n"
+    "print(user.model_dump_json())\n"
     f"# {proto_json}\n"
     "\n"
     "# Validation errors are raised immediately\n"

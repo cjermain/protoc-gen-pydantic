@@ -5,8 +5,8 @@ icon: lucide/layers
 # Generated Model API
 
 Every generated `_pydantic.py` file contains a `_ProtoModel` base class that all message
-classes in that file inherit from. It adds ProtoJSON-aware serialization on top of standard
-Pydantic — no extra setup required.
+classes in that file inherit from. It overrides `model_dump` and `model_dump_json` to apply
+ProtoJSON defaults automatically — no extra setup required.
 
 ```python exec="on" session="api"
 import datetime
@@ -29,23 +29,15 @@ class _ProtoModel(_BaseModel):
         ser_json_inf_nan="strings",
     )
 
-    def to_proto_json(self, **kwargs):
+    def model_dump(self, **kwargs):
         kwargs.setdefault("exclude_defaults", True)
         kwargs.setdefault("by_alias", True)
-        return self.model_dump_json(**kwargs)
+        return super().model_dump(**kwargs)
 
-    def to_proto_dict(self, **kwargs):
+    def model_dump_json(self, **kwargs):
         kwargs.setdefault("exclude_defaults", True)
         kwargs.setdefault("by_alias", True)
-        return self.model_dump(**kwargs)
-
-    @classmethod
-    def from_proto_json(cls, s, **kwargs):
-        return cls.model_validate_json(s, **kwargs)
-
-    @classmethod
-    def from_proto_dict(cls, d, **kwargs):
-        return cls.model_validate(d, **kwargs)
+        return super().model_dump_json(**kwargs)
 
 
 class User(_ProtoModel):
@@ -75,77 +67,74 @@ the message classes that inherit from it.
 | `val_json_bytes` | `"base64"` | `bytes` fields are decoded from Base64 when parsing JSON |
 | `ser_json_inf_nan` | `"strings"` | `inf` / `NaN` float values serialize as strings, not JSON `null` |
 
-These defaults match proto3 JSON encoding rules so that `to_proto_json()` output is compatible
+These defaults match proto3 JSON encoding rules so that `model_dump_json()` output is compatible
 with proto-aware consumers.
 
 ### Serialization methods
 
-#### `to_proto_json(**kwargs) -> str`
+#### `model_dump(**kwargs) -> dict`
 
-Serialize to a JSON string using ProtoJSON conventions:
+Serialize to a `dict` using ProtoJSON conventions:
 
 - Omits fields at their **default (zero) value** (`exclude_defaults=True`)
 - Uses **original proto field names** (`by_alias=True`)
 
 ```python
 user = User(name="Alice", age=30, active=False)
-user.to_proto_json()
-# '{"name":"Alice","age":30}'  ← active omitted (False is the default)
+user.model_dump()
+# {'name': 'Alice', 'age': 30}  ← active omitted (False is the default)
 ```
 
 You can override either default:
 
 ```python
-user.to_proto_json(exclude_defaults=False)  # include zero-value fields
-user.to_proto_json(by_alias=False)  # use Python attribute names
+user.model_dump(exclude_defaults=False)  # include zero-value fields
+user.model_dump(by_alias=False)  # use Python attribute names
 ```
 
-#### `to_proto_dict(**kwargs) -> dict`
+#### `model_dump_json(**kwargs) -> str`
 
-Same as `to_proto_json()` but returns a Python `dict` instead of a JSON string:
+Same as `model_dump()` but returns a JSON string:
 
 ```python
-user.to_proto_dict()
-# {'name': 'Alice', 'age': 30}
+user.model_dump_json()
+# '{"name":"Alice","age":30}'
 ```
 
-#### `from_proto_json(cls, json_str, **kwargs)`
+#### Deserialization
 
-Parse a JSON string into a model instance. Accepts both proto field names and Python names:
-
-```python
-user = User.from_proto_json('{"name":"Alice","age":30}')
-```
-
-#### `from_proto_dict(cls, data, **kwargs)`
-
-Parse a `dict` into a model instance:
+Use standard Pydantic class methods — no custom wrappers needed:
 
 ```python
-user = User.from_proto_dict({"name": "Alice", "age": 30})
+user = User.model_validate({"name": "Alice", "age": 30})
+user = User.model_validate_json('{"name":"Alice","age":30}')
 ```
 
 ```python exec="on" session="api"
 user = User(name="Alice", age=30, active=False)
-assert user.to_proto_json() == '{"name":"Alice","age":30}'
-assert user.to_proto_dict() == {"name": "Alice", "age": 30}
-assert User.from_proto_json('{"name":"Alice","age":30}') == User(name="Alice", age=30)
-assert User.from_proto_dict({"name": "Alice", "age": 30}) == User(name="Alice", age=30)
+assert user.model_dump_json() == '{"name":"Alice","age":30}'
+assert user.model_dump() == {"name": "Alice", "age": 30}
+assert User.model_validate_json('{"name":"Alice","age":30}') == User(name="Alice", age=30)
+assert User.model_validate({"name": "Alice", "age": 30}) == User(name="Alice", age=30)
 ```
 
-### `to_proto_json()` vs `model_dump_json()`
+### `model_dump()` vs plain Pydantic
 
-Both methods produce valid JSON, but they differ in defaults:
+`_ProtoModel` overrides `model_dump` and `model_dump_json` so that ProtoJSON defaults apply
+everywhere — including when a ProtoModel is **nested inside another model**:
 
-| | `to_proto_json()` | `model_dump_json()` |
+| | `_ProtoModel` (generated) | Plain `BaseModel` |
 |---|---|---|
-| Zero-value fields | **omitted** | included |
-| Field names | **original proto field names** | Python attribute names |
-| Proto compatibility | ✓ | requires `by_alias=True, exclude_defaults=True` |
+| Zero-value fields | **omitted** by default | included by default |
+| Field names | **original proto field names** by default | Python attribute names by default |
+| Nested serialization | ProtoJSON defaults apply | standard Pydantic defaults apply |
 
-Use `to_proto_json()` when the JSON will be consumed by a proto-aware service or stored in a
-proto-compatible format. Use `model_dump_json()` (plain Pydantic) when you need full control
-over inclusion of zero-value fields or are working in a purely Python context.
+Override the defaults by passing kwargs explicitly:
+
+```python
+user.model_dump(exclude_defaults=False)  # include zero-value fields
+user.model_dump(by_alias=False)          # use Python attribute names
+```
 
 ---
 
@@ -180,14 +169,14 @@ applies in JSON:
 from api.v1.scalars_pydantic import Scalars
 
 s = Scalars(int64=9007199254740993)  # larger than JS MAX_SAFE_INTEGER
-s.to_proto_json()
+s.model_dump_json()
 # '{"int64":"9007199254740993"}'  ← serialized as string
 s.int64 + 1  # arithmetic works normally in Python → 9007199254740994
 ```
 
 ```python exec="on" session="api"
 s = Scalars(int64=9007199254740993)
-assert s.to_proto_json() == '{"int64":"9007199254740993"}'
+assert s.model_dump_json() == '{"int64":"9007199254740993"}'
 assert s.int64 + 1 == 9007199254740994
 ```
 
@@ -209,7 +198,7 @@ event = Event(
     occurred=datetime.datetime.now(datetime.timezone.utc),
     duration=datetime.timedelta(hours=1),
 )
-event.to_proto_json()
+event.model_dump_json()
 # '{"occurred":"2024-01-15T10:30:00Z","duration":"3600s"}'
 ```
 
@@ -217,7 +206,7 @@ event.to_proto_json()
 input, so you can parse directly from JSON payloads:
 
 ```python
-Event.from_proto_json('{"occurred":"2024-01-15T10:30:00Z","duration":"3600s"}')
+Event.model_validate_json('{"occurred":"2024-01-15T10:30:00Z","duration":"3600s"}')
 ```
 
 ```python exec="on" session="api"
@@ -228,8 +217,8 @@ wkt = WellKnownTypes(
     wkt_duration=datetime.timedelta(hours=1),
 )
 json_str = '{"wkt_timestamp":"2024-01-15T10:30:00Z","wkt_duration":"3600s"}'
-assert wkt.to_proto_json() == json_str
-parsed = WellKnownTypes.from_proto_json(json_str)
+assert wkt.model_dump_json() == json_str
+parsed = WellKnownTypes.model_validate_json(json_str)
 assert parsed.wkt_timestamp == datetime.datetime(
     2024, 1, 15, 10, 30, 0, tzinfo=datetime.timezone.utc
 )
