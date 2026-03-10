@@ -88,6 +88,28 @@ def test_model_dump_json_nested_message():
     assert result["message"] == {"first_name": "John", "last_name": "Doe"}
 
 
+def test_nested_model_omits_defaults():
+    """ProtoJSON defaults (exclude_defaults, by_alias) apply to nested models.
+
+    With the old to_proto_json() wrapper, calling model_dump_json() on the
+    outer model bypassed _ProtoModel's defaults for the nested instance,
+    causing zero-value fields to appear and Python attribute names to leak.
+    Overriding model_dump / model_dump_json fixes this.
+    """
+    # Nested Message has last_name="" (zero value) — it must be omitted
+    msg = Message(first_name="John")
+    s = Scalars(message=msg)
+    result = json.loads(s.model_dump_json())
+    assert "last_name" not in result["message"]
+    assert result["message"] == {"first_name": "John"}
+
+    # Scalars has bool_ (alias "bool") — alias must be used even when nested
+    s2 = Scalars(message=Message(first_name="Jane"), bool_=True)
+    result2 = json.loads(s2.model_dump_json())
+    assert "bool" in result2
+    assert "bool_" not in result2
+
+
 def test_model_dump_json_repeated():
     """Non-empty repeated fields are included."""
     c = Collections(int32_repeated=[1, 2, 3])
