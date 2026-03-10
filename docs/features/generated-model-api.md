@@ -5,8 +5,9 @@ icon: lucide/layers
 # Generated Model API
 
 Every generated `_pydantic.py` file contains a `_ProtoModel` base class that all message
-classes in that file inherit from. It overrides `model_dump` and `model_dump_json` to apply
-ProtoJSON defaults automatically — no extra setup required.
+classes in that file inherit from. It overrides `model_dump` and `model_dump_json` to omit
+zero-value fields and use proto field names by default — matching ProtoJSON conventions — with
+no extra setup required.
 
 ```python exec="on" session="api"
 import datetime
@@ -110,6 +111,10 @@ user = User.model_validate({"name": "Alice", "age": 30})
 user = User.model_validate_json('{"name":"Alice","age":30}')
 ```
 
+Both accept either proto field names or Python attribute names. Models with reserved-name
+fields (e.g. `bool_` aliased to `"bool"`) accept the original proto name in input data because
+`populate_by_name=True` is set on those models.
+
 ```python exec="on" session="api"
 user = User(name="Alice", age=30, active=False)
 assert user.model_dump_json() == '{"name":"Alice","age":30}'
@@ -120,14 +125,10 @@ assert User.model_validate({"name": "Alice", "age": 30}) == User(name="Alice", a
 
 ### `model_dump()` vs plain Pydantic
 
-`_ProtoModel` overrides `model_dump` and `model_dump_json` so that ProtoJSON defaults apply
-everywhere — including when a ProtoModel is **nested inside another model**:
-
-| | `_ProtoModel` (generated) | Plain `BaseModel` |
-|---|---|---|
-| Zero-value fields | **omitted** by default | included by default |
-| Field names | **original proto field names** by default | Python attribute names by default |
-| Nested serialization | ProtoJSON defaults apply | standard Pydantic defaults apply |
+Because `_ProtoModel` overrides `model_dump` and `model_dump_json` rather than adding custom
+methods, the ProtoJSON defaults also apply when a ProtoModel is **nested inside another model**
+— Pydantic calls `model_dump` internally when serializing nested objects, so the override is
+the only approach that works correctly in all cases.
 
 Override the defaults by passing kwargs explicitly:
 

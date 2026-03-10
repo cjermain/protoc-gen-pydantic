@@ -127,15 +127,17 @@ so `user_pydantic` is importable directly without a `gen.` prefix.
 'ADMIN'
 >>> user.model_dump_json()
 '{"name":"Alice","age":30,"active":true,"role":"ADMIN"}'
+>>> User.model_validate_json('{"name":"Alice","age":30,"active":true,"role":"ADMIN"}')
+User(name='Alice', age=30, active=True, role='ADMIN')
 >>> User(name=123)  # wrong type raises immediately
 ValidationError: 1 validation error for User
 name
   Input should be a valid string [type=string_type, ...]
 ```
 
-`model_dump_json()` follows ProtoJSON conventions: it omits fields at their default (zero) values
-and uses the original proto field names. See [Generated Model API](../features/generated-model-api.md)
-for the full serialization interface.
+`model_dump_json()` omits fields at their default (zero) values and uses the original proto
+field names. `model_validate_json()` is the standard Pydantic deserializer — no custom wrapper
+needed. See [Generated Model API](../features/generated-model-api.md) for the full interface.
 
 ## What's next?
 
