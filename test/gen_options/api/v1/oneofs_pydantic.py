@@ -24,7 +24,8 @@ class _ProtoModel(_BaseModel):
         """Serialize to a dict using ProtoJSON conventions.
 
         Omits fields with default (zero) values and uses original proto
-        field names (camelCase aliases). Override kwargs to change defaults.
+        field names (aliases for reserved-name fields, proto names otherwise).
+        Override kwargs to change defaults.
         """
         kwargs.setdefault("exclude_defaults", True)
         kwargs.setdefault("by_alias", True)
@@ -34,7 +35,8 @@ class _ProtoModel(_BaseModel):
         """Serialize to a JSON string using ProtoJSON conventions.
 
         Omits fields with default (zero) values and uses original proto
-        field names (camelCase aliases). Override kwargs to change defaults.
+        field names (aliases for reserved-name fields, proto names otherwise).
+        Override kwargs to change defaults.
         """
         kwargs.setdefault("exclude_defaults", True)
         kwargs.setdefault("by_alias", True)

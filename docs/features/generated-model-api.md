@@ -95,7 +95,10 @@ user.model_dump(by_alias=False)  # use Python attribute names
 
 #### `model_dump_json(**kwargs) -> str`
 
-Same as `model_dump()` but returns a JSON string:
+Serialize to a JSON string using ProtoJSON conventions:
+
+- Omits fields at their **default (zero) value** (`exclude_defaults=True`)
+- Uses **original proto field names** (`by_alias=True`)
 
 ```python
 user.model_dump_json()
@@ -111,9 +114,8 @@ user = User.model_validate({"name": "Alice", "age": 30})
 user = User.model_validate_json('{"name":"Alice","age":30}')
 ```
 
-Both accept either proto field names or Python attribute names. Models with reserved-name
-fields (e.g. `bool_` aliased to `"bool"`) accept the original proto name in input data because
-`populate_by_name=True` is set on those models.
+Models with reserved-name fields (e.g. `bool_` aliased to `"bool"`) also accept the original
+proto name in input data because `populate_by_name=True` is set on those models.
 
 ```python exec="on" session="api"
 user = User(name="Alice", age=30, active=False)
