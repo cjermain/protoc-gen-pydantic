@@ -347,3 +347,36 @@ def _make_not_contains_validator(s):
         return v
 
     return _validate
+
+
+def _make_min_bytes_validator(n):
+    def _validate(v: str) -> str:
+        if len(v.encode()) < n:
+            raise ValueError(
+                f"value must be at least {n} bytes, got {len(v.encode())} bytes"
+            )
+        return v
+
+    return _validate
+
+
+def _make_max_bytes_validator(n):
+    def _validate(v: str) -> str:
+        if len(v.encode()) > n:
+            raise ValueError(
+                f"value must be at most {n} bytes, got {len(v.encode())} bytes"
+            )
+        return v
+
+    return _validate
+
+
+def _make_len_bytes_validator(n):
+    def _validate(v: str) -> str:
+        if len(v.encode()) != n:
+            raise ValueError(
+                f"value must be exactly {n} bytes, got {len(v.encode())} bytes"
+            )
+        return v
+
+    return _validate

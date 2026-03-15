@@ -38,6 +38,7 @@ from api.v1.validate_pydantic import (
     ValidatedUnique,
     ValidatedWellKnownRegex,
     ValidatedIgnore,
+    ValidatedStringBytes,
 )
 
 
@@ -84,6 +85,7 @@ _VALID_BYTES = dict(
     uuid=b"\x55\x0e\x84\x00\xe2\x9b\x41\xd4\xa7\x16\x44\x66\x55\x44\x00\x00",
 )
 _VALID_CONTAINS = dict(topic="protobuf guide", label="env-prod-us")
+_VALID_STR_BYTES = dict(payload="x", token="a" * 32, tag="ab")
 
 # ---------------------------------------------------------------------------
 # ValidatedScalars
@@ -1865,3 +1867,83 @@ def test_map_constraints_scores_empty_value_fails():
     # Empty string value violates not_in=[""].
     with pytest.raises(ValidationError):
         ValidatedMapConstraints(scores={1: ""})
+
+
+# -----------------------------------------------------------------------
+# ValidatedStringBytes — string.min_bytes / max_bytes / len_bytes
+# -----------------------------------------------------------------------
+
+
+def test_validated_string_bytes_constrained_required():
+    with pytest.raises(ValidationError):
+        ValidatedStringBytes()
+
+
+def test_validated_string_bytes_label_default():
+    m = ValidatedStringBytes(**_VALID_STR_BYTES)
+    assert m.label == ""
+
+
+@pytest.mark.parametrize("payload", ["x", "a" * 255, "日"])  # 1, 255, 3 bytes
+def test_validated_string_bytes_payload_valid(payload):
+    m = ValidatedStringBytes(**{**_VALID_STR_BYTES, "payload": payload})
+    assert m.payload == payload
+
+
+def test_validated_string_bytes_payload_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedStringBytes(**{**_VALID_STR_BYTES, "payload": ""})
+
+
+def test_validated_string_bytes_token_exact():
+    m = ValidatedStringBytes(**{**_VALID_STR_BYTES, "token": "a" * 32})
+    assert m.token == "a" * 32
+
+
+def test_validated_string_bytes_token_too_short():
+    with pytest.raises(ValidationError):
+        ValidatedStringBytes(**{**_VALID_STR_BYTES, "token": "a" * 31})
+
+
+def test_validated_string_bytes_token_too_long():
+    with pytest.raises(ValidationError):
+        ValidatedStringBytes(**{**_VALID_STR_BYTES, "token": "a" * 33})
+
+
+def test_validated_string_bytes_multibyte_token_wrong_bytes():
+    # "日本語" is 3 codepoints but 9 UTF-8 bytes — fails len_bytes=32
+    with pytest.raises(ValidationError):
+        ValidatedStringBytes(**{**_VALID_STR_BYTES, "token": "日本語"})
+
+
+@pytest.mark.parametrize("label", ["", "x" * 255])
+def test_validated_string_bytes_label_valid(label):
+    m = ValidatedStringBytes(**{**_VALID_STR_BYTES, "label": label})
+    assert m.label == label
+
+
+def test_validated_string_bytes_label_too_long():
+    with pytest.raises(ValidationError):
+        ValidatedStringBytes(**{**_VALID_STR_BYTES, "label": "x" * 256})
+
+
+def test_validated_string_bytes_tag_valid():
+    m = ValidatedStringBytes(**{**_VALID_STR_BYTES, "tag": "ab"})
+    assert m.tag == "ab"
+
+
+def test_validated_string_bytes_tag_too_short():
+    with pytest.raises(ValidationError):
+        ValidatedStringBytes(**{**_VALID_STR_BYTES, "tag": "a"})
+
+
+def test_validated_string_bytes_tag_too_long():
+    with pytest.raises(ValidationError):
+        ValidatedStringBytes(**{**_VALID_STR_BYTES, "tag": "x" * 65})
+
+
+def test_validated_string_bytes_in_generated_file():
+    text = _GEN_VALIDATE.read_text()
+    assert "_make_min_bytes_validator" in text
+    assert "_make_max_bytes_validator" in text
+    assert "_make_len_bytes_validator" in text

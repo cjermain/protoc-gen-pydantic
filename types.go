@@ -212,7 +212,20 @@ func (f Field) TypeAnnotationFormatted(bi string) string {
 		}
 		// Case 3: annotation itself is too long — split across multiple lines.
 		inner := annotation[len("_Annotated[") : len(annotation)-1]
-		return "_Annotated[\n" + bi + "    " + inner + "\n" + bi + "]"
+		indent := bi + "    "
+		// If the inner content itself is too long for a single line, split each
+		// element onto its own line with a trailing comma (ruff's preferred style).
+		if len(indent+inner) > 88 {
+			parts := splitTopLevelCommas(inner)
+			var sb strings.Builder
+			sb.WriteString("_Annotated[\n")
+			for _, p := range parts {
+				sb.WriteString(indent + strings.TrimSpace(p) + ",\n")
+			}
+			sb.WriteString(bi + "]")
+			return sb.String()
+		}
+		return "_Annotated[\n" + indent + inner + "\n" + bi + "]"
 	}
 
 	// dict[K, V] splitting: when K or V is annotated the line can exceed 88 chars.
@@ -246,7 +259,18 @@ func (f Field) TypeAnnotationFormattedBare(bi string) string {
 		return annotation
 	}
 	inner := annotation[len("_Annotated[") : len(annotation)-1]
-	return "_Annotated[\n" + bi + "    " + inner + "\n" + bi + "]"
+	indent := bi + "    "
+	if len(indent+inner) > 88 {
+		parts := splitTopLevelCommas(inner)
+		var sb strings.Builder
+		sb.WriteString("_Annotated[\n")
+		for _, p := range parts {
+			sb.WriteString(indent + strings.TrimSpace(p) + ",\n")
+		}
+		sb.WriteString(bi + "]")
+		return sb.String()
+	}
+	return "_Annotated[\n" + indent + inner + "\n" + bi + "]"
 }
 
 // NeedsMultilineDefault reports whether the field should use the multi-line
@@ -343,6 +367,9 @@ type FieldConstraints struct {
 	RequireFinite      bool              // true when float/double.finite = true
 	Contains           *string           // string.contains substring — intermediate; resolved into Pattern by combinePatternConstraints
 	NotContains        *string           // string.not_contains substring — translated to _AfterValidator
+	MinBytes           *int64            // string.min_bytes — AfterValidator
+	MaxBytes           *int64            // string.max_bytes — AfterValidator
+	LenBytes           *int64            // string.len_bytes — AfterValidator (exact byte count)
 	ConstFloatLiteral  *string           // Python float literal for float/double const (Literal[] is invalid per PEP 586)
 	Required           bool              // true when buf.validate required = true is set
 	IsNonScalar        bool              // true when field kind is MessageKind or EnumKind
@@ -361,7 +388,7 @@ func (c *FieldConstraints) HasAny() bool {
 		len(c.InValues) > 0 || len(c.NotInValues) > 0 || c.UniqueItems ||
 		c.Gt != nil || c.Gte != nil || c.Lt != nil || c.Lte != nil ||
 		c.MinLength != nil || c.MaxLength != nil || c.Pattern != nil || c.Contains != nil ||
-		c.NotContains != nil ||
+		c.NotContains != nil || c.MinBytes != nil || c.MaxBytes != nil || c.LenBytes != nil ||
 		len(c.Examples) > 0 || c.FormatValidator != nil ||
 		len(c.DroppedConstraints) > 0 ||
 		c.ItemConstraints != nil ||
@@ -494,6 +521,12 @@ func (c *FieldConstraints) ZeroValueFails(kind protoreflect.Kind) bool {
 		}
 	}
 	if c.MinLength != nil && *c.MinLength > 0 {
+		return true
+	}
+	if c.MinBytes != nil && *c.MinBytes > 0 {
+		return true
+	}
+	if c.LenBytes != nil && *c.LenBytes > 0 {
 		return true
 	}
 	// All patterns produced by the generator (from prefix/suffix/contains/min_len
