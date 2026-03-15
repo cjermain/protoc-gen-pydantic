@@ -121,7 +121,9 @@ proto name in input data because `populate_by_name=True` is set on those models.
 user = User(name="Alice", age=30, active=False)
 assert user.model_dump_json() == '{"name":"Alice","age":30}'
 assert user.model_dump() == {"name": "Alice", "age": 30}
-assert User.model_validate_json('{"name":"Alice","age":30}') == User(name="Alice", age=30)
+assert User.model_validate_json('{"name":"Alice","age":30}') == User(
+    name="Alice", age=30
+)
 assert User.model_validate({"name": "Alice", "age": 30}) == User(name="Alice", age=30)
 ```
 
@@ -136,7 +138,7 @@ Override the defaults by passing kwargs explicitly:
 
 ```python
 user.model_dump(exclude_defaults=False)  # include zero-value fields
-user.model_dump(by_alias=False)          # use Python attribute names
+user.model_dump(by_alias=False)  # use Python attribute names
 ```
 
 ---
