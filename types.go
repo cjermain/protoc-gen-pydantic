@@ -300,30 +300,31 @@ type OneOf struct {
 // directly to Pydantic Field() kwargs, plus names of constraints that
 // are recognised but not translated (emitted as comments instead).
 type FieldConstraints struct {
-	Gt                 *string  // exclusive lower bound, Python literal
-	Gte                *string  // inclusive lower bound, Python literal
-	Lt                 *string  // exclusive upper bound, Python literal
-	Lte                *string  // inclusive upper bound, Python literal
-	MinLength          *int64   // string.min_len / string.len / repeated.min_items / map.min_pairs
-	MaxLength          *int64   // string.max_len / string.len / repeated.max_items / map.max_pairs
-	Pattern            *string  // string.pattern regex (may be derived from Prefix/Suffix)
-	Prefix             *string  // string.prefix — intermediate; resolved into Pattern by combinePatternConstraints
-	Suffix             *string  // string.suffix — intermediate; resolved into Pattern by combinePatternConstraints
-	Examples           []string // field examples as Python literals for Field(examples=[...])
-	DroppedConstraints []string // constraint names not translated (required, cel, ...)
-	ConstLiteral       *string  // Python literal for Literal[...] (single-quoted string for strings)
-	ConstDefault       *string  // Python literal for _Field(...) default (double-quoted for strings)
-	InValues           []string // Python literals for AfterValidator in-set
-	NotInValues        []string // Python literals for AfterValidator exclusion-set
-	UniqueItems        bool     // true when repeated.unique = true
-	FormatValidator    *string  // one of: "email", "uri", "ip", "ipv4", "ipv6", "uuid", "hostname", etc.
-	RequireFinite      bool     // true when float/double.finite = true
-	Contains           *string  // string.contains substring — intermediate; resolved into Pattern by combinePatternConstraints
-	NotContains        *string  // string.not_contains substring — translated to _AfterValidator
-	ConstFloatLiteral  *string  // Python float literal for float/double const (Literal[] is invalid per PEP 586)
-	Required           bool     // true when buf.validate required = true is set
-	IsNonScalar        bool     // true when field kind is MessageKind or EnumKind
-	HasIgnore          bool     // true when ignore != IGNORE_UNSPECIFIED (any non-zero ignore enum value)
+	Gt                 *string           // exclusive lower bound, Python literal
+	Gte                *string           // inclusive lower bound, Python literal
+	Lt                 *string           // exclusive upper bound, Python literal
+	Lte                *string           // inclusive upper bound, Python literal
+	MinLength          *int64            // string.min_len / string.len / repeated.min_items / map.min_pairs
+	MaxLength          *int64            // string.max_len / string.len / repeated.max_items / map.max_pairs
+	Pattern            *string           // string.pattern regex (may be derived from Prefix/Suffix)
+	Prefix             *string           // string.prefix — intermediate; resolved into Pattern by combinePatternConstraints
+	Suffix             *string           // string.suffix — intermediate; resolved into Pattern by combinePatternConstraints
+	Examples           []string          // field examples as Python literals for Field(examples=[...])
+	DroppedConstraints []string          // constraint names not translated (required, cel, ...)
+	ConstLiteral       *string           // Python literal for Literal[...] (single-quoted string for strings)
+	ConstDefault       *string           // Python literal for _Field(...) default (double-quoted for strings)
+	InValues           []string          // Python literals for AfterValidator in-set
+	NotInValues        []string          // Python literals for AfterValidator exclusion-set
+	UniqueItems        bool              // true when repeated.unique = true
+	FormatValidator    *string           // one of: "email", "uri", "ip", "ipv4", "ipv6", "uuid", "hostname", etc.
+	RequireFinite      bool              // true when float/double.finite = true
+	Contains           *string           // string.contains substring — intermediate; resolved into Pattern by combinePatternConstraints
+	NotContains        *string           // string.not_contains substring — translated to _AfterValidator
+	ConstFloatLiteral  *string           // Python float literal for float/double const (Literal[] is invalid per PEP 586)
+	Required           bool              // true when buf.validate required = true is set
+	IsNonScalar        bool              // true when field kind is MessageKind or EnumKind
+	HasIgnore          bool              // true when ignore != IGNORE_UNSPECIFIED (any non-zero ignore enum value)
+	ItemConstraints    *FieldConstraints // per-element constraints from repeated.items
 }
 
 func (c *FieldConstraints) HasAny() bool {
@@ -337,7 +338,8 @@ func (c *FieldConstraints) HasAny() bool {
 		c.MinLength != nil || c.MaxLength != nil || c.Pattern != nil || c.Contains != nil ||
 		c.NotContains != nil ||
 		len(c.Examples) > 0 || c.FormatValidator != nil ||
-		len(c.DroppedConstraints) > 0
+		len(c.DroppedConstraints) > 0 ||
+		c.ItemConstraints != nil
 }
 
 // PydanticArgs returns ["gt=0", "le=150", ...] to inject into _Field().

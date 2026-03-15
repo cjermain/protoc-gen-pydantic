@@ -23,6 +23,9 @@ from ._proto_types import (
     _require_finite,
     _require_unique,
     _validate_address,
+    _validate_bytes_ip,
+    _validate_bytes_ipv4,
+    _validate_bytes_ipv6,
     _validate_bytes_uuid,
     _validate_email,
     _validate_host_and_port,
@@ -803,6 +806,47 @@ class ValidatedCEL(_ProtoModel):
         default=0,
         description="Age with a CEL expression that is not translated.",
         # buf.validate: cel (not translated)
+    )
+
+
+class ValidatedBytesIP(_ProtoModel):
+    """
+    ValidatedBytesIP exercises bytes.ip/ipv4/ipv6 binary address validation.
+    """
+
+    # Binary IP address (4 bytes for IPv4 or 16 bytes for IPv6).
+    ip_addr: _Annotated[bytes, _AfterValidator(_validate_bytes_ip)] = _Field(
+        description="Binary IP address (4 bytes for IPv4 or 16 bytes for IPv6).",
+    )
+    # Binary IPv4 address (exactly 4 bytes).
+    ipv4_addr: _Annotated[bytes, _AfterValidator(_validate_bytes_ipv4)] = _Field(
+        description="Binary IPv4 address (exactly 4 bytes).",
+    )
+    # Binary IPv6 address (exactly 16 bytes).
+    ipv6_addr: _Annotated[bytes, _AfterValidator(_validate_bytes_ipv6)] = _Field(
+        description="Binary IPv6 address (exactly 16 bytes).",
+    )
+
+
+class ValidatedRepeatedItems(_ProtoModel):
+    """
+    ValidatedRepeatedItems exercises repeated.items per-element constraints.
+    """
+
+    # Each tag must be 1–32 characters.
+    tags: list[_Annotated[str, _Field(min_length=1, max_length=32)]] = _Field(
+        default_factory=list,
+        description="Each tag must be 1–32 characters.",
+    )
+    # Each score must be positive.
+    scores: list[_Annotated[int, _Field(gt=0)]] = _Field(
+        default_factory=list,
+        description="Each score must be positive.",
+    )
+    # Each email must be a valid email address.
+    emails: list[_Annotated[str, _AfterValidator(_validate_email)]] = _Field(
+        default_factory=list,
+        description="Each email must be a valid email address.",
     )
 
 

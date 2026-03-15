@@ -26,6 +26,55 @@ func wrapWithAnnotated(typ string, validators []string) string {
 	return "_Annotated[" + typ + ", " + vStr + "]"
 }
 
+// buildItemAnnotation wraps itemType with per-element constraints from
+// repeated.items, producing e.g. _Annotated[str, _Field(min_length=1, max_length=32)].
+func (e *generator) buildItemAnnotation(itemType string, fc *FieldConstraints) string {
+	if fc == nil {
+		return itemType
+	}
+	if fc.ConstLiteral != nil {
+		itemType = "_Literal[" + *fc.ConstLiteral + "]"
+		e.addStdImport("_Literal")
+	}
+	var metaParts []string
+	if args := fc.PydanticArgs(); len(args) > 0 {
+		e.addStdImport("_Field")
+		metaParts = append(metaParts, "_Field("+strings.Join(args, ", ")+")")
+	}
+	if len(fc.InValues) > 0 {
+		v := "{" + strings.Join(fc.InValues, ", ") + "}"
+		metaParts = append(metaParts, "_AfterValidator(_make_in_validator(frozenset("+v+")))")
+		e.addRuntimeImport("_make_in_validator")
+	}
+	if len(fc.NotInValues) > 0 {
+		v := "{" + strings.Join(fc.NotInValues, ", ") + "}"
+		metaParts = append(metaParts, "_AfterValidator(_make_not_in_validator(frozenset("+v+")))")
+		e.addRuntimeImport("_make_not_in_validator")
+	}
+	if fc.NotContains != nil {
+		metaParts = append(metaParts, "_AfterValidator(_make_not_contains_validator("+pyQuote(*fc.NotContains)+"))")
+		e.addRuntimeImport("_make_not_contains_validator")
+	}
+	if fc.FormatValidator != nil {
+		helperName := "_validate_" + *fc.FormatValidator
+		metaParts = append(metaParts, "_AfterValidator("+helperName+")")
+		e.addRuntimeImport(helperName)
+	}
+	if fc.RequireFinite {
+		metaParts = append(metaParts, "_AfterValidator(_require_finite)")
+		e.addRuntimeImport("_require_finite")
+	}
+	if fc.ConstFloatLiteral != nil {
+		metaParts = append(metaParts, "_AfterValidator(_make_const_validator("+*fc.ConstFloatLiteral+"))")
+		e.addRuntimeImport("_make_const_validator")
+	}
+	if len(metaParts) == 0 {
+		return itemType
+	}
+	e.addStdImport("_Annotated")
+	return "_Annotated[" + itemType + ", " + strings.Join(metaParts, ", ") + "]"
+}
+
 // applyConstraintTypeOverrides modifies f.Type (and f.Default for const) based
 // on FieldConstraints that require type-level changes rather than Field() kwargs.
 func (e *generator) applyConstraintTypeOverrides(f *Field) {
@@ -64,6 +113,16 @@ func (e *generator) applyConstraintTypeOverrides(f *Field) {
 		default:
 			f.Type = litType
 			f.Default = "default=" + *fc.ConstDefault
+		}
+	}
+
+	// repeated.items: wrap inner list element type with per-element constraints
+	if fc.ItemConstraints != nil &&
+		strings.HasPrefix(f.Type, "list[") && strings.HasSuffix(f.Type, "]") {
+		innerType := f.Type[len("list[") : len(f.Type)-1]
+		annotatedInner := e.buildItemAnnotation(innerType, fc.ItemConstraints)
+		if annotatedInner != innerType {
+			f.Type = "list[" + annotatedInner + "]"
 		}
 	}
 
@@ -164,7 +223,11 @@ func (e *generator) extractFieldConstraints(
 		case fd.Kind() == protoreflect.MessageKind && !fd.IsList():
 			// Type-specific rules sub-message (int32, string, repeated, map, etc.)
 			v.Message().Range(func(rfd protoreflect.FieldDescriptor, rv protoreflect.Value) bool {
-				extractRuleField(result, rfd, rv, isFloat, isBytesField)
+				if string(rfd.Name()) == "items" && rfd.Kind() == protoreflect.MessageKind {
+					result.ItemConstraints = e.extractConstraintsFromMsg(rv.Message(), isFloat, isBytesField)
+				} else {
+					extractRuleField(result, rfd, rv, isFloat, isBytesField)
+				}
 				return true
 			})
 			// Combine prefix/suffix into pattern after all sub-fields are visited.
@@ -184,6 +247,45 @@ func (e *generator) extractFieldConstraints(
 	}
 	if len(result.InValues) > 0 || len(result.NotInValues) > 0 || result.UniqueItems || result.FormatValidator != nil ||
 		result.RequireFinite || result.ConstFloatLiteral != nil || result.NotContains != nil {
+		e.addStdImport("_Annotated")
+		e.addStdImport("_AfterValidator")
+	}
+	return result
+}
+
+// extractConstraintsFromMsg extracts FieldConstraints from a nested
+// FieldConstraints sub-message (e.g. the value of repeated.items). It mirrors
+// the inner part of extractFieldConstraints but takes a Message directly.
+func (e *generator) extractConstraintsFromMsg(
+	msg protoreflect.Message,
+	isFloat bool,
+	isBytesField bool,
+) *FieldConstraints {
+	result := &FieldConstraints{}
+	msg.Range(func(fd protoreflect.FieldDescriptor, v protoreflect.Value) bool {
+		name := string(fd.Name())
+		switch {
+		case name == "cel":
+			result.DroppedConstraints = append(result.DroppedConstraints, "cel")
+		case fd.Kind() == protoreflect.MessageKind && !fd.IsList():
+			v.Message().Range(func(rfd protoreflect.FieldDescriptor, rv protoreflect.Value) bool {
+				extractRuleField(result, rfd, rv, isFloat, isBytesField)
+				return true
+			})
+			result.combinePatternConstraints()
+		}
+		return true
+	})
+	if !result.HasAny() {
+		return nil
+	}
+	sort.Strings(result.DroppedConstraints)
+	if result.ConstLiteral != nil {
+		e.addStdImport("_Literal")
+	}
+	if len(result.InValues) > 0 || len(result.NotInValues) > 0 || result.UniqueItems ||
+		result.FormatValidator != nil || result.RequireFinite ||
+		result.ConstFloatLiteral != nil || result.NotContains != nil {
 		e.addStdImport("_Annotated")
 		e.addStdImport("_AfterValidator")
 	}
@@ -355,10 +457,24 @@ func extractRuleField(fc *FieldConstraints, fd protoreflect.FieldDescriptor, v p
 			s := v.String()
 			fc.NotContains = &s
 		}
-	case "email", "uri", "ip", "ipv4", "ipv6":
+	case "email", "uri":
 		if v.Bool() {
-			name := string(fd.Name())
-			fc.FormatValidator = &name
+			if isBytesField {
+				fc.DroppedConstraints = append(fc.DroppedConstraints, string(fd.Name()))
+			} else {
+				name := string(fd.Name())
+				fc.FormatValidator = &name
+			}
+		}
+	case "ip", "ipv4", "ipv6":
+		if v.Bool() {
+			if isBytesField {
+				name := "bytes_" + string(fd.Name())
+				fc.FormatValidator = &name
+			} else {
+				name := string(fd.Name())
+				fc.FormatValidator = &name
+			}
 		}
 	case "uuid":
 		if v.Bool() {

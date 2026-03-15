@@ -7,6 +7,7 @@ import datetime
 
 from api.v1.validate_pydantic import (
     ValidatedBytes,
+    ValidatedBytesIP,
     ValidatedCEL,
     ValidatedConst,
     ValidatedConstOptional,
@@ -24,6 +25,7 @@ from api.v1.validate_pydantic import (
     ValidatedOneof,
     ValidatedOneofFormat,
     ValidatedRepeated,
+    ValidatedRepeatedItems,
     ValidatedReserved,
     ValidatedScalars,
     ValidatedStringAffix,
@@ -1631,3 +1633,116 @@ def test_validated_ignore_invalid_nonzero():
         ValidatedIgnore(email="not-an-email")
     with pytest.raises(ValidationError):
         ValidatedIgnore(age=-1)
+
+
+# ---------------------------------------------------------------------------
+# ValidatedBytesIP — bytes.ip/ipv4/ipv6 (byte-length validators)
+# ---------------------------------------------------------------------------
+
+
+def test_validated_bytes_ip_valid_ipv4():
+    m = ValidatedBytesIP(
+        ip_addr=b"\x7f\x00\x00\x01",
+        ipv4_addr=b"\x7f\x00\x00\x01",
+        ipv6_addr=b"\x00" * 16,
+    )
+    assert m.ip_addr == b"\x7f\x00\x00\x01"
+
+
+def test_validated_bytes_ip_valid_ipv6():
+    m = ValidatedBytesIP(
+        ip_addr=b"\x00" * 16,
+        ipv4_addr=b"\x7f\x00\x00\x01",
+        ipv6_addr=b"\x00" * 16,
+    )
+    assert m.ip_addr == b"\x00" * 16
+
+
+def test_validated_bytes_ip_empty_skips_validation():
+    # Empty bytes is the proto3 zero value; validator is skipped.
+    m = ValidatedBytesIP(ip_addr=b"", ipv4_addr=b"", ipv6_addr=b"")
+    assert m.ip_addr == b""
+
+
+def test_validated_bytes_ip_wrong_length():
+    with pytest.raises(ValidationError):
+        ValidatedBytesIP(
+            ip_addr=b"\x00" * 5,
+            ipv4_addr=b"\x7f\x00\x00\x01",
+            ipv6_addr=b"\x00" * 16,
+        )
+
+
+def test_validated_bytes_ipv4_wrong_length():
+    with pytest.raises(ValidationError):
+        ValidatedBytesIP(
+            ip_addr=b"\x7f\x00\x00\x01",
+            ipv4_addr=b"\x00" * 16,
+            ipv6_addr=b"\x00" * 16,
+        )
+
+
+def test_validated_bytes_ipv6_wrong_length():
+    with pytest.raises(ValidationError):
+        ValidatedBytesIP(
+            ip_addr=b"\x7f\x00\x00\x01",
+            ipv4_addr=b"\x7f\x00\x00\x01",
+            ipv6_addr=b"\x00" * 4,
+        )
+
+
+# ---------------------------------------------------------------------------
+# ValidatedRepeatedItems — repeated.items per-element constraints
+# ---------------------------------------------------------------------------
+
+
+def test_repeated_items_valid():
+    m = ValidatedRepeatedItems(tags=["hello"], scores=[1])
+    assert m.tags == ["hello"]
+    assert m.scores == [1]
+
+
+def test_repeated_items_empty_list_valid():
+    m = ValidatedRepeatedItems()  # empty lists, no items to validate
+    assert m.tags == []
+
+
+def test_repeated_items_tag_empty_string_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedRepeatedItems(tags=[""])
+
+
+def test_repeated_items_tag_too_long_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedRepeatedItems(tags=["a" * 33])
+
+
+def test_repeated_items_score_zero_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedRepeatedItems(scores=[0])
+
+
+def test_repeated_items_score_negative_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedRepeatedItems(scores=[-1])
+
+
+def test_repeated_items_email_valid():
+    m = ValidatedRepeatedItems(emails=["user@example.com", "other@example.org"])
+    assert m.emails == ["user@example.com", "other@example.org"]
+
+
+def test_repeated_items_email_empty_list_valid():
+    m = ValidatedRepeatedItems()
+    assert m.emails == []
+
+
+def test_repeated_items_email_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedRepeatedItems(emails=["not-an-email"])
+
+
+def test_repeated_items_email_skips_empty_string():
+    # Empty string is the proto3 zero value; email validator is skipped.
+    m = ValidatedRepeatedItems(emails=[""])
+    assert m.emails == [""]
