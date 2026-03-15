@@ -143,6 +143,9 @@ Supported translations:
 - `string.prefix`/`suffix` → `Field(pattern=...)` (anchored regex; conflicts with `pattern` → dropped comment)
 - `string.contains` → `Field(pattern=...)` (dropped if conflicts with prefix/suffix pattern)
 - `string.not_contains` → `Annotated[str, AfterValidator(_make_not_contains_validator("s"))]`
+- `string.min_bytes` → `Annotated[str, AfterValidator(_make_min_bytes_validator(N))]`
+- `string.max_bytes` → `Annotated[str, AfterValidator(_make_max_bytes_validator(N))]`
+- `string.len_bytes` → `Annotated[str, AfterValidator(_make_len_bytes_validator(N))]` (exact byte count)
 - `field.example` → `Field(examples=[...])`
 - `string.const`/`int.const`/`bool.const` → `Literal[value]` type + matching default
 - `float.const`/`double.const` → `Annotated[float, AfterValidator(_make_const_validator(v))]` (Literal[float] is invalid per PEP 586)
@@ -170,9 +173,10 @@ reject the proto3 zero value (`""`, `0`, `false`, `b""`) become required Pydanti
 default). Detection logic in `generator.go` (after `applyConstraintTypeOverrides`): checks
 `isScalar && isNotOptional && !hasConst && !ignoreZero && f.Constraints.ZeroValueFails(kind)`.
 Sets `f.ConstrainedRequired = true; f.Default = ""`. Affected constraint types: format
-validators, `gt` (N≥0), `gte` (N>0), `min_len` (N>0), `pattern` (any), `in` (zero not in set).
+validators, `gt` (N≥0), `gte` (N>0), `min_len` (N>0), `min_bytes` (N>0), `len_bytes` (N>0),
+`pattern` (any), `in` (zero not in set).
 **Not** ConstrainedRequired: AfterValidator-only constraints with Pydantic-unvalidated defaults
-(not_in, not_contains, finite, unique, const-float), dropped constraints (required, CEL),
+(not_in, not_contains, finite, unique, const-float, max_bytes-only), dropped constraints (required, CEL),
 repeated/map fields, optional fields, oneof members, enum fields.
 
 `ignore = IGNORE_IF_ZERO_VALUE` (or any non-zero `ignore` enum value) opts a field out —
