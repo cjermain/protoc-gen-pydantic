@@ -446,3 +446,18 @@ message ValidatedIgnore {
     (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE
   ];
 }
+
+// ValidatedStringBytes exercises string.min_bytes/max_bytes/len_bytes constraints.
+message ValidatedStringBytes {
+  // Payload must be at least 1 UTF-8 byte (ConstrainedRequired: min_bytes > 0).
+  string payload = 1 [(buf.validate.field).string.min_bytes = 1];
+  // Token must be exactly 32 UTF-8 bytes (ConstrainedRequired).
+  string token = 2 [(buf.validate.field).string.len_bytes = 32];
+  // Label has only a max_bytes limit (NOT ConstrainedRequired: "" is 0 bytes ≤ 255).
+  string label = 3 [(buf.validate.field).string.max_bytes = 255];
+  // Tag exercises min_bytes + max_bytes together (ConstrainedRequired: min_bytes > 0).
+  string tag = 4 [
+    (buf.validate.field).string.min_bytes = 2,
+    (buf.validate.field).string.max_bytes = 64
+  ];
+}

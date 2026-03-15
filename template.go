@@ -689,6 +689,42 @@ def _make_not_contains_validator(s):
     return _validate
 `
 
+const protoTypesMinBytesFunc = `
+
+def _make_min_bytes_validator(n):
+    def _validate(v):
+        b = v.encode()
+        if len(b) < n:
+            raise ValueError(f"value must be at least {n} bytes, got {len(b)} bytes")
+        return v
+
+    return _validate
+`
+
+const protoTypesMaxBytesFunc = `
+
+def _make_max_bytes_validator(n):
+    def _validate(v):
+        b = v.encode()
+        if len(b) > n:
+            raise ValueError(f"value must be at most {n} bytes, got {len(b)} bytes")
+        return v
+
+    return _validate
+`
+
+const protoTypesLenBytesFunc = `
+
+def _make_len_bytes_validator(n):
+    def _validate(v):
+        b = v.encode()
+        if len(b) != n:
+            raise ValueError(f"value must be exactly {n} bytes, got {len(b)} bytes")
+        return v
+
+    return _validate
+`
+
 // buildProtoTypesContent assembles the content for _proto_types.py, including
 // only the format validator functions (and their imports) that are actually
 // used by files in the same output directory.
@@ -823,6 +859,15 @@ func buildProtoTypesContent(needed map[string]bool) string {
 	}
 	if needed["_make_not_contains_validator"] {
 		b.WriteString(protoTypesNotContainsFunc)
+	}
+	if needed["_make_min_bytes_validator"] {
+		b.WriteString(protoTypesMinBytesFunc)
+	}
+	if needed["_make_max_bytes_validator"] {
+		b.WriteString(protoTypesMaxBytesFunc)
+	}
+	if needed["_make_len_bytes_validator"] {
+		b.WriteString(protoTypesLenBytesFunc)
 	}
 
 	return b.String()

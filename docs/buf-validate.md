@@ -28,6 +28,7 @@ from api.v1.validate_pydantic import (
     ValidatedNotContains,
     ValidatedRequired,
     ValidatedScalars,
+    ValidatedStringBytes,
     ValidatedStrings,
     ValidatedUnique,
     ValidatedWellKnownRegex,
@@ -113,6 +114,9 @@ import "buf/validate/validate.proto";
 | `string.well_known_regex = KNOWN_REGEX_HTTP_HEADER_NAME` | `Annotated[str, AfterValidator(_validate_http_header_name)]` |
 | `string.well_known_regex = KNOWN_REGEX_HTTP_HEADER_VALUE` | `Annotated[str, AfterValidator(_validate_http_header_value)]` |
 | `string.not_contains` | `Annotated[str, AfterValidator(_make_not_contains_validator(...))]` |
+| `string.min_bytes` | `Annotated[str, AfterValidator(_make_min_bytes_validator(N))]` |
+| `string.max_bytes` | `Annotated[str, AfterValidator(_make_max_bytes_validator(N))]` |
+| `string.len_bytes` | `Annotated[str, AfterValidator(_make_len_bytes_validator(N))]` |
 | `bytes.uuid` | `Annotated[bytes, AfterValidator(_validate_bytes_uuid)]` |
 | `bytes.ip` | `Annotated[bytes, AfterValidator(_validate_bytes_ip)]` |
 | `bytes.ipv4` | `Annotated[bytes, AfterValidator(_validate_bytes_ipv4)]` |
@@ -195,6 +199,60 @@ try:
 except ValidationError:
     pass
 ```
+
+### String byte-length constraints
+
+`string.min_bytes`, `string.max_bytes`, and `string.len_bytes` constrain the UTF-8
+**byte** count of a string — semantically different from `min_len`/`max_len` which count
+Unicode codepoints. A string like `"日"` is 1 codepoint but 3 UTF-8 bytes.
+
+=== ":lucide-file-code: validate.proto"
+
+    ```proto
+    message ValidatedStringBytes {
+      // Payload must be at least 1 UTF-8 byte (ConstrainedRequired: min_bytes > 0).
+      string payload = 1 [(buf.validate.field).string.min_bytes = 1];
+      // Token must be exactly 32 UTF-8 bytes (ConstrainedRequired).
+      string token = 2 [(buf.validate.field).string.len_bytes = 32];
+      // Label has only a max_bytes limit (NOT ConstrainedRequired: "" is 0 bytes ≤ 255).
+      string label = 3 [(buf.validate.field).string.max_bytes = 255];
+      // Tag exercises min_bytes + max_bytes together (ConstrainedRequired: min_bytes > 0).
+      string tag = 4 [
+        (buf.validate.field).string.min_bytes = 2,
+        (buf.validate.field).string.max_bytes = 64
+      ];
+    }
+    ```
+
+=== ":simple-python: validate_pydantic.py"
+
+    ```python exec="on" session="validate"
+    print(f"```python\n{inspect.getsource(ValidatedStringBytes).rstrip()}\n```")
+    ```
+
+```python exec="on" session="validate"
+from pydantic import ValidationError
+
+vsb = ValidatedStringBytes(payload="x", token="a" * 32, tag="ab")
+assert vsb.payload == "x"
+assert vsb.label == ""  # max_bytes-only field keeps its zero default
+try:
+    ValidatedStringBytes(
+        payload="x", token="a" * 31, tag="ab"
+    )  # token too short in bytes
+except ValidationError:
+    pass
+try:
+    ValidatedStringBytes(
+        payload="x", token="日本語", tag="ab"
+    )  # 3 codepoints, 9 bytes ≠ 32
+except ValidationError:
+    pass
+```
+
+> **Note:** `min_bytes > 0` and `len_bytes > 0` trigger
+> [zero-value validation](#zero-value-validation) — `payload`, `token`, and `tag` above are
+> required fields. `max_bytes`-only fields keep their zero default because `""` has 0 bytes.
 
 ### Format validators
 
@@ -736,6 +794,8 @@ This affects fields with:
 - Format validators (`string.email`, `string.uri`, `string.ip`, `bytes.ip`, `bytes.uuid`, etc.)
 - `gt = N` where N ≥ 0, or `gte = N` where N > 0
 - `string.min_len = N` where N > 0
+- `string.min_bytes = N` where N > 0
+- `string.len_bytes = N` where N > 0
 - `string.pattern` (any pattern rejects the empty string)
 - `in` constraints where the zero value is not a member of the allowed set
 

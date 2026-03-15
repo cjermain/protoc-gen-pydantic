@@ -18,6 +18,9 @@ from ._proto_types import (
     ProtoUInt64,
     _make_const_validator,
     _make_in_validator,
+    _make_len_bytes_validator,
+    _make_max_bytes_validator,
+    _make_min_bytes_validator,
     _make_not_contains_validator,
     _make_not_in_validator,
     _require_finite,
@@ -770,3 +773,24 @@ class ValidatedIgnore(_ProtoModel):
         default=0,
         gt=0,
     )
+
+
+class ValidatedStringBytes(_ProtoModel):
+    """
+    ValidatedStringBytes exercises string.min_bytes/max_bytes/len_bytes constraints.
+    """
+
+    # Payload must be at least 1 UTF-8 byte (ConstrainedRequired: min_bytes > 0).
+    payload: _Annotated[str, _AfterValidator(_make_min_bytes_validator(1))]
+    # Token must be exactly 32 UTF-8 bytes (ConstrainedRequired).
+    token: _Annotated[str, _AfterValidator(_make_len_bytes_validator(32))]
+    # Label has only a max_bytes limit (NOT ConstrainedRequired: "" is 0 bytes ≤ 255).
+    label: _Annotated[str, _AfterValidator(_make_max_bytes_validator(255))] = _Field(
+        default="",
+    )
+    # Tag exercises min_bytes + max_bytes together (ConstrainedRequired: min_bytes > 0).
+    tag: _Annotated[
+        str,
+        _AfterValidator(_make_min_bytes_validator(2)),
+        _AfterValidator(_make_max_bytes_validator(64)),
+    ]

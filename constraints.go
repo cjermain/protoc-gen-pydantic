@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"sort"
 	"strings"
 
@@ -35,6 +36,29 @@ func splitDictType(t string) (key, val string, ok bool) {
 		}
 	}
 	return "", "", false
+}
+
+// splitTopLevelCommas splits s on commas at bracket depth 0, respecting
+// nested square brackets and parentheses.
+func splitTopLevelCommas(s string) []string {
+	var parts []string
+	depth := 0
+	start := 0
+	for i, ch := range s {
+		switch ch {
+		case '[', '(':
+			depth++
+		case ']', ')':
+			depth--
+		case ',':
+			if depth == 0 {
+				parts = append(parts, s[start:i])
+				start = i + 1
+			}
+		}
+	}
+	parts = append(parts, s[start:])
+	return parts
 }
 
 // wrapWithAnnotated wraps a type string with _Annotated[..., validators],
@@ -80,6 +104,18 @@ func (e *generator) buildItemAnnotation(itemType string, fc *FieldConstraints) s
 	if fc.NotContains != nil {
 		metaParts = append(metaParts, "_AfterValidator(_make_not_contains_validator("+pyQuote(*fc.NotContains)+"))")
 		e.addRuntimeImport("_make_not_contains_validator")
+	}
+	if fc.MinBytes != nil {
+		metaParts = append(metaParts, fmt.Sprintf("_AfterValidator(_make_min_bytes_validator(%d))", *fc.MinBytes))
+		e.addRuntimeImport("_make_min_bytes_validator")
+	}
+	if fc.MaxBytes != nil {
+		metaParts = append(metaParts, fmt.Sprintf("_AfterValidator(_make_max_bytes_validator(%d))", *fc.MaxBytes))
+		e.addRuntimeImport("_make_max_bytes_validator")
+	}
+	if fc.LenBytes != nil {
+		metaParts = append(metaParts, fmt.Sprintf("_AfterValidator(_make_len_bytes_validator(%d))", *fc.LenBytes))
+		e.addRuntimeImport("_make_len_bytes_validator")
 	}
 	if fc.FormatValidator != nil {
 		helperName := "_validate_" + *fc.FormatValidator
@@ -184,6 +220,18 @@ func (e *generator) applyConstraintTypeOverrides(f *Field) {
 	if fc.NotContains != nil {
 		validators = append(validators, "_AfterValidator(_make_not_contains_validator("+pyQuote(*fc.NotContains)+"))")
 		e.addRuntimeImport("_make_not_contains_validator")
+	}
+	if fc.MinBytes != nil {
+		validators = append(validators, fmt.Sprintf("_AfterValidator(_make_min_bytes_validator(%d))", *fc.MinBytes))
+		e.addRuntimeImport("_make_min_bytes_validator")
+	}
+	if fc.MaxBytes != nil {
+		validators = append(validators, fmt.Sprintf("_AfterValidator(_make_max_bytes_validator(%d))", *fc.MaxBytes))
+		e.addRuntimeImport("_make_max_bytes_validator")
+	}
+	if fc.LenBytes != nil {
+		validators = append(validators, fmt.Sprintf("_AfterValidator(_make_len_bytes_validator(%d))", *fc.LenBytes))
+		e.addRuntimeImport("_make_len_bytes_validator")
 	}
 	if fc.FormatValidator != nil {
 		helperName := "_validate_" + *fc.FormatValidator
@@ -296,7 +344,8 @@ func (e *generator) extractFieldConstraints(
 		e.addStdImport("_Literal")
 	}
 	if len(result.InValues) > 0 || len(result.NotInValues) > 0 || result.UniqueItems || result.FormatValidator != nil ||
-		result.RequireFinite || result.ConstFloatLiteral != nil || result.NotContains != nil {
+		result.RequireFinite || result.ConstFloatLiteral != nil || result.NotContains != nil ||
+		result.MinBytes != nil || result.MaxBytes != nil || result.LenBytes != nil {
 		e.addStdImport("_Annotated")
 		e.addStdImport("_AfterValidator")
 	}
@@ -335,7 +384,8 @@ func (e *generator) extractConstraintsFromMsg(
 	}
 	if len(result.InValues) > 0 || len(result.NotInValues) > 0 || result.UniqueItems ||
 		result.FormatValidator != nil || result.RequireFinite ||
-		result.ConstFloatLiteral != nil || result.NotContains != nil {
+		result.ConstFloatLiteral != nil || result.NotContains != nil ||
+		result.MinBytes != nil || result.MaxBytes != nil || result.LenBytes != nil {
 		e.addStdImport("_Annotated")
 		e.addStdImport("_AfterValidator")
 	}
@@ -507,6 +557,15 @@ func extractRuleField(fc *FieldConstraints, fd protoreflect.FieldDescriptor, v p
 			s := v.String()
 			fc.NotContains = &s
 		}
+	case "min_bytes":
+		n := int64(v.Uint())
+		fc.MinBytes = &n
+	case "max_bytes":
+		n := int64(v.Uint())
+		fc.MaxBytes = &n
+	case "len_bytes":
+		n := int64(v.Uint())
+		fc.LenBytes = &n
 	case "email", "uri":
 		if v.Bool() {
 			if isBytesField {
