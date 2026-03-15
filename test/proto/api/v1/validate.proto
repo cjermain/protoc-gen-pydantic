@@ -398,6 +398,10 @@ message ValidatedRepeatedItems {
   repeated int32 scores = 2 [(buf.validate.field).repeated.items = {
     int32: { gt: 0 }
   }];
+  // Each email must be a valid email address.
+  repeated string emails = 3 [(buf.validate.field).repeated.items = {
+    string: { email: true }
+  }];
 }
 
 // ValidatedIgnore exercises ignore = IGNORE_IF_ZERO_VALUE, which opts a field

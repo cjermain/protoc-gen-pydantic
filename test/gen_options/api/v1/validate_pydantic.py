@@ -714,6 +714,10 @@ class ValidatedRepeatedItems(_ProtoModel):
     scores: list[_Annotated[int, _Field(gt=0)]] = _Field(
         default_factory=list,
     )
+    # Each email must be a valid email address.
+    emails: list[_Annotated[str, _AfterValidator(_validate_email)]] = _Field(
+        default_factory=list,
+    )
 
 
 class ValidatedIgnore(_ProtoModel):

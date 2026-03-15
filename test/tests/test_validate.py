@@ -1725,3 +1725,24 @@ def test_repeated_items_score_zero_invalid():
 def test_repeated_items_score_negative_invalid():
     with pytest.raises(ValidationError):
         ValidatedRepeatedItems(scores=[-1])
+
+
+def test_repeated_items_email_valid():
+    m = ValidatedRepeatedItems(emails=["user@example.com", "other@example.org"])
+    assert m.emails == ["user@example.com", "other@example.org"]
+
+
+def test_repeated_items_email_empty_list_valid():
+    m = ValidatedRepeatedItems()
+    assert m.emails == []
+
+
+def test_repeated_items_email_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedRepeatedItems(emails=["not-an-email"])
+
+
+def test_repeated_items_email_skips_empty_string():
+    # Empty string is the proto3 zero value; email validator is skipped.
+    m = ValidatedRepeatedItems(emails=[""])
+    assert m.emails == [""]
