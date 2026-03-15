@@ -1922,6 +1922,12 @@ def test_validated_string_bytes_label_valid(label):
     assert m.label == label
 
 
+def test_validated_string_bytes_label_multibyte_at_limit():
+    # "日" is 3 UTF-8 bytes; 85 × 3 = 255 bytes — exactly at the max_bytes limit.
+    m = ValidatedStringBytes(**{**_VALID_STR_BYTES, "label": "日" * 85})
+    assert len(m.label.encode()) == 255
+
+
 def test_validated_string_bytes_label_too_long():
     with pytest.raises(ValidationError):
         ValidatedStringBytes(**{**_VALID_STR_BYTES, "label": "x" * 256})

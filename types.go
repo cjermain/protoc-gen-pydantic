@@ -526,6 +526,7 @@ func (c *FieldConstraints) ZeroValueFails(kind protoreflect.Kind) bool {
 	if c.MinBytes != nil && *c.MinBytes > 0 {
 		return true
 	}
+	// len_bytes = 0 means string must be empty — zero value passes, so not required.
 	if c.LenBytes != nil && *c.LenBytes > 0 {
 		return true
 	}
