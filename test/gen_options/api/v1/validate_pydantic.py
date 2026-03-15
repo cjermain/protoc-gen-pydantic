@@ -23,6 +23,9 @@ from ._proto_types import (
     _require_finite,
     _require_unique,
     _validate_address,
+    _validate_bytes_ip,
+    _validate_bytes_ipv4,
+    _validate_bytes_ipv6,
     _validate_bytes_uuid,
     _validate_email,
     _validate_host_and_port,
@@ -687,25 +690,15 @@ class ValidatedCEL(_ProtoModel):
 
 class ValidatedBytesIP(_ProtoModel):
     """
-    ValidatedBytesIP exercises bytes.ip/ipv4/ipv6 which must be dropped as
-    untranslated (the validators expect str, not bytes).
+    ValidatedBytesIP exercises bytes.ip/ipv4/ipv6 binary address validation.
     """
 
-    # Binary IP address (4 or 16 bytes); ip validator not applicable to bytes.
-    ipAddr: bytes = _Field(
-        default=b"",
-        # buf.validate: ip (not translated)
-    )
-    # Binary IPv4 address (4 bytes); ipv4 validator not applicable to bytes.
-    ipv4Addr: bytes = _Field(
-        default=b"",
-        # buf.validate: ipv4 (not translated)
-    )
-    # Binary IPv6 address (16 bytes); ipv6 validator not applicable to bytes.
-    ipv6Addr: bytes = _Field(
-        default=b"",
-        # buf.validate: ipv6 (not translated)
-    )
+    # Binary IP address (4 bytes for IPv4 or 16 bytes for IPv6).
+    ipAddr: _Annotated[bytes, _AfterValidator(_validate_bytes_ip)]
+    # Binary IPv4 address (exactly 4 bytes).
+    ipv4Addr: _Annotated[bytes, _AfterValidator(_validate_bytes_ipv4)]
+    # Binary IPv6 address (exactly 16 bytes).
+    ipv6Addr: _Annotated[bytes, _AfterValidator(_validate_bytes_ipv6)]
 
 
 class ValidatedRepeatedItems(_ProtoModel):

@@ -110,6 +110,9 @@ import "buf/validate/validate.proto";
 | `string.well_known_regex = KNOWN_REGEX_HTTP_HEADER_VALUE` | `Annotated[str, AfterValidator(_validate_http_header_value)]` |
 | `string.not_contains` | `Annotated[str, AfterValidator(_make_not_contains_validator(...))]` |
 | `bytes.uuid` | `Annotated[bytes, AfterValidator(_validate_bytes_uuid)]` |
+| `bytes.ip` | `Annotated[bytes, AfterValidator(_validate_bytes_ip)]` |
+| `bytes.ipv4` | `Annotated[bytes, AfterValidator(_validate_bytes_ipv4)]` |
+| `bytes.ipv6` | `Annotated[bytes, AfterValidator(_validate_bytes_ipv6)]` |
 
 ## Examples
 
@@ -666,7 +669,7 @@ construction without an explicit value raises `ValidationError`.
 
 This affects fields with:
 
-- Format validators (`string.email`, `string.uri`, `string.ip`, etc.)
+- Format validators (`string.email`, `string.uri`, `string.ip`, `bytes.ip`, `bytes.uuid`, etc.)
 - `gt = N` where N ≥ 0, or `gte = N` where N > 0
 - `string.min_len = N` where N > 0
 - `string.pattern` (any pattern rejects the empty string)

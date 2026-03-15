@@ -378,14 +378,13 @@ message ValidatedCEL {
 }
 
 
-// ValidatedBytesIP exercises bytes.ip/ipv4/ipv6 which must be dropped as
-// untranslated (the validators expect str, not bytes).
+// ValidatedBytesIP exercises bytes.ip/ipv4/ipv6 binary address validation.
 message ValidatedBytesIP {
-  // Binary IP address (4 or 16 bytes); ip validator not applicable to bytes.
+  // Binary IP address (4 bytes for IPv4 or 16 bytes for IPv6).
   bytes ip_addr = 1 [(buf.validate.field).bytes.ip = true];
-  // Binary IPv4 address (4 bytes); ipv4 validator not applicable to bytes.
+  // Binary IPv4 address (exactly 4 bytes).
   bytes ipv4_addr = 2 [(buf.validate.field).bytes.ipv4 = true];
-  // Binary IPv6 address (16 bytes); ipv6 validator not applicable to bytes.
+  // Binary IPv6 address (exactly 16 bytes).
   bytes ipv6_addr = 3 [(buf.validate.field).bytes.ipv6 = true];
 }
 

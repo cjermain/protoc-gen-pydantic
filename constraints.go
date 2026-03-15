@@ -457,10 +457,20 @@ func extractRuleField(fc *FieldConstraints, fd protoreflect.FieldDescriptor, v p
 			s := v.String()
 			fc.NotContains = &s
 		}
-	case "email", "uri", "ip", "ipv4", "ipv6":
+	case "email", "uri":
 		if v.Bool() {
 			if isBytesField {
 				fc.DroppedConstraints = append(fc.DroppedConstraints, string(fd.Name()))
+			} else {
+				name := string(fd.Name())
+				fc.FormatValidator = &name
+			}
+		}
+	case "ip", "ipv4", "ipv6":
+		if v.Bool() {
+			if isBytesField {
+				name := "bytes_" + string(fd.Name())
+				fc.FormatValidator = &name
 			} else {
 				name := string(fd.Name())
 				fc.FormatValidator = &name

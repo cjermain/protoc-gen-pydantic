@@ -1636,26 +1636,59 @@ def test_validated_ignore_invalid_nonzero():
 
 
 # ---------------------------------------------------------------------------
-# ValidatedBytesIP — bytes.ip/ipv4/ipv6 must be dropped, not applied
+# ValidatedBytesIP — bytes.ip/ipv4/ipv6 (byte-length validators)
 # ---------------------------------------------------------------------------
 
 
-def test_bytes_ip_dropped_comments():
-    """bytes.ip/ipv4/ipv6 constraints must be dropped with comments, not applied."""
-    text = _GEN_VALIDATE.read_text()
-    assert "# buf.validate: ip (not translated)" in text
-    assert "# buf.validate: ipv4 (not translated)" in text
-    assert "# buf.validate: ipv6 (not translated)" in text
+def test_validated_bytes_ip_valid_ipv4():
+    m = ValidatedBytesIP(
+        ip_addr=b"\x7f\x00\x00\x01",
+        ipv4_addr=b"\x7f\x00\x00\x01",
+        ipv6_addr=b"\x00" * 16,
+    )
+    assert m.ip_addr == b"\x7f\x00\x00\x01"
 
 
-def test_bytes_ip_no_validator_applied():
-    """Fields must accept arbitrary bytes — no AfterValidator wrapping."""
-    m = ValidatedBytesIP()  # all b"" defaults, no ConstrainedRequired
+def test_validated_bytes_ip_valid_ipv6():
+    m = ValidatedBytesIP(
+        ip_addr=b"\x00" * 16,
+        ipv4_addr=b"\x7f\x00\x00\x01",
+        ipv6_addr=b"\x00" * 16,
+    )
+    assert m.ip_addr == b"\x00" * 16
+
+
+def test_validated_bytes_ip_empty_skips_validation():
+    # Empty bytes is the proto3 zero value; validator is skipped.
+    m = ValidatedBytesIP(ip_addr=b"", ipv4_addr=b"", ipv6_addr=b"")
     assert m.ip_addr == b""
-    assert m.ipv4_addr == b""
-    assert m.ipv6_addr == b""
-    m2 = ValidatedBytesIP(ip_addr=b"not a valid ip", ipv4_addr=b"x", ipv6_addr=b"y")
-    assert m2.ip_addr == b"not a valid ip"
+
+
+def test_validated_bytes_ip_wrong_length():
+    with pytest.raises(ValidationError):
+        ValidatedBytesIP(
+            ip_addr=b"\x00" * 5,
+            ipv4_addr=b"\x7f\x00\x00\x01",
+            ipv6_addr=b"\x00" * 16,
+        )
+
+
+def test_validated_bytes_ipv4_wrong_length():
+    with pytest.raises(ValidationError):
+        ValidatedBytesIP(
+            ip_addr=b"\x7f\x00\x00\x01",
+            ipv4_addr=b"\x00" * 16,
+            ipv6_addr=b"\x00" * 16,
+        )
+
+
+def test_validated_bytes_ipv6_wrong_length():
+    with pytest.raises(ValidationError):
+        ValidatedBytesIP(
+            ip_addr=b"\x7f\x00\x00\x01",
+            ipv4_addr=b"\x7f\x00\x00\x01",
+            ipv6_addr=b"\x00" * 4,
+        )
 
 
 # ---------------------------------------------------------------------------

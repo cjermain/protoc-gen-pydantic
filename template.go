@@ -648,6 +648,36 @@ def _validate_bytes_uuid(v: bytes) -> bytes:
     return v
 `
 
+const protoTypesBytesIPFunc = `
+
+def _validate_bytes_ip(v: bytes) -> bytes:
+    if not v:
+        return v
+    if len(v) not in (4, 16):
+        raise ValueError("invalid IP bytes: must be 4 bytes (IPv4) or 16 bytes (IPv6)")
+    return v
+`
+
+const protoTypesBytesIPv4Func = `
+
+def _validate_bytes_ipv4(v: bytes) -> bytes:
+    if not v:
+        return v
+    if len(v) != 4:
+        raise ValueError("invalid IPv4 bytes: must be exactly 4 bytes")
+    return v
+`
+
+const protoTypesBytesIPv6Func = `
+
+def _validate_bytes_ipv6(v: bytes) -> bytes:
+    if not v:
+        return v
+    if len(v) != 16:
+        raise ValueError("invalid IPv6 bytes: must be exactly 16 bytes")
+    return v
+`
+
 const protoTypesNotContainsFunc = `
 
 def _make_not_contains_validator(s):
@@ -781,6 +811,15 @@ func buildProtoTypesContent(needed map[string]bool) string {
 	}
 	if needed["_validate_bytes_uuid"] {
 		b.WriteString(protoTypesBytesUUIDFunc)
+	}
+	if needed["_validate_bytes_ip"] {
+		b.WriteString(protoTypesBytesIPFunc)
+	}
+	if needed["_validate_bytes_ipv4"] {
+		b.WriteString(protoTypesBytesIPv4Func)
+	}
+	if needed["_validate_bytes_ipv6"] {
+		b.WriteString(protoTypesBytesIPv6Func)
 	}
 	if needed["_make_not_contains_validator"] {
 		b.WriteString(protoTypesNotContainsFunc)

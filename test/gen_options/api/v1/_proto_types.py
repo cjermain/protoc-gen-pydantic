@@ -316,6 +316,30 @@ def _validate_bytes_uuid(v: bytes) -> bytes:
     return v
 
 
+def _validate_bytes_ip(v: bytes) -> bytes:
+    if not v:
+        return v
+    if len(v) not in (4, 16):
+        raise ValueError("invalid IP bytes: must be 4 bytes (IPv4) or 16 bytes (IPv6)")
+    return v
+
+
+def _validate_bytes_ipv4(v: bytes) -> bytes:
+    if not v:
+        return v
+    if len(v) != 4:
+        raise ValueError("invalid IPv4 bytes: must be exactly 4 bytes")
+    return v
+
+
+def _validate_bytes_ipv6(v: bytes) -> bytes:
+    if not v:
+        return v
+    if len(v) != 16:
+        raise ValueError("invalid IPv6 bytes: must be exactly 16 bytes")
+    return v
+
+
 def _make_not_contains_validator(s):
     def _validate(v):
         if s in v:

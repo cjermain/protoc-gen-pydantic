@@ -23,6 +23,9 @@ from ._proto_types import (
     _require_finite,
     _require_unique,
     _validate_address,
+    _validate_bytes_ip,
+    _validate_bytes_ipv4,
+    _validate_bytes_ipv6,
     _validate_bytes_uuid,
     _validate_email,
     _validate_host_and_port,
@@ -808,27 +811,20 @@ class ValidatedCEL(_ProtoModel):
 
 class ValidatedBytesIP(_ProtoModel):
     """
-    ValidatedBytesIP exercises bytes.ip/ipv4/ipv6 which must be dropped as
-    untranslated (the validators expect str, not bytes).
+    ValidatedBytesIP exercises bytes.ip/ipv4/ipv6 binary address validation.
     """
 
-    # Binary IP address (4 or 16 bytes); ip validator not applicable to bytes.
-    ip_addr: bytes = _Field(
-        default=b"",
-        description="Binary IP address (4 or 16 bytes); ip validator not applicable to bytes.",
-        # buf.validate: ip (not translated)
+    # Binary IP address (4 bytes for IPv4 or 16 bytes for IPv6).
+    ip_addr: _Annotated[bytes, _AfterValidator(_validate_bytes_ip)] = _Field(
+        description="Binary IP address (4 bytes for IPv4 or 16 bytes for IPv6).",
     )
-    # Binary IPv4 address (4 bytes); ipv4 validator not applicable to bytes.
-    ipv4_addr: bytes = _Field(
-        default=b"",
-        description="Binary IPv4 address (4 bytes); ipv4 validator not applicable to bytes.",
-        # buf.validate: ipv4 (not translated)
+    # Binary IPv4 address (exactly 4 bytes).
+    ipv4_addr: _Annotated[bytes, _AfterValidator(_validate_bytes_ipv4)] = _Field(
+        description="Binary IPv4 address (exactly 4 bytes).",
     )
-    # Binary IPv6 address (16 bytes); ipv6 validator not applicable to bytes.
-    ipv6_addr: bytes = _Field(
-        default=b"",
-        description="Binary IPv6 address (16 bytes); ipv6 validator not applicable to bytes.",
-        # buf.validate: ipv6 (not translated)
+    # Binary IPv6 address (exactly 16 bytes).
+    ipv6_addr: _Annotated[bytes, _AfterValidator(_validate_bytes_ipv6)] = _Field(
+        description="Binary IPv6 address (exactly 16 bytes).",
     )
 
 

@@ -154,6 +154,9 @@ Supported translations:
 - `string.hostname`/`uri_ref`/`address`/`tuuid`/`ulid`/`ip_with_prefixlen`/`ipv4_with_prefixlen`/`ipv6_with_prefixlen`/`ip_prefix`/`ipv4_prefix`/`ipv6_prefix`/`host_and_port` → `Annotated[str, AfterValidator(_validate_*)]`
 - `string.well_known_regex = HTTP_HEADER_NAME/HTTP_HEADER_VALUE` → `Annotated[str, AfterValidator(_validate_http_header_name/_validate_http_header_value)]`; `strict=false` → dropped comment
 - `bytes.uuid` → `Annotated[bytes, AfterValidator(_validate_bytes_uuid)]` (16-byte check)
+- `bytes.ip` → `Annotated[bytes, AfterValidator(_validate_bytes_ip)]` (4 or 16 bytes)
+- `bytes.ipv4` → `Annotated[bytes, AfterValidator(_validate_bytes_ipv4)]` (exactly 4 bytes)
+- `bytes.ipv6` → `Annotated[bytes, AfterValidator(_validate_bytes_ipv6)]` (exactly 16 bytes)
 
 Emitted as `# buf.validate: X (not translated)` comments: `required`, CEL,
 `bytes.const`, message-typed bounds (duration, timestamp).
