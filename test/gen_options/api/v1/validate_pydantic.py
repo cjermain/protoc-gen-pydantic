@@ -743,6 +743,18 @@ class ValidatedMapConstraints(_ProtoModel):
     ] = _Field(
         default_factory=dict,
     )
+    # Must have at least 1 entry; keys must be non-empty (tests min_pairs + keys together).
+    tagged: dict[_Annotated[str, _Field(min_length=1)], str] = _Field(
+        default_factory=dict,
+        min_length=1,
+    )
+    # Integer keys must be positive (exercises non-string key constraints).
+    scores: dict[
+        _Annotated[int, _Field(gt=0)],
+        _Annotated[str, _AfterValidator(_make_not_in_validator(frozenset({""})))],
+    ] = _Field(
+        default_factory=dict,
+    )
 
 
 class ValidatedIgnore(_ProtoModel):

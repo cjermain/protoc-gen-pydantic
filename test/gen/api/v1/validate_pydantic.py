@@ -876,6 +876,20 @@ class ValidatedMapConstraints(_ProtoModel):
         default_factory=dict,
         description="Keys must be a valid email; values must match a pattern.",
     )
+    # Must have at least 1 entry; keys must be non-empty (tests min_pairs + keys together).
+    tagged: dict[_Annotated[str, _Field(min_length=1)], str] = _Field(
+        default_factory=dict,
+        description="Must have at least 1 entry; keys must be non-empty (tests min_pairs + keys together).",
+        min_length=1,
+    )
+    # Integer keys must be positive (exercises non-string key constraints).
+    scores: dict[
+        _Annotated[int, _Field(gt=0)],
+        _Annotated[str, _AfterValidator(_make_not_in_validator(frozenset({""})))],
+    ] = _Field(
+        default_factory=dict,
+        description="Integer keys must be positive (exercises non-string key constraints).",
+    )
 
 
 class ValidatedIgnore(_ProtoModel):

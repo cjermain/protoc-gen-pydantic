@@ -13,6 +13,9 @@ import (
 
 // splitDictType splits "dict[K, V]" into its key and value type strings,
 // respecting nested brackets so types like "dict[str, dict[str, int]]" work.
+// Parenthesis depth is not tracked separately: any comma inside a function
+// call (e.g. _Field(min_length=1, max_length=32)) will always appear inside
+// _Annotated[...] brackets as well, so the bracket depth counter is sufficient.
 func splitDictType(t string) (key, val string, ok bool) {
 	if !strings.HasPrefix(t, "dict[") || !strings.HasSuffix(t, "]") {
 		return "", "", false

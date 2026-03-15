@@ -233,6 +233,9 @@ func (f Field) TypeAnnotationFormatted(bi string) string {
 // that emit a bare annotation with no assignment. It only splits the annotation
 // when the bare "name: annotation" line alone exceeds 88 characters, rather
 // than when adding "= _Field(" would push it over.
+// dict[K,V] splitting is intentionally omitted: map fields always have a
+// default (default_factory=dict) so they are never ConstrainedRequired and
+// this method is never called for them.
 func (f Field) TypeAnnotationFormattedBare(bi string) string {
 	annotation := f.TypeAnnotation()
 	if f.NeedsQuote || !strings.HasPrefix(annotation, "_Annotated[") || !strings.HasSuffix(annotation, "]") {
@@ -268,6 +271,10 @@ func (f Field) NeedsMultilineDefault(bi string) bool {
 //	        ...
 //	    )
 //	)
+//
+// dict[K,V] types are excluded: ruff splits the annotation itself rather than
+// using the parenthesized form for dict types. TypeAnnotationFormatted handles
+// that case directly.
 func (f Field) NeedsParenAssignment(bi string) bool {
 	annotation := f.TypeAnnotation()
 	if f.NeedsQuote || !strings.HasPrefix(annotation, "_Annotated[") || !strings.HasSuffix(annotation, "]") {

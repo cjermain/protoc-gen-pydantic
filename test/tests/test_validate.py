@@ -1818,3 +1818,50 @@ def test_map_constraints_rules_invalid_value_fails():
     # Value must match "^[a-z]+$".
     with pytest.raises(ValidationError):
         ValidatedMapConstraints(rules={"user@example.com": "UPPER"})
+
+
+def test_map_constraints_key_min_len_boundary_valid():
+    # Key of exactly 1 char satisfies min_len=1.
+    m = ValidatedMapConstraints(labels={"a": "prod"})
+    assert m.labels == {"a": "prod"}
+
+
+def test_map_constraints_tagged_valid():
+    # min_pairs=1 and keys.min_len=1 both satisfied.
+    m = ValidatedMapConstraints(tagged={"env": "prod"})
+    assert m.tagged == {"env": "prod"}
+
+
+def test_map_constraints_tagged_empty_fails():
+    # Violates min_pairs=1.
+    with pytest.raises(ValidationError):
+        ValidatedMapConstraints(tagged={})
+
+
+def test_map_constraints_tagged_empty_key_fails():
+    # Violates keys.min_len=1.
+    with pytest.raises(ValidationError):
+        ValidatedMapConstraints(tagged={"": "prod"})
+
+
+def test_map_constraints_scores_valid():
+    # Positive integer key and non-empty value.
+    m = ValidatedMapConstraints(scores={1: "alice", 2: "bob"})
+    assert m.scores == {1: "alice", 2: "bob"}
+
+
+def test_map_constraints_scores_zero_key_fails():
+    # Integer key 0 violates gt=0 on keys.
+    with pytest.raises(ValidationError):
+        ValidatedMapConstraints(scores={0: "alice"})
+
+
+def test_map_constraints_scores_negative_key_fails():
+    with pytest.raises(ValidationError):
+        ValidatedMapConstraints(scores={-1: "alice"})
+
+
+def test_map_constraints_scores_empty_value_fails():
+    # Empty string value violates not_in=[""].
+    with pytest.raises(ValidationError):
+        ValidatedMapConstraints(scores={1: ""})
