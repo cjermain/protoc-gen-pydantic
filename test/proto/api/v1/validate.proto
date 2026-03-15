@@ -378,6 +378,29 @@ message ValidatedCEL {
 }
 
 
+// ValidatedBytesIP exercises bytes.ip/ipv4/ipv6 which must be dropped as
+// untranslated (the validators expect str, not bytes).
+message ValidatedBytesIP {
+  // Binary IP address (4 or 16 bytes); ip validator not applicable to bytes.
+  bytes ip_addr = 1 [(buf.validate.field).bytes.ip = true];
+  // Binary IPv4 address (4 bytes); ipv4 validator not applicable to bytes.
+  bytes ipv4_addr = 2 [(buf.validate.field).bytes.ipv4 = true];
+  // Binary IPv6 address (16 bytes); ipv6 validator not applicable to bytes.
+  bytes ipv6_addr = 3 [(buf.validate.field).bytes.ipv6 = true];
+}
+
+// ValidatedRepeatedItems exercises repeated.items per-element constraints.
+message ValidatedRepeatedItems {
+  // Each tag must be 1–32 characters.
+  repeated string tags = 1 [(buf.validate.field).repeated.items = {
+    string: { min_len: 1, max_len: 32 }
+  }];
+  // Each score must be positive.
+  repeated int32 scores = 2 [(buf.validate.field).repeated.items = {
+    int32: { gt: 0 }
+  }];
+}
+
 // ValidatedIgnore exercises ignore = IGNORE_IF_ZERO_VALUE, which opts a field
 // out of ConstrainedRequired even when its constraints reject the zero value.
 message ValidatedIgnore {

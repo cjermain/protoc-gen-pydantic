@@ -7,6 +7,7 @@ import datetime
 
 from api.v1.validate_pydantic import (
     ValidatedBytes,
+    ValidatedBytesIP,
     ValidatedCEL,
     ValidatedConst,
     ValidatedConstOptional,
@@ -24,6 +25,7 @@ from api.v1.validate_pydantic import (
     ValidatedOneof,
     ValidatedOneofFormat,
     ValidatedRepeated,
+    ValidatedRepeatedItems,
     ValidatedReserved,
     ValidatedScalars,
     ValidatedStringAffix,
@@ -1631,3 +1633,62 @@ def test_validated_ignore_invalid_nonzero():
         ValidatedIgnore(email="not-an-email")
     with pytest.raises(ValidationError):
         ValidatedIgnore(age=-1)
+
+
+# ---------------------------------------------------------------------------
+# ValidatedBytesIP — bytes.ip/ipv4/ipv6 must be dropped, not applied
+# ---------------------------------------------------------------------------
+
+
+def test_bytes_ip_dropped_comments():
+    """bytes.ip/ipv4/ipv6 constraints must be dropped with comments, not applied."""
+    text = _GEN_VALIDATE.read_text()
+    assert "# buf.validate: ip (not translated)" in text
+    assert "# buf.validate: ipv4 (not translated)" in text
+    assert "# buf.validate: ipv6 (not translated)" in text
+
+
+def test_bytes_ip_no_validator_applied():
+    """Fields must accept arbitrary bytes — no AfterValidator wrapping."""
+    m = ValidatedBytesIP()  # all b"" defaults, no ConstrainedRequired
+    assert m.ip_addr == b""
+    assert m.ipv4_addr == b""
+    assert m.ipv6_addr == b""
+    m2 = ValidatedBytesIP(ip_addr=b"not a valid ip", ipv4_addr=b"x", ipv6_addr=b"y")
+    assert m2.ip_addr == b"not a valid ip"
+
+
+# ---------------------------------------------------------------------------
+# ValidatedRepeatedItems — repeated.items per-element constraints
+# ---------------------------------------------------------------------------
+
+
+def test_repeated_items_valid():
+    m = ValidatedRepeatedItems(tags=["hello"], scores=[1])
+    assert m.tags == ["hello"]
+    assert m.scores == [1]
+
+
+def test_repeated_items_empty_list_valid():
+    m = ValidatedRepeatedItems()  # empty lists, no items to validate
+    assert m.tags == []
+
+
+def test_repeated_items_tag_empty_string_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedRepeatedItems(tags=[""])
+
+
+def test_repeated_items_tag_too_long_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedRepeatedItems(tags=["a" * 33])
+
+
+def test_repeated_items_score_zero_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedRepeatedItems(scores=[0])
+
+
+def test_repeated_items_score_negative_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedRepeatedItems(scores=[-1])

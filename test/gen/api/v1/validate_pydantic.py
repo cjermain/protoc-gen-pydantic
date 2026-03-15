@@ -806,6 +806,49 @@ class ValidatedCEL(_ProtoModel):
     )
 
 
+class ValidatedBytesIP(_ProtoModel):
+    """
+    ValidatedBytesIP exercises bytes.ip/ipv4/ipv6 which must be dropped as
+    untranslated (the validators expect str, not bytes).
+    """
+
+    # Binary IP address (4 or 16 bytes); ip validator not applicable to bytes.
+    ip_addr: bytes = _Field(
+        default=b"",
+        description="Binary IP address (4 or 16 bytes); ip validator not applicable to bytes.",
+        # buf.validate: ip (not translated)
+    )
+    # Binary IPv4 address (4 bytes); ipv4 validator not applicable to bytes.
+    ipv4_addr: bytes = _Field(
+        default=b"",
+        description="Binary IPv4 address (4 bytes); ipv4 validator not applicable to bytes.",
+        # buf.validate: ipv4 (not translated)
+    )
+    # Binary IPv6 address (16 bytes); ipv6 validator not applicable to bytes.
+    ipv6_addr: bytes = _Field(
+        default=b"",
+        description="Binary IPv6 address (16 bytes); ipv6 validator not applicable to bytes.",
+        # buf.validate: ipv6 (not translated)
+    )
+
+
+class ValidatedRepeatedItems(_ProtoModel):
+    """
+    ValidatedRepeatedItems exercises repeated.items per-element constraints.
+    """
+
+    # Each tag must be 1–32 characters.
+    tags: list[_Annotated[str, _Field(min_length=1, max_length=32)]] = _Field(
+        default_factory=list,
+        description="Each tag must be 1–32 characters.",
+    )
+    # Each score must be positive.
+    scores: list[_Annotated[int, _Field(gt=0)]] = _Field(
+        default_factory=list,
+        description="Each score must be positive.",
+    )
+
+
 class ValidatedIgnore(_ProtoModel):
     """
     ValidatedIgnore exercises ignore = IGNORE_IF_ZERO_VALUE, which opts a field

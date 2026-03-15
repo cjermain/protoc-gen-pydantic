@@ -324,6 +324,7 @@ type FieldConstraints struct {
 	Required           bool     // true when buf.validate required = true is set
 	IsNonScalar        bool     // true when field kind is MessageKind or EnumKind
 	HasIgnore          bool     // true when ignore != IGNORE_UNSPECIFIED (any non-zero ignore enum value)
+	ItemConstraints    *FieldConstraints // per-element constraints from repeated.items
 }
 
 func (c *FieldConstraints) HasAny() bool {
@@ -337,7 +338,8 @@ func (c *FieldConstraints) HasAny() bool {
 		c.MinLength != nil || c.MaxLength != nil || c.Pattern != nil || c.Contains != nil ||
 		c.NotContains != nil ||
 		len(c.Examples) > 0 || c.FormatValidator != nil ||
-		len(c.DroppedConstraints) > 0
+		len(c.DroppedConstraints) > 0 ||
+		c.ItemConstraints != nil
 }
 
 // PydanticArgs returns ["gt=0", "le=150", ...] to inject into _Field().
