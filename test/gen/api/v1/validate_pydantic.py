@@ -850,6 +850,48 @@ class ValidatedRepeatedItems(_ProtoModel):
     )
 
 
+class ValidatedMapConstraints(_ProtoModel):
+    """
+    ValidatedMapConstraints exercises map.keys and map.values per-entry constraints.
+    """
+
+    # Keys must be 1–63 chars; values must be non-empty.
+    labels: dict[
+        _Annotated[str, _Field(min_length=1, max_length=63)],
+        _Annotated[str, _Field(min_length=1)],
+    ] = _Field(
+        default_factory=dict,
+        description="Keys must be 1–63 chars; values must be non-empty.",
+    )
+    # Values must be positive.
+    counters: dict[str, _Annotated[int, _Field(gt=0)]] = _Field(
+        default_factory=dict,
+        description="Values must be positive.",
+    )
+    # Keys must be a valid email; values must match a pattern.
+    rules: dict[
+        _Annotated[str, _AfterValidator(_validate_email)],
+        _Annotated[str, _Field(pattern="^[a-z]+$")],
+    ] = _Field(
+        default_factory=dict,
+        description="Keys must be a valid email; values must match a pattern.",
+    )
+    # Must have at least 1 entry; keys must be non-empty (tests min_pairs + keys together).
+    tagged: dict[_Annotated[str, _Field(min_length=1)], str] = _Field(
+        default_factory=dict,
+        description="Must have at least 1 entry; keys must be non-empty (tests min_pairs + keys together).",
+        min_length=1,
+    )
+    # Integer keys must be positive (exercises non-string key constraints).
+    scores: dict[
+        _Annotated[int, _Field(gt=0)],
+        _Annotated[str, _AfterValidator(_make_not_in_validator(frozenset({""})))],
+    ] = _Field(
+        default_factory=dict,
+        description="Integer keys must be positive (exercises non-string key constraints).",
+    )
+
+
 class ValidatedIgnore(_ProtoModel):
     """
     ValidatedIgnore exercises ignore = IGNORE_IF_ZERO_VALUE, which opts a field

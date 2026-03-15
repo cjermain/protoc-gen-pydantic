@@ -404,6 +404,34 @@ message ValidatedRepeatedItems {
   }];
 }
 
+// ValidatedMapConstraints exercises map.keys and map.values per-entry constraints.
+message ValidatedMapConstraints {
+  // Keys must be 1–63 chars; values must be non-empty.
+  map<string, string> labels = 1 [
+    (buf.validate.field).map.keys   = { string: { min_len: 1, max_len: 63 } },
+    (buf.validate.field).map.values = { string: { min_len: 1 } }
+  ];
+  // Values must be positive.
+  map<string, int32> counters = 2 [
+    (buf.validate.field).map.values = { int32: { gt: 0 } }
+  ];
+  // Keys must be a valid email; values must match a pattern.
+  map<string, string> rules = 3 [
+    (buf.validate.field).map.keys   = { string: { email: true } },
+    (buf.validate.field).map.values = { string: { pattern: "^[a-z]+$" } }
+  ];
+  // Must have at least 1 entry; keys must be non-empty (tests min_pairs + keys together).
+  map<string, string> tagged = 4 [
+    (buf.validate.field).map.min_pairs = 1,
+    (buf.validate.field).map.keys      = { string: { min_len: 1 } }
+  ];
+  // Integer keys must be positive (exercises non-string key constraints).
+  map<int32, string> scores = 5 [
+    (buf.validate.field).map.keys   = { int32: { gt: 0 } },
+    (buf.validate.field).map.values = { string: { not_in: [""] } }
+  ];
+}
+
 // ValidatedIgnore exercises ignore = IGNORE_IF_ZERO_VALUE, which opts a field
 // out of ConstrainedRequired even when its constraints reject the zero value.
 message ValidatedIgnore {

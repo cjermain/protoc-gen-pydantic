@@ -24,6 +24,7 @@ from api.v1.validate_pydantic import (
     ValidatedFormatsExtended,
     ValidatedIgnore,
     ValidatedIn,
+    ValidatedMapConstraints,
     ValidatedNotContains,
     ValidatedRequired,
     ValidatedScalars,
@@ -76,8 +77,11 @@ import "buf/validate/validate.proto";
 | `string.prefix` + `string.suffix` | `Field(pattern=^prefix.*suffix$)` |
 | `repeated.min_items` | `Field(min_length=...)` |
 | `repeated.max_items` | `Field(max_length=...)` |
+| `repeated.items` | per-element `Annotated[T, ...]` wrapping |
 | `map.min_pairs` | `Field(min_length=...)` |
 | `map.max_pairs` | `Field(max_length=...)` |
+| `map.keys` | per-key `dict[Annotated[K, ...], V]` wrapping |
+| `map.values` | per-value `dict[K, Annotated[V, ...]]` wrapping |
 | `bytes.min_len` | `Field(min_length=...)` |
 | `bytes.max_len` | `Field(max_length=...)` |
 | `bytes.len` | `Field(min_length=N, max_length=N)` |
@@ -338,6 +342,66 @@ try:
 except ValidationError:
     pass
 ```
+
+### Per-entry constraints on map fields (`map.keys` / `map.values`)
+
+`map.keys` and `map.values` apply a nested `FieldConstraints` to every key or value in
+the map. The generated type wraps the key and/or value with `Annotated[..., ...]` — any
+constraint that works on a scalar field also works here:
+
+=== ":lucide-file-code: validate.proto"
+
+    ```proto
+    message ValidatedMapConstraints {
+      // Keys must be 1–63 chars; values must be non-empty.
+      map<string, string> labels = 1 [
+        (buf.validate.field).map.keys   = { string: { min_len: 1, max_len: 63 } },
+        (buf.validate.field).map.values = { string: { min_len: 1 } }
+      ];
+      // Values must be positive.
+      map<string, int32> counters = 2 [
+        (buf.validate.field).map.values = { int32: { gt: 0 } }
+      ];
+    }
+    ```
+
+=== ":simple-python: validate_pydantic.py"
+
+    ```python exec="on" session="validate"
+    print(f"```python\n{inspect.getsource(ValidatedMapConstraints).rstrip()}\n```")
+    ```
+
+```python exec="on" session="validate"
+from pydantic import ValidationError
+
+# Valid: key length 1–63, non-empty value
+vm = ValidatedMapConstraints(labels={"env": "prod"}, counters={"hits": 1})
+assert vm.labels == {"env": "prod"}
+assert vm.counters == {"hits": 1}
+
+# Key too long fails
+try:
+    ValidatedMapConstraints(labels={"a" * 64: "prod"})
+except ValidationError:
+    pass
+
+# Empty value fails
+try:
+    ValidatedMapConstraints(labels={"env": ""})
+except ValidationError:
+    pass
+
+# Non-positive counter fails
+try:
+    ValidatedMapConstraints(counters={"hits": 0})
+except ValidationError:
+    pass
+```
+
+The constraint types supported inside `map.keys` and `map.values` are the same as for
+any scalar field: numeric bounds, string length / pattern / format validators, `in` /
+`not_in`, etc. Format validators on keys (e.g. `email: true`) and pattern validators on
+values work just as they do on top-level fields.
 
 ### Const (fixed values)
 

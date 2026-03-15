@@ -150,6 +150,9 @@ Supported translations:
 - `string.in`/`int.in`/`float.in`/etc. → `Annotated[T, AfterValidator(_make_in_validator(frozenset({...})))]`
 - `string.not_in`/etc. → `Annotated[T, AfterValidator(_make_not_in_validator(frozenset({...})))]`
 - `repeated.unique` → `Annotated[list[T], AfterValidator(_require_unique)]`
+- `repeated.items` → per-element `list[Annotated[T, ...]]` wrapping via `buildItemAnnotation`
+- `map.keys` → per-key `dict[Annotated[K, ...], V]` via `buildItemAnnotation` + `splitDictType`
+- `map.values` → per-value `dict[K, Annotated[V, ...]]` via `buildItemAnnotation` + `splitDictType`
 - `string.email`/`uri`/`ip`/`ipv4`/`ipv6`/`uuid` → `Annotated[str, AfterValidator(_validate_*)]`
 - `string.hostname`/`uri_ref`/`address`/`tuuid`/`ulid`/`ip_with_prefixlen`/`ipv4_with_prefixlen`/`ipv6_with_prefixlen`/`ip_prefix`/`ipv4_prefix`/`ipv6_prefix`/`host_and_port` → `Annotated[str, AfterValidator(_validate_*)]`
 - `string.well_known_regex = HTTP_HEADER_NAME/HTTP_HEADER_VALUE` → `Annotated[str, AfterValidator(_validate_http_header_name/_validate_http_header_value)]`; `strict=false` → dropped comment

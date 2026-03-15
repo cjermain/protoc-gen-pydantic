@@ -21,6 +21,7 @@ from api.v1.validate_pydantic import (
     ValidatedFormatsExtended,
     ValidatedIn,
     ValidatedMap,
+    ValidatedMapConstraints,
     ValidatedNotContains,
     ValidatedOneof,
     ValidatedOneofFormat,
@@ -1746,3 +1747,121 @@ def test_repeated_items_email_skips_empty_string():
     # Empty string is the proto3 zero value; email validator is skipped.
     m = ValidatedRepeatedItems(emails=[""])
     assert m.emails == [""]
+
+
+# --- ValidatedMapConstraints ---
+
+
+def test_map_constraints_valid():
+    m = ValidatedMapConstraints(labels={"env": "prod"})
+    assert m.labels == {"env": "prod"}
+
+
+def test_map_constraints_empty_dict_valid():
+    # No min_pairs constraint; empty dict is allowed.
+    m = ValidatedMapConstraints()
+    assert m.labels == {}
+
+
+def test_map_constraints_key_empty_fails():
+    # Key "" violates min_len=1 on keys.
+    with pytest.raises(ValidationError):
+        ValidatedMapConstraints(labels={"": "prod"})
+
+
+def test_map_constraints_key_too_long_fails():
+    # Key of 64 chars violates max_len=63 on keys.
+    with pytest.raises(ValidationError):
+        ValidatedMapConstraints(labels={"a" * 64: "prod"})
+
+
+def test_map_constraints_key_max_len_boundary_valid():
+    # Key of exactly 63 chars is valid.
+    m = ValidatedMapConstraints(labels={"a" * 63: "prod"})
+    assert len(list(m.labels.keys())[0]) == 63
+
+
+def test_map_constraints_value_empty_fails():
+    # Value "" violates min_len=1 on values.
+    with pytest.raises(ValidationError):
+        ValidatedMapConstraints(labels={"env": ""})
+
+
+def test_map_constraints_counters_valid():
+    m = ValidatedMapConstraints(counters={"hits": 1})
+    assert m.counters == {"hits": 1}
+
+
+def test_map_constraints_counters_zero_fails():
+    # Value 0 violates gt=0 on values.
+    with pytest.raises(ValidationError):
+        ValidatedMapConstraints(counters={"hits": 0})
+
+
+def test_map_constraints_counters_negative_fails():
+    with pytest.raises(ValidationError):
+        ValidatedMapConstraints(counters={"hits": -1})
+
+
+def test_map_constraints_rules_valid():
+    m = ValidatedMapConstraints(rules={"user@example.com": "hello"})
+    assert m.rules == {"user@example.com": "hello"}
+
+
+def test_map_constraints_rules_invalid_key_fails():
+    # Key must be a valid email.
+    with pytest.raises(ValidationError):
+        ValidatedMapConstraints(rules={"not-an-email": "hello"})
+
+
+def test_map_constraints_rules_invalid_value_fails():
+    # Value must match "^[a-z]+$".
+    with pytest.raises(ValidationError):
+        ValidatedMapConstraints(rules={"user@example.com": "UPPER"})
+
+
+def test_map_constraints_key_min_len_boundary_valid():
+    # Key of exactly 1 char satisfies min_len=1.
+    m = ValidatedMapConstraints(labels={"a": "prod"})
+    assert m.labels == {"a": "prod"}
+
+
+def test_map_constraints_tagged_valid():
+    # min_pairs=1 and keys.min_len=1 both satisfied.
+    m = ValidatedMapConstraints(tagged={"env": "prod"})
+    assert m.tagged == {"env": "prod"}
+
+
+def test_map_constraints_tagged_empty_fails():
+    # Violates min_pairs=1.
+    with pytest.raises(ValidationError):
+        ValidatedMapConstraints(tagged={})
+
+
+def test_map_constraints_tagged_empty_key_fails():
+    # Violates keys.min_len=1.
+    with pytest.raises(ValidationError):
+        ValidatedMapConstraints(tagged={"": "prod"})
+
+
+def test_map_constraints_scores_valid():
+    # Positive integer key and non-empty value.
+    m = ValidatedMapConstraints(scores={1: "alice", 2: "bob"})
+    assert m.scores == {1: "alice", 2: "bob"}
+
+
+def test_map_constraints_scores_zero_key_fails():
+    # Integer key 0 violates gt=0 on keys.
+    with pytest.raises(ValidationError):
+        ValidatedMapConstraints(scores={0: "alice"})
+
+
+def test_map_constraints_scores_negative_key_fails():
+    with pytest.raises(ValidationError):
+        ValidatedMapConstraints(scores={-1: "alice"})
+
+
+def test_map_constraints_scores_empty_value_fails():
+    # Empty string value violates not_in=[""].
+    with pytest.raises(ValidationError):
+        ValidatedMapConstraints(scores={1: ""})
