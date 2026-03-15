@@ -11,6 +11,29 @@ import (
 	"google.golang.org/protobuf/types/dynamicpb"
 )
 
+// splitDictType splits "dict[K, V]" into its key and value type strings,
+// respecting nested brackets so types like "dict[str, dict[str, int]]" work.
+func splitDictType(t string) (key, val string, ok bool) {
+	if !strings.HasPrefix(t, "dict[") || !strings.HasSuffix(t, "]") {
+		return "", "", false
+	}
+	inner := t[len("dict[") : len(t)-1]
+	depth := 0
+	for i, ch := range inner {
+		switch ch {
+		case '[':
+			depth++
+		case ']':
+			depth--
+		case ',':
+			if depth == 0 {
+				return strings.TrimSpace(inner[:i]), strings.TrimSpace(inner[i+1:]), true
+			}
+		}
+	}
+	return "", "", false
+}
+
 // wrapWithAnnotated wraps a type string with _Annotated[..., validators],
 // preserving `| None` and `_Optional[...]` wrappers correctly.
 func wrapWithAnnotated(typ string, validators []string) string {
@@ -126,6 +149,19 @@ func (e *generator) applyConstraintTypeOverrides(f *Field) {
 		}
 	}
 
+	// map.keys / map.values: wrap key/value types with per-entry constraints
+	if fc.KeyConstraints != nil || fc.ValueConstraints != nil {
+		if keyType, valType, ok := splitDictType(f.Type); ok {
+			if fc.KeyConstraints != nil {
+				keyType = e.buildItemAnnotation(keyType, fc.KeyConstraints)
+			}
+			if fc.ValueConstraints != nil {
+				valType = e.buildItemAnnotation(valType, fc.ValueConstraints)
+			}
+			f.Type = "dict[" + keyType + ", " + valType + "]"
+		}
+	}
+
 	// in/not_in/unique → AfterValidator wrapping
 	var validators []string
 	if len(fc.InValues) > 0 {
@@ -223,9 +259,20 @@ func (e *generator) extractFieldConstraints(
 		case fd.Kind() == protoreflect.MessageKind && !fd.IsList():
 			// Type-specific rules sub-message (int32, string, repeated, map, etc.)
 			v.Message().Range(func(rfd protoreflect.FieldDescriptor, rv protoreflect.Value) bool {
-				if string(rfd.Name()) == "items" && rfd.Kind() == protoreflect.MessageKind {
+				switch {
+				case string(rfd.Name()) == "items" && rfd.Kind() == protoreflect.MessageKind:
 					result.ItemConstraints = e.extractConstraintsFromMsg(rv.Message(), isFloat, isBytesField)
-				} else {
+				case string(rfd.Name()) == "keys" && rfd.Kind() == protoreflect.MessageKind && field.IsMap():
+					keyKind := field.MapKey().Kind()
+					isKeyFloat := keyKind == protoreflect.FloatKind || keyKind == protoreflect.DoubleKind
+					isKeyBytes := keyKind == protoreflect.BytesKind
+					result.KeyConstraints = e.extractConstraintsFromMsg(rv.Message(), isKeyFloat, isKeyBytes)
+				case string(rfd.Name()) == "values" && rfd.Kind() == protoreflect.MessageKind && field.IsMap():
+					valKind := field.MapValue().Kind()
+					isValFloat := valKind == protoreflect.FloatKind || valKind == protoreflect.DoubleKind
+					isValBytes := valKind == protoreflect.BytesKind
+					result.ValueConstraints = e.extractConstraintsFromMsg(rv.Message(), isValFloat, isValBytes)
+				default:
 					extractRuleField(result, rfd, rv, isFloat, isBytesField)
 				}
 				return true

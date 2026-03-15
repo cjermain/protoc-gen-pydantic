@@ -720,6 +720,31 @@ class ValidatedRepeatedItems(_ProtoModel):
     )
 
 
+class ValidatedMapConstraints(_ProtoModel):
+    """
+    ValidatedMapConstraints exercises map.keys and map.values per-entry constraints.
+    """
+
+    # Keys must be 1–63 chars; values must be non-empty.
+    labels: dict[
+        _Annotated[str, _Field(min_length=1, max_length=63)],
+        _Annotated[str, _Field(min_length=1)],
+    ] = _Field(
+        default_factory=dict,
+    )
+    # Values must be positive.
+    counters: dict[str, _Annotated[int, _Field(gt=0)]] = _Field(
+        default_factory=dict,
+    )
+    # Keys must be a valid email; values must match a pattern.
+    rules: dict[
+        _Annotated[str, _AfterValidator(_validate_email)],
+        _Annotated[str, _Field(pattern="^[a-z]+$")],
+    ] = _Field(
+        default_factory=dict,
+    )
+
+
 class ValidatedIgnore(_ProtoModel):
     """
     ValidatedIgnore exercises ignore = IGNORE_IF_ZERO_VALUE, which opts a field

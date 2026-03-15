@@ -194,23 +194,39 @@ func (f Field) TypeAnnotation() string {
 // instead so the template can emit the parenthesized assignment form.
 func (f Field) TypeAnnotationFormatted(bi string) string {
 	annotation := f.TypeAnnotation()
-	// Only wrap unquoted _Annotated[...] types (quoted types are never split).
-	if f.NeedsQuote || !strings.HasPrefix(annotation, "_Annotated[") || !strings.HasSuffix(annotation, "]") {
+	if f.NeedsQuote {
 		return annotation
 	}
 	annotationLine := bi + f.Name + ": " + annotation
-	// Case 1: full line fits — no wrapping needed.
-	if len(annotationLine+" = _Field(") <= 88 {
-		return annotation
+
+	// _Annotated[...] splitting.
+	if strings.HasPrefix(annotation, "_Annotated[") && strings.HasSuffix(annotation, "]") {
+		// Case 1: full line fits — no wrapping needed.
+		if len(annotationLine+" = _Field(") <= 88 {
+			return annotation
+		}
+		// Case 2: ruff-stable paren form — "name: annotation = (" fits in 88.
+		// NeedsParenAssignment handles the template rendering; return annotation unsplit.
+		if len(annotationLine+" = (") <= 88 {
+			return annotation
+		}
+		// Case 3: annotation itself is too long — split across multiple lines.
+		inner := annotation[len("_Annotated[") : len(annotation)-1]
+		return "_Annotated[\n" + bi + "    " + inner + "\n" + bi + "]"
 	}
-	// Case 2: ruff-stable paren form — "name: annotation = (" fits in 88.
-	// NeedsParenAssignment handles the template rendering; return annotation unsplit.
-	if len(annotationLine+" = (") <= 88 {
-		return annotation
+
+	// dict[K, V] splitting: when K or V is annotated the line can exceed 88 chars.
+	if strings.HasPrefix(annotation, "dict[") && strings.HasSuffix(annotation, "]") {
+		if len(annotationLine+" = _Field(") <= 88 {
+			return annotation
+		}
+		if keyType, valType, ok := splitDictType(annotation); ok {
+			indent := bi + "    "
+			return "dict[\n" + indent + keyType + ",\n" + indent + valType + ",\n" + bi + "]"
+		}
 	}
-	// Case 3: annotation itself is too long — split across multiple lines.
-	inner := annotation[len("_Annotated[") : len(annotation)-1]
-	return "_Annotated[\n" + bi + "    " + inner + "\n" + bi + "]"
+
+	return annotation
 }
 
 // TypeAnnotationFormattedBare is like TypeAnnotationFormatted but for fields
@@ -325,6 +341,8 @@ type FieldConstraints struct {
 	IsNonScalar        bool              // true when field kind is MessageKind or EnumKind
 	HasIgnore          bool              // true when ignore != IGNORE_UNSPECIFIED (any non-zero ignore enum value)
 	ItemConstraints    *FieldConstraints // per-element constraints from repeated.items
+	KeyConstraints     *FieldConstraints // per-key constraints from map.keys
+	ValueConstraints   *FieldConstraints // per-value constraints from map.values
 }
 
 func (c *FieldConstraints) HasAny() bool {
@@ -339,7 +357,9 @@ func (c *FieldConstraints) HasAny() bool {
 		c.NotContains != nil ||
 		len(c.Examples) > 0 || c.FormatValidator != nil ||
 		len(c.DroppedConstraints) > 0 ||
-		c.ItemConstraints != nil
+		c.ItemConstraints != nil ||
+		c.KeyConstraints != nil ||
+		c.ValueConstraints != nil
 }
 
 // PydanticArgs returns ["gt=0", "le=150", ...] to inject into _Field().
