@@ -545,3 +545,91 @@ message ValidatedStringBytes {
     (buf.validate.field).string.max_bytes = 64
   ];
 }
+
+// ValidatedCELIsEmail exercises isEmail() in a CEL expression.
+message ValidatedCELIsEmail {
+  string contact = 1 [(buf.validate.field).cel = {
+    id: "valid_email",
+    expression: "this.isEmail()",
+    message: "contact must be a valid email"
+  }];
+}
+
+// ValidatedCELIsIp exercises isIp() with optional version argument.
+message ValidatedCELIsIp {
+  string addr = 1 [(buf.validate.field).cel = {
+    id: "valid_ip",
+    expression: "this.isIp()",
+    message: "must be a valid IP address"
+  }];
+  string addr_v4 = 2 [(buf.validate.field).cel = {
+    id: "valid_ipv4",
+    expression: "this.isIp(4)",
+    message: "must be a valid IPv4 address"
+  }];
+  string addr_v6 = 3 [(buf.validate.field).cel = {
+    id: "valid_ipv6",
+    expression: "this.isIp(6)",
+    message: "must be a valid IPv6 address"
+  }];
+}
+
+// ValidatedCELIsIpPrefix exercises isIpPrefix().
+message ValidatedCELIsIpPrefix {
+  string prefix = 1 [(buf.validate.field).cel = {
+    id: "valid_prefix",
+    expression: "this.isIpPrefix()",
+    message: "must be a valid IP prefix (CIDR)"
+  }];
+  string prefix_v4 = 2 [(buf.validate.field).cel = {
+    id: "valid_prefix_v4",
+    expression: "this.isIpPrefix(4, false)",
+    message: "must be a valid IPv4 prefix"
+  }];
+}
+
+// ValidatedCELIsHostname exercises isHostname().
+message ValidatedCELIsHostname {
+  string host = 1 [(buf.validate.field).cel = {
+    id: "valid_hostname",
+    expression: "this.isHostname()",
+    message: "must be a valid hostname"
+  }];
+}
+
+// ValidatedCELIsUri exercises isUri() and isUriRef().
+message ValidatedCELIsUri {
+  string link = 1 [(buf.validate.field).cel = {
+    id: "valid_uri",
+    expression: "this.isUri()",
+    message: "must be a valid URI"
+  }];
+  string ref = 2 [(buf.validate.field).cel = {
+    id: "valid_uri_ref",
+    expression: "this.isUriRef()",
+    message: "must be a valid URI reference"
+  }];
+}
+
+// ValidatedCELIsHostAndPort exercises isHostAndPort().
+message ValidatedCELIsHostAndPort {
+  string endpoint = 1 [(buf.validate.field).cel = {
+    id: "valid_host_port",
+    expression: "this.isHostAndPort(true)",
+    message: "must be a valid host:port"
+  }];
+}
+
+// ValidatedCELIsNanInf exercises isNan() and isInf() in CEL.
+message ValidatedCELIsNanInf {
+  double value = 1 [(buf.validate.field).cel = {
+    id: "not_nan",
+    expression: "!this.isNan()",
+    message: "value must not be NaN"
+  }];
+  double bounded = 2 [(buf.validate.field).cel = {
+    id: "not_inf",
+    expression: "!this.isInf()",
+    message: "bounded must not be infinite"
+  }];
+}

@@ -769,6 +769,135 @@ def _make_len_bytes_validator(n):
     return _validate
 `
 
+// CEL bool-returning helper functions emitted conditionally by
+// buildProtoTypesContent when CEL expressions use the corresponding is*()
+// protovalidate functions.
+
+const protoTypesCELIsEmailFunc = `
+
+def _is_email(v: str) -> bool:
+    if not v:
+        return False
+    try:
+        from pydantic.networks import validate_email as _pydantic_validate_email
+
+        _pydantic_validate_email(v)
+        return True
+    except Exception:
+        return False
+`
+
+const protoTypesCELIsIpFunc = `
+
+def _is_ip(v: str, version: int) -> bool:
+    if not v:
+        return False
+    try:
+        if version == 4:
+            _ipaddress.IPv4Address(v)
+        elif version == 6:
+            _ipaddress.IPv6Address(v)
+        else:
+            _ipaddress.ip_address(v)
+        return True
+    except ValueError:
+        return False
+`
+
+const protoTypesCELIsIpPrefixFunc = `
+
+def _is_ip_prefix(v: str, version: int, *, strict: bool = False) -> bool:
+    if not v:
+        return False
+    try:
+        if version == 4:
+            _ipaddress.IPv4Network(v, strict=strict)
+        elif version == 6:
+            _ipaddress.IPv6Network(v, strict=strict)
+        else:
+            try:
+                _ipaddress.IPv6Network(v, strict=strict)
+                return True
+            except ValueError:
+                _ipaddress.IPv4Network(v, strict=strict)
+        return True
+    except ValueError:
+        return False
+`
+
+const protoTypesCELIsHostnameFunc = `
+
+def _is_hostname(v: str) -> bool:
+    if not v:
+        return False
+    try:
+        _validate_hostname(v)
+        return True
+    except ValueError:
+        return False
+`
+
+const protoTypesCELIsUriFunc = `
+
+def _is_uri(v: str) -> bool:
+    if not v:
+        return False
+    try:
+        _url_adapter.validate_python(v)
+        return True
+    except Exception:
+        return False
+`
+
+const protoTypesCELIsUriRefFunc = `
+
+def _is_uri_ref(v: str) -> bool:
+    if not v:
+        return False
+    return not bool(_re.search(r"[\x00-\x1f\x7f\s]", v))
+`
+
+const protoTypesCELIsHostAndPortFunc = `
+
+def _is_host_and_port(v: str, requires_port: bool) -> bool:
+    if not v:
+        return False
+    try:
+        _validate_host_and_port(v)
+        return True
+    except ValueError:
+        if not requires_port:
+            try:
+                _validate_hostname(v)
+                return True
+            except ValueError:
+                pass
+            try:
+                _ipaddress.ip_address(v)
+                return True
+            except ValueError:
+                pass
+        return False
+`
+
+const protoTypesCELIsNanFunc = `
+
+def _is_nan(v: float) -> bool:
+    return _math.isnan(v)
+`
+
+const protoTypesCELIsInfFunc = `
+
+def _is_inf(v: float, direction: int = 0) -> bool:
+    if not _math.isinf(v):
+        return False
+    if direction > 0:
+        return v > 0
+    if direction < 0:
+        return v < 0
+    return True
+`
+
 // buildProtoTypesContent assembles the content for _proto_types.py, including
 // only the format validator functions (and their imports) that are actually
 // used by files in the same output directory.
@@ -777,10 +906,13 @@ func buildProtoTypesContent(needed map[string]bool) string {
 		needed["_validate_ip_with_prefixlen"] || needed["_validate_ipv4_with_prefixlen"] ||
 		needed["_validate_ipv6_with_prefixlen"] || needed["_validate_ip_prefix"] ||
 		needed["_validate_ipv4_prefix"] || needed["_validate_ipv6_prefix"] ||
-		needed["_validate_address"] || needed["_validate_host_and_port"]
-	needURI := needed["_validate_uri"]
-	// hostname is a dependency for address and host_and_port — emit it whenever those are needed.
-	needHostnameAsDep := needed["_validate_address"] || needed["_validate_host_and_port"]
+		needed["_validate_address"] || needed["_validate_host_and_port"] ||
+		// CEL bool-returning variants also need ipaddress
+		needed["_is_ip"] || needed["_is_ip_prefix"] || needed["_is_host_and_port"]
+	needURI := needed["_validate_uri"] || needed["_is_uri"]
+	// hostname is a dependency for address, host_and_port, and their bool variants.
+	needHostnameAsDep := needed["_validate_address"] || needed["_validate_host_and_port"] ||
+		needed["_is_hostname"] || needed["_is_host_and_port"]
 
 	var b strings.Builder
 
@@ -791,7 +923,7 @@ func buildProtoTypesContent(needed map[string]bool) string {
 	if needIP {
 		b.WriteString("import ipaddress as _ipaddress\n")
 	}
-	if needed["_require_finite"] {
+	if needed["_require_finite"] || needed["_is_nan"] || needed["_is_inf"] {
 		b.WriteString("import math as _math\n")
 	}
 	b.WriteString("import re as _re\n")
@@ -880,7 +1012,7 @@ func buildProtoTypesContent(needed map[string]bool) string {
 	if needed["_validate_ipv6_prefix"] {
 		b.WriteString(protoTypesIPv6PrefixFunc)
 	}
-	if needed["_validate_host_and_port"] {
+	if needed["_validate_host_and_port"] || needed["_is_host_and_port"] {
 		b.WriteString(protoTypesHostAndPortFunc)
 	}
 	if needed["_validate_http_header_name"] {
@@ -912,6 +1044,38 @@ func buildProtoTypesContent(needed map[string]bool) string {
 	}
 	if needed["_make_len_bytes_validator"] {
 		b.WriteString(protoTypesLenBytesFunc)
+	}
+
+	// CEL bool-returning helpers (is* functions from protovalidate).
+	if needed["_is_email"] {
+		b.WriteString(protoTypesCELIsEmailFunc)
+	}
+	if needed["_is_ip"] {
+		b.WriteString(protoTypesCELIsIpFunc)
+	}
+	if needed["_is_ip_prefix"] {
+		b.WriteString(protoTypesCELIsIpPrefixFunc)
+	}
+	// _is_hostname depends on _validate_hostname already being emitted above.
+	if needed["_is_hostname"] {
+		b.WriteString(protoTypesCELIsHostnameFunc)
+	}
+	// _is_uri depends on _url_adapter already being emitted above.
+	if needed["_is_uri"] {
+		b.WriteString(protoTypesCELIsUriFunc)
+	}
+	if needed["_is_uri_ref"] {
+		b.WriteString(protoTypesCELIsUriRefFunc)
+	}
+	// _is_host_and_port depends on _validate_host_and_port and _validate_hostname.
+	if needed["_is_host_and_port"] {
+		b.WriteString(protoTypesCELIsHostAndPortFunc)
+	}
+	if needed["_is_nan"] {
+		b.WriteString(protoTypesCELIsNanFunc)
+	}
+	if needed["_is_inf"] {
+		b.WriteString(protoTypesCELIsInfFunc)
 	}
 
 	return b.String()

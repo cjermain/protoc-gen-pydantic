@@ -13,6 +13,13 @@ from api.v1.validate_pydantic import (
     ValidatedCELDropped,
     ValidatedCELField,
     ValidatedCELHas,
+    ValidatedCELIsEmail,
+    ValidatedCELIsHostAndPort,
+    ValidatedCELIsHostname,
+    ValidatedCELIsIp,
+    ValidatedCELIsIpPrefix,
+    ValidatedCELIsNanInf,
+    ValidatedCELIsUri,
     ValidatedCELMessage,
     ValidatedCELStringReturn,
     ValidatedConst,
@@ -2088,3 +2095,179 @@ def test_validated_string_bytes_in_generated_file():
     assert "_make_min_bytes_validator" in text
     assert "_make_max_bytes_validator" in text
     assert "_make_len_bytes_validator" in text
+
+
+# ---------------------------------------------------------------------------
+# ValidatedCELIsEmail — isEmail() in CEL
+# ---------------------------------------------------------------------------
+
+
+def test_cel_is_email_valid():
+    m = ValidatedCELIsEmail(contact="user@example.com")
+    assert m.contact == "user@example.com"
+
+
+def test_cel_is_email_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedCELIsEmail(contact="notanemail")
+
+
+# ---------------------------------------------------------------------------
+# ValidatedCELIsIp — isIp() with version argument
+# ---------------------------------------------------------------------------
+
+
+def test_cel_is_ip_any_valid_v4():
+    m = ValidatedCELIsIp(addr="1.2.3.4", addr_v4="1.2.3.4", addr_v6="::1")
+    assert m.addr == "1.2.3.4"
+
+
+def test_cel_is_ip_any_valid_v6():
+    m = ValidatedCELIsIp(addr="::1", addr_v4="1.2.3.4", addr_v6="::1")
+    assert m.addr == "::1"
+
+
+def test_cel_is_ip_any_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedCELIsIp(addr="notanip", addr_v4="1.2.3.4", addr_v6="::1")
+
+
+def test_cel_is_ip_v4_rejects_ipv6():
+    with pytest.raises(ValidationError):
+        ValidatedCELIsIp(addr="1.2.3.4", addr_v4="::1", addr_v6="::1")
+
+
+def test_cel_is_ip_v6_rejects_ipv4():
+    with pytest.raises(ValidationError):
+        ValidatedCELIsIp(addr="1.2.3.4", addr_v4="1.2.3.4", addr_v6="1.2.3.4")
+
+
+# ---------------------------------------------------------------------------
+# ValidatedCELIsIpPrefix — isIpPrefix()
+# ---------------------------------------------------------------------------
+
+
+def test_cel_is_ip_prefix_valid_v4():
+    m = ValidatedCELIsIpPrefix(prefix="10.0.0.0/8", prefix_v4="10.0.0.0/8")
+    assert m.prefix == "10.0.0.0/8"
+
+
+def test_cel_is_ip_prefix_valid_v6():
+    m = ValidatedCELIsIpPrefix(prefix="2001:db8::/32", prefix_v4="10.0.0.0/8")
+    assert m.prefix == "2001:db8::/32"
+
+
+def test_cel_is_ip_prefix_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedCELIsIpPrefix(prefix="notaprefix", prefix_v4="10.0.0.0/8")
+
+
+def test_cel_is_ip_prefix_v4_non_strict_allows_host_bits():
+    # strict=False allows host bits set in the prefix
+    m = ValidatedCELIsIpPrefix(prefix="10.0.0.0/8", prefix_v4="10.1.2.3/8")
+    assert m.prefix_v4 == "10.1.2.3/8"
+
+
+def test_cel_is_ip_prefix_v4_rejects_v6():
+    with pytest.raises(ValidationError):
+        ValidatedCELIsIpPrefix(prefix="10.0.0.0/8", prefix_v4="2001:db8::/32")
+
+
+# ---------------------------------------------------------------------------
+# ValidatedCELIsHostname — isHostname()
+# ---------------------------------------------------------------------------
+
+
+def test_cel_is_hostname_valid():
+    m = ValidatedCELIsHostname(host="example.com")
+    assert m.host == "example.com"
+
+
+def test_cel_is_hostname_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedCELIsHostname(host="not a hostname!")
+
+
+# ---------------------------------------------------------------------------
+# ValidatedCELIsUri — isUri() and isUriRef()
+# ---------------------------------------------------------------------------
+
+
+def test_cel_is_uri_valid():
+    m = ValidatedCELIsUri(link="https://example.com", ref="/path")
+    assert m.link == "https://example.com"
+
+
+def test_cel_is_uri_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedCELIsUri(link="not a uri", ref="/path")
+
+
+def test_cel_is_uri_ref_valid_relative():
+    m = ValidatedCELIsUri(link="https://example.com", ref="/relative/path")
+    assert m.ref == "/relative/path"
+
+
+def test_cel_is_uri_ref_valid_absolute():
+    m = ValidatedCELIsUri(link="https://example.com", ref="https://example.com")
+    assert m.ref == "https://example.com"
+
+
+def test_cel_is_uri_ref_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedCELIsUri(link="https://example.com", ref="has\ncontrol\x00chars")
+
+
+# ---------------------------------------------------------------------------
+# ValidatedCELIsHostAndPort — isHostAndPort()
+# ---------------------------------------------------------------------------
+
+
+def test_cel_is_host_and_port_valid_hostname():
+    m = ValidatedCELIsHostAndPort(endpoint="example.com:80")
+    assert m.endpoint == "example.com:80"
+
+
+def test_cel_is_host_and_port_valid_ip():
+    m = ValidatedCELIsHostAndPort(endpoint="1.2.3.4:443")
+    assert m.endpoint == "1.2.3.4:443"
+
+
+def test_cel_is_host_and_port_missing_port():
+    with pytest.raises(ValidationError):
+        ValidatedCELIsHostAndPort(endpoint="example.com")
+
+
+def test_cel_is_host_and_port_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedCELIsHostAndPort(endpoint="not!a!host:99")
+
+
+# ---------------------------------------------------------------------------
+# ValidatedCELIsNanInf — isNan() and isInf()
+# ---------------------------------------------------------------------------
+
+
+def test_cel_is_nan_valid():
+    m = ValidatedCELIsNanInf(value=1.0, bounded=2.0)
+    assert m.value == 1.0
+
+
+def test_cel_is_nan_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedCELIsNanInf(value=float("nan"), bounded=2.0)
+
+
+def test_cel_is_inf_valid():
+    m = ValidatedCELIsNanInf(value=1.0, bounded=2.0)
+    assert m.bounded == 2.0
+
+
+def test_cel_is_inf_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedCELIsNanInf(value=1.0, bounded=float("inf"))
+
+
+def test_cel_is_inf_negative_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedCELIsNanInf(value=1.0, bounded=float("-inf"))

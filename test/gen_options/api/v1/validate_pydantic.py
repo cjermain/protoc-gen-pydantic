@@ -17,7 +17,16 @@ from ._proto_types import (
     ProtoTimestamp,
     ProtoUInt64,
     _cel_matches,
+    _is_email,
+    _is_host_and_port,
+    _is_hostname,
+    _is_inf,
+    _is_ip,
+    _is_ip_prefix,
+    _is_nan,
     _is_unique,
+    _is_uri,
+    _is_uri_ref,
     _make_cel_str_validator,
     _make_cel_validator,
     _make_const_validator,
@@ -921,3 +930,159 @@ class ValidatedStringBytes(_ProtoModel):
         _AfterValidator(_make_min_bytes_validator(2)),
         _AfterValidator(_make_max_bytes_validator(64)),
     ]
+
+
+class ValidatedCELIsEmail(_ProtoModel):
+    """
+    ValidatedCELIsEmail exercises isEmail() in a CEL expression.
+    """
+
+    contact: _Annotated[
+        str,
+        _AfterValidator(
+            _make_cel_validator(lambda v: _is_email(v), "contact must be a valid email")
+        ),
+    ] = _Field(
+        default="",
+    )
+
+
+class ValidatedCELIsIp(_ProtoModel):
+    """
+    ValidatedCELIsIp exercises isIp() with optional version argument.
+    """
+
+    addr: _Annotated[
+        str,
+        _AfterValidator(
+            _make_cel_validator(lambda v: _is_ip(v, 0), "must be a valid IP address")
+        ),
+    ] = _Field(
+        default="",
+    )
+    addrV4: _Annotated[
+        str,
+        _AfterValidator(
+            _make_cel_validator(lambda v: _is_ip(v, 4), "must be a valid IPv4 address")
+        ),
+    ] = _Field(
+        default="",
+    )
+    addrV6: _Annotated[
+        str,
+        _AfterValidator(
+            _make_cel_validator(lambda v: _is_ip(v, 6), "must be a valid IPv6 address")
+        ),
+    ] = _Field(
+        default="",
+    )
+
+
+class ValidatedCELIsIpPrefix(_ProtoModel):
+    """
+    ValidatedCELIsIpPrefix exercises isIpPrefix().
+    """
+
+    prefix: _Annotated[
+        str,
+        _AfterValidator(
+            _make_cel_validator(
+                lambda v: _is_ip_prefix(v, 0), "must be a valid IP prefix (CIDR)"
+            )
+        ),
+    ] = _Field(
+        default="",
+    )
+    prefixV4: _Annotated[
+        str,
+        _AfterValidator(
+            _make_cel_validator(
+                lambda v: _is_ip_prefix(v, 4, strict=False),
+                "must be a valid IPv4 prefix",
+            )
+        ),
+    ] = _Field(
+        default="",
+    )
+
+
+class ValidatedCELIsHostname(_ProtoModel):
+    """
+    ValidatedCELIsHostname exercises isHostname().
+    """
+
+    host: _Annotated[
+        str,
+        _AfterValidator(
+            _make_cel_validator(lambda v: _is_hostname(v), "must be a valid hostname")
+        ),
+    ] = _Field(
+        default="",
+    )
+
+
+class ValidatedCELIsUri(_ProtoModel):
+    """
+    ValidatedCELIsUri exercises isUri() and isUriRef().
+    """
+
+    link: _Annotated[
+        str,
+        _AfterValidator(
+            _make_cel_validator(lambda v: _is_uri(v), "must be a valid URI")
+        ),
+    ] = _Field(
+        default="",
+    )
+    ref: _Annotated[
+        str,
+        _AfterValidator(
+            _make_cel_validator(
+                lambda v: _is_uri_ref(v), "must be a valid URI reference"
+            )
+        ),
+    ] = _Field(
+        default="",
+    )
+
+
+class ValidatedCELIsHostAndPort(_ProtoModel):
+    """
+    ValidatedCELIsHostAndPort exercises isHostAndPort().
+    """
+
+    endpoint: _Annotated[
+        str,
+        _AfterValidator(
+            _make_cel_validator(
+                lambda v: _is_host_and_port(v, True), "must be a valid host:port"
+            )
+        ),
+    ] = _Field(
+        default="",
+    )
+
+
+class ValidatedCELIsNanInf(_ProtoModel):
+    """
+    ValidatedCELIsNanInf exercises isNan() and isInf() in CEL.
+    """
+
+    value: _Annotated[
+        float,
+        _AfterValidator(
+            _make_cel_validator(lambda v: not (_is_nan(v)), "value must not be NaN")
+        ),
+    ] = _Field(
+        default=0.0,
+    )
+    bounded: _Annotated[
+        float,
+        _AfterValidator(
+            _make_cel_validator(
+                lambda v: not (_is_inf(v)), "bounded must not be infinite"
+            )
+        ),
+    ] = _Field(
+        default=0.0,
+    )

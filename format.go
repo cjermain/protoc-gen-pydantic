@@ -295,9 +295,13 @@ func formatAnnotationElement(s, elemIndent string) string {
 	return s
 }
 
-// formatFactoryCall wraps a factory(args) call onto two lines when it doesn't
-// fit on one line at indent. Returns "" if the call cannot be formatted (e.g.
-// the args still don't fit even after expansion).
+// formatFactoryCall wraps a factory(args) call when it doesn't fit on one
+// line at indent. Two strategies are tried in order:
+//  1. All args on one inner line (ruff's preferred form when they fit).
+//  2. One arg per line with trailing commas (ruff's magic-trailing-comma form
+//     when the combined args don't fit).
+//
+// Returns "" if neither strategy produces a result ≤ 88 chars per line.
 func formatFactoryCall(s, indent string) string {
 	parenIdx := strings.Index(s, "(")
 	if parenIdx < 0 || !strings.HasSuffix(s, ")") {
@@ -306,9 +310,33 @@ func formatFactoryCall(s, indent string) string {
 	factory := s[:parenIdx]
 	args := s[parenIdx+1 : len(s)-1]
 	innerIndent := indent + "    "
+
+	// Strategy 1: all args on one inner line.
 	if len(innerIndent+args) <= 88 {
 		return factory + "(\n" + innerIndent + args + "\n" + indent + ")"
 	}
+
+	// Strategy 2: one arg per line (magic trailing comma).
+	parts := splitTopLevelCommas(args)
+	if len(parts) > 1 {
+		allFit := true
+		for _, p := range parts {
+			if len(innerIndent+strings.TrimSpace(p)+",") > 88 {
+				allFit = false
+				break
+			}
+		}
+		if allFit {
+			var sb strings.Builder
+			sb.WriteString(factory + "(\n")
+			for _, p := range parts {
+				sb.WriteString(innerIndent + strings.TrimSpace(p) + ",\n")
+			}
+			sb.WriteString(indent + ")")
+			return sb.String()
+		}
+	}
+
 	return ""
 }
 
