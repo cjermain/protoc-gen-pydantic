@@ -803,9 +803,15 @@ class ValidatedCELDropped(_ProtoModel):
     (comprehension). The dropped comment must appear in the generated file.
     """
 
-    scores: list[int] = _Field(
+    scores: _Annotated[
+        list[int],
+        _AfterValidator(
+            _make_cel_validator(
+                lambda v: all((x > 0) for x in v), "all scores must be positive"
+            )
+        ),
+    ] = _Field(
         default_factory=list,
-        # buf.validate: cel id="all_positive" (not translated: comprehension not supported)
     )
 
 
@@ -1085,4 +1091,125 @@ class ValidatedCELIsNanInf(_ProtoModel):
         ),
     ] = _Field(
         default=0.0,
+    )
+
+
+class ValidatedCELAll(_ProtoModel):
+    """
+    ValidatedCELAll exercises all() comprehension on a repeated field.
+    """
+
+    scores: _Annotated[
+        list[int],
+        _AfterValidator(
+            _make_cel_validator(
+                lambda v: all((x > 0) for x in v), "all scores must be positive"
+            )
+        ),
+    ] = _Field(
+        default_factory=list,
+    )
+
+
+class ValidatedCELExists(_ProtoModel):
+    """
+    ValidatedCELExists exercises exists() comprehension.
+    """
+
+    tags: _Annotated[
+        list[str],
+        _AfterValidator(
+            _make_cel_validator(
+                lambda v: any((t == "admin") for t in v), "must include an admin tag"
+            )
+        ),
+    ] = _Field(
+        default_factory=list,
+    )
+
+
+class ValidatedCELExistsOne(_ProtoModel):
+    """
+    ValidatedCELExistsOne exercises exists_one() comprehension.
+    """
+
+    roles: _Annotated[
+        list[str],
+        _AfterValidator(
+            _make_cel_validator(
+                lambda v: sum(1 for r in v if (r == "admin")) == 1,
+                "must have exactly one admin role",
+            )
+        ),
+    ] = _Field(
+        default_factory=list,
+    )
+
+
+class ValidatedCELFilter(_ProtoModel):
+    """
+    ValidatedCELFilter exercises filter() comprehension chained with size().
+    """
+
+    values: _Annotated[
+        list[int],
+        _AfterValidator(
+            _make_cel_validator(
+                lambda v: len([x for x in v if (x > 0)]) >= 2,
+                "must contain at least 2 positive values",
+            )
+        ),
+    ] = _Field(
+        default_factory=list,
+    )
+
+
+class ValidatedCELMapAll(_ProtoModel):
+    """
+    ValidatedCELMapAll exercises map() chained with all() (nested comprehension).
+    """
+
+    words: _Annotated[
+        list[str],
+        _AfterValidator(
+            _make_cel_validator(
+                lambda v: all((l >= 3) for l in [len(w) for w in v]),
+                "all words must be at least 3 characters",
+            )
+        ),
+    ] = _Field(
+        default_factory=list,
+    )
+
+
+class ValidatedCELMessageAll(_ProtoModel):
+    """
+    ValidatedCELMessageAll exercises all() in a message-level CEL expression.
+    """
+
+    prices: list[int] = _Field(
+        default_factory=list,
+    )
+    quantities: list[int] = _Field(
+        default_factory=list,
+    )
+
+    @_model_validator(mode="after")
+    def _validate_cel_all_positive(self) -> "ValidatedCELMessageAll":
+        if not (
+            all((p > 0) for p in self.prices) and all((q > 0) for q in self.quantities)
+        ):
+            raise ValueError("all prices and quantities must be positive")
+        return self
+
+
+class ValidatedCELStillDropped(_ProtoModel):
+    """
+    ValidatedCELStillDropped verifies the drop path still works for
+    expressions containing 'now' (unsupported temporal).
+    """
+
+    created: _Optional[ProtoTimestamp] = _Field(
+        default=None,
+        # buf.validate: cel id="after_now" (not translated: 'now' not supported)
     )

@@ -633,3 +633,70 @@ message ValidatedCELIsNanInf {
     message: "bounded must not be infinite"
   }];
 }
+
+// ValidatedCELAll exercises all() comprehension on a repeated field.
+message ValidatedCELAll {
+  repeated int32 scores = 1 [(buf.validate.field).cel = {
+    id: "all_positive",
+    expression: "this.all(x, x > 0)",
+    message: "all scores must be positive"
+  }];
+}
+
+// ValidatedCELExists exercises exists() comprehension.
+message ValidatedCELExists {
+  repeated string tags = 1 [(buf.validate.field).cel = {
+    id: "has_admin",
+    expression: "this.exists(t, t == \"admin\")",
+    message: "must include an admin tag"
+  }];
+}
+
+// ValidatedCELExistsOne exercises exists_one() comprehension.
+message ValidatedCELExistsOne {
+  repeated string roles = 1 [(buf.validate.field).cel = {
+    id: "exactly_one_admin",
+    expression: "this.exists_one(r, r == \"admin\")",
+    message: "must have exactly one admin role"
+  }];
+}
+
+// ValidatedCELFilter exercises filter() comprehension chained with size().
+message ValidatedCELFilter {
+  repeated int32 values = 1 [(buf.validate.field).cel = {
+    id: "two_positive",
+    expression: "this.filter(x, x > 0).size() >= 2",
+    message: "must contain at least 2 positive values"
+  }];
+}
+
+// ValidatedCELMapAll exercises map() chained with all() (nested comprehension).
+message ValidatedCELMapAll {
+  repeated string words = 1 [(buf.validate.field).cel = {
+    id: "all_long",
+    expression: "this.map(w, w.size()).all(l, l >= 3)",
+    message: "all words must be at least 3 characters"
+  }];
+}
+
+// ValidatedCELMessageAll exercises all() in a message-level CEL expression.
+message ValidatedCELMessageAll {
+  repeated int32 prices = 1;
+  repeated int32 quantities = 2;
+
+  option (buf.validate.message).cel = {
+    id: "all_positive",
+    expression: "this.prices.all(p, p > 0) && this.quantities.all(q, q > 0)",
+    message: "all prices and quantities must be positive"
+  };
+}
+
+// ValidatedCELStillDropped verifies the drop path still works for
+// expressions containing 'now' (unsupported temporal).
+message ValidatedCELStillDropped {
+  google.protobuf.Timestamp created = 1 [(buf.validate.field).cel = {
+    id: "after_now",
+    expression: "this > now",
+    message: "must be after the current time"
+  }];
+}

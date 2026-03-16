@@ -9,9 +9,13 @@ from api.v1.validate_pydantic import (
     ValidatedBytes,
     ValidatedBytesIP,
     ValidatedCEL,
+    ValidatedCELAll,
     ValidatedCELCrossField,
     ValidatedCELDropped,
+    ValidatedCELExists,
+    ValidatedCELExistsOne,
     ValidatedCELField,
+    ValidatedCELFilter,
     ValidatedCELHas,
     ValidatedCELIsEmail,
     ValidatedCELIsHostAndPort,
@@ -20,7 +24,10 @@ from api.v1.validate_pydantic import (
     ValidatedCELIsIpPrefix,
     ValidatedCELIsNanInf,
     ValidatedCELIsUri,
+    ValidatedCELMapAll,
     ValidatedCELMessage,
+    ValidatedCELMessageAll,
+    ValidatedCELStillDropped,
     ValidatedCELStringReturn,
     ValidatedConst,
     ValidatedConstOptional,
@@ -1646,19 +1653,169 @@ def test_cel_cross_field_invalid():
 
 
 # ---------------------------------------------------------------------------
-# ValidatedCELDropped — drop path for unsupported CEL (comprehension)
+# ValidatedCELDropped — was the drop path; all() is now transpiled
 # ---------------------------------------------------------------------------
 
 
-def test_cel_dropped_comment_in_generated_file():
+def test_cel_dropped_now_validates():
+    # After comprehension support, all() is transpiled and the constraint fires.
+    m = ValidatedCELDropped(scores=[1, 2, 3])
+    assert m.scores == [1, 2, 3]
+
+
+def test_cel_dropped_now_rejects_negatives():
+    with pytest.raises(ValidationError):
+        ValidatedCELDropped(scores=[1, -2, 3])
+
+
+def test_cel_dropped_no_longer_has_dropped_comment():
+    # The "not translated" comment must not appear for this field any more.
     text = Path("gen/api/v1/validate_pydantic.py").read_text()
-    assert 'cel id="all_positive" (not translated' in text
+    assert 'cel id="all_positive" (not translated' not in text
 
 
-def test_cel_dropped_no_validation():
-    # Unsupported CEL (comprehension) is dropped; the field has no constraint.
-    m = ValidatedCELDropped(scores=[1, -2, 3])
-    assert m.scores == [1, -2, 3]  # no error — constraint was not translated
+# ---------------------------------------------------------------------------
+# ValidatedCELAll — all() comprehension
+# ---------------------------------------------------------------------------
+
+
+def test_cel_all_valid():
+    m = ValidatedCELAll(scores=[1, 2, 3])
+    assert m.scores == [1, 2, 3]
+
+
+def test_cel_all_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedCELAll(scores=[1, -1, 3])
+
+
+def test_cel_all_empty_passes():
+    # all() on an empty list is vacuously true.
+    m = ValidatedCELAll(scores=[])
+    assert m.scores == []
+
+
+# ---------------------------------------------------------------------------
+# ValidatedCELExists — exists() comprehension
+# ---------------------------------------------------------------------------
+
+
+def test_cel_exists_valid():
+    m = ValidatedCELExists(tags=["user", "admin"])
+    assert m.tags == ["user", "admin"]
+
+
+def test_cel_exists_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedCELExists(tags=["user", "moderator"])
+
+
+def test_cel_exists_empty_invalid():
+    # exists() on an empty list is vacuously false.
+    with pytest.raises(ValidationError):
+        ValidatedCELExists(tags=[])
+
+
+# ---------------------------------------------------------------------------
+# ValidatedCELExistsOne — exists_one() comprehension
+# ---------------------------------------------------------------------------
+
+
+def test_cel_exists_one_valid():
+    m = ValidatedCELExistsOne(roles=["user", "admin"])
+    assert m.roles == ["user", "admin"]
+
+
+def test_cel_exists_one_invalid_none():
+    with pytest.raises(ValidationError):
+        ValidatedCELExistsOne(roles=["user", "moderator"])
+
+
+def test_cel_exists_one_invalid_two():
+    with pytest.raises(ValidationError):
+        ValidatedCELExistsOne(roles=["admin", "admin"])
+
+
+# ---------------------------------------------------------------------------
+# ValidatedCELFilter — filter() comprehension chained with size()
+# ---------------------------------------------------------------------------
+
+
+def test_cel_filter_valid():
+    m = ValidatedCELFilter(values=[1, -1, 2])  # 2 positives → passes
+    assert m.values == [1, -1, 2]
+
+
+def test_cel_filter_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedCELFilter(values=[1, -1, -2])  # only 1 positive → fails
+
+
+def test_cel_filter_empty_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedCELFilter(values=[])
+
+
+# ---------------------------------------------------------------------------
+# ValidatedCELMapAll — map() chained with all() (nested comprehension)
+# ---------------------------------------------------------------------------
+
+
+def test_cel_map_all_valid():
+    m = ValidatedCELMapAll(words=["foo", "bar", "baz"])
+    assert m.words == ["foo", "bar", "baz"]
+
+
+def test_cel_map_all_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedCELMapAll(words=["ok", "no"])  # "no" has size 2 < 3
+
+
+def test_cel_map_all_empty_passes():
+    # all() on an empty mapped list is vacuously true.
+    m = ValidatedCELMapAll(words=[])
+    assert m.words == []
+
+
+# ---------------------------------------------------------------------------
+# ValidatedCELMessageAll — message-level all() comprehension
+# ---------------------------------------------------------------------------
+
+
+def test_cel_message_all_valid():
+    m = ValidatedCELMessageAll(prices=[10, 20], quantities=[1, 2])
+    assert m.prices == [10, 20]
+
+
+def test_cel_message_all_invalid_price():
+    with pytest.raises(ValidationError):
+        ValidatedCELMessageAll(prices=[10, -5], quantities=[1, 2])
+
+
+def test_cel_message_all_invalid_quantity():
+    with pytest.raises(ValidationError):
+        ValidatedCELMessageAll(prices=[10, 20], quantities=[1, -1])
+
+
+def test_cel_message_all_empty_passes():
+    m = ValidatedCELMessageAll()  # both empty → vacuously true
+    assert m.prices == []
+
+
+# ---------------------------------------------------------------------------
+# ValidatedCELStillDropped — 'now' is still unsupported (drop path)
+# ---------------------------------------------------------------------------
+
+
+def test_cel_still_dropped_comment():
+    text = Path("gen/api/v1/validate_pydantic.py").read_text()
+    assert 'cel id="after_now" (not translated' in text
+
+
+def test_cel_still_dropped_no_validation():
+    # The 'now' rule is dropped; the field accepts any value.
+    m = ValidatedCELStillDropped()
+    assert m.created is None
 
 
 # ---------------------------------------------------------------------------
