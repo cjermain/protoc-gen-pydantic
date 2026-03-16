@@ -16,6 +16,10 @@ from ._proto_types import (
     ProtoInt64,
     ProtoTimestamp,
     ProtoUInt64,
+    _cel_matches,
+    _is_unique,
+    _make_cel_str_validator,
+    _make_cel_validator,
     _make_const_validator,
     _make_in_validator,
     _make_len_bytes_validator,
@@ -681,13 +685,136 @@ class ValidatedFloatExamples(_ProtoModel):
 
 class ValidatedCEL(_ProtoModel):
     """
-    ValidatedCEL exercises the cel constraint drop path.
+    ValidatedCEL exercises basic field-level CEL transpilation.
     """
 
-    # Age with a CEL expression that is not translated.
-    age: int = _Field(
+    # Age must be positive.
+    age: _Annotated[
+        int,
+        _AfterValidator(_make_cel_validator(lambda v: v > 0, "age must be positive")),
+    ] = _Field(
         default=0,
-        # buf.validate: cel (not translated)
+    )
+
+
+class ValidatedCELField(_ProtoModel):
+    """
+    ValidatedCELField exercises field-level CEL transpilation.
+    """
+
+    # Must be positive.
+    age: _Annotated[
+        int,
+        _AfterValidator(_make_cel_validator(lambda v: v > 0, "age must be positive")),
+    ] = _Field(
+        default=0,
+    )
+    # Must start with an uppercase letter.
+    name: _Annotated[
+        str,
+        _AfterValidator(
+            _make_cel_validator(
+                lambda v: _cel_matches("^[A-Z]", v), "name must start with uppercase"
+            )
+        ),
+    ] = _Field(
+        default="",
+    )
+    # Combined: both bool-returning and chained.
+    code: _Annotated[
+        str,
+        _AfterValidator(
+            _make_cel_validator(lambda v: (v).startswith("X"), "code must start with X")
+        ),
+        _AfterValidator(
+            _make_cel_validator(
+                lambda v: len(v) > 2, "code must be longer than 2 chars"
+            )
+        ),
+    ] = _Field(
+        default="",
+    )
+
+
+class ValidatedCELMessage(_ProtoModel):
+    """
+    ValidatedCELMessage exercises message-level cross-field CEL.
+    """
+
+    bar: list[str] = _Field(
+        default_factory=list,
+    )
+    baz: list[str] = _Field(
+        default_factory=list,
+    )
+
+    @_model_validator(mode="after")
+    def _validate_cel_globally_unique(self) -> "ValidatedCELMessage":
+        if not (_is_unique((self.bar + self.baz))):
+            raise ValueError("all values in bar and baz must be globally unique")
+        return self
+
+
+class ValidatedCELHas(_ProtoModel):
+    """
+    ValidatedCELHas exercises the has() presence macro.
+    """
+
+    firstName: _Optional[str] = _Field(default=None)
+    lastName: _Optional[str] = _Field(default=None)
+
+    @_model_validator(mode="after")
+    def _validate_cel_name_required(self) -> "ValidatedCELHas":
+        if not (
+            "first_name" in self.model_fields_set
+            or "last_name" in self.model_fields_set
+        ):
+            raise ValueError("at least one name field must be set")
+        return self
+
+
+class ValidatedCELCrossField(_ProtoModel):
+    """
+    ValidatedCELCrossField exercises a cross-field numeric comparison.
+    """
+
+    minVal: int = _Field(default=0)
+    maxVal: int = _Field(default=0)
+
+    @_model_validator(mode="after")
+    def _validate_cel_min_less_than_max(self) -> "ValidatedCELCrossField":
+        if not (self.min_val < self.max_val):
+            raise ValueError("min_val must be less than max_val")
+        return self
+
+
+class ValidatedCELDropped(_ProtoModel):
+    """
+    ValidatedCELDropped exercises the drop path for unsupported CEL
+    (comprehension). The dropped comment must appear in the generated file.
+    """
+
+    scores: list[int] = _Field(
+        default_factory=list,
+        # buf.validate: cel id="all_positive" (not translated: comprehension not supported)
+    )
+
+
+class ValidatedCELStringReturn(_ProtoModel):
+    """
+    ValidatedCELStringReturn exercises a string-returning CEL expression
+    (the expression itself is the error message).
+    """
+
+    value: _Annotated[
+        int,
+        _AfterValidator(
+            _make_cel_str_validator(
+                lambda v: "" if (v > 0) else "value must be positive"
+            )
+        ),
+    ] = _Field(
+        default=0,
     )
 
 

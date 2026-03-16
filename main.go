@@ -73,6 +73,11 @@ func init() {
 				innerIndent + "if getattr(self, f) is not None\n" +
 				bodyIndent + "]"
 		},
+		// pycelCondLine returns the ruff-stable `if not (expr):` line for a
+		// message-level bool-returning CEL validator. Outer parens on the
+		// expression are stripped and long conditions are split at boolean
+		// operators using ruff's binary-operator continuation style.
+		"pycelCondLine": pycelCondLine,
 		// pyRaiseOneof returns a ruff-formatted raise ValueError(...) statement for a
 		// oneof validator. The single-line form is used when it fits within 88
 		// characters; otherwise the argument is placed on its own indented line.
@@ -114,6 +119,8 @@ func main() {
 		e.resolver = buildEnumValueOptionsResolver(gen)
 		e.customOptionFields = buildCustomOptionFields(gen)
 		e.fieldConstraintExt = buildFieldConstraintExt(gen)
+		e.messageConstraintExt = buildMessageConstraintExt(gen)
+		e.celEnvCache = newCelEnvCache()
 
 		leafDirs := map[string]bool{}
 		protoTypeDirs := map[string]map[string]bool{}
@@ -210,6 +217,23 @@ func buildFieldConstraintExt(gen *protogen.Plugin) protoreflect.ExtensionDescrip
 			ext := exts.Get(i)
 			if ext.ContainingMessage().FullName() == "google.protobuf.FieldOptions" &&
 				string(ext.Name()) == "field" &&
+				string(ext.ParentFile().Package()) == "buf.validate" {
+				return ext
+			}
+		}
+	}
+	return nil
+}
+
+// buildMessageConstraintExt scans gen.Files for the buf.validate.message extension
+// on google.protobuf.MessageOptions. Returns nil when buf.validate is not imported.
+func buildMessageConstraintExt(gen *protogen.Plugin) protoreflect.ExtensionDescriptor {
+	for _, f := range gen.Files {
+		exts := f.Desc.Extensions()
+		for i := 0; i < exts.Len(); i++ {
+			ext := exts.Get(i)
+			if ext.ContainingMessage().FullName() == "google.protobuf.MessageOptions" &&
+				string(ext.Name()) == "message" &&
 				string(ext.ParentFile().Package()) == "buf.validate" {
 				return ext
 			}

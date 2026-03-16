@@ -157,6 +157,161 @@ func formatExampleItem(fd protoreflect.FieldDescriptor, v protoreflect.Value) st
 	}
 }
 
+// isBalancedOuterParens reports whether s is wrapped in a single balanced
+// pair of parentheses — i.e., s starts with "(" and the matching ")" is
+// the very last character.
+func isBalancedOuterParens(s string) bool {
+	if len(s) < 2 || s[0] != '(' || s[len(s)-1] != ')' {
+		return false
+	}
+	depth := 0
+	for i, ch := range s {
+		switch ch {
+		case '(':
+			depth++
+		case ')':
+			depth--
+		}
+		if depth == 0 {
+			return i == len(s)-1
+		}
+	}
+	return false
+}
+
+// stripOuterParens removes one layer of balanced outer parentheses from s
+// if present; otherwise returns s unchanged.
+func stripOuterParens(s string) string {
+	if isBalancedOuterParens(s) {
+		return s[1 : len(s)-1]
+	}
+	return s
+}
+
+// splitBoolOps splits expr at top-level " or " and " and " operators.
+// The operator is kept at the start of each continuation part:
+//
+//	"a or b and c" → ["a", "or b", "and c"]
+func splitBoolOps(expr string) []string {
+	var parts []string
+	depth := 0
+	start := 0
+	i := 0
+	for i < len(expr) {
+		ch := expr[i]
+		if ch == '(' || ch == '[' {
+			depth++
+			i++
+			continue
+		}
+		if ch == ')' || ch == ']' {
+			depth--
+			i++
+			continue
+		}
+		if depth == 0 {
+			split := false
+			for _, op := range []string{" or ", " and "} {
+				if i+len(op) <= len(expr) && expr[i:i+len(op)] == op {
+					parts = append(parts, strings.TrimSpace(expr[start:i]))
+					start = i + 1 // skip leading space; "or "/"and " stays
+					i += len(op)
+					split = true
+					break
+				}
+			}
+			if split {
+				continue
+			}
+		}
+		i++
+	}
+	if start < len(expr) {
+		parts = append(parts, strings.TrimSpace(expr[start:]))
+	}
+	return parts
+}
+
+// formatBoolExpr formats a boolean expression for use inside an `if not (…):`
+// block. If the expression fits on one line at indent, it returns the single
+// indented line; otherwise it splits at top-level or/and operators.
+func formatBoolExpr(expr, indent string) string {
+	if len(indent+expr) <= 88 {
+		return indent + expr
+	}
+	parts := splitBoolOps(expr)
+	if len(parts) <= 1 {
+		return indent + expr
+	}
+	lines := make([]string, len(parts))
+	for i, p := range parts {
+		lines[i] = indent + p
+	}
+	return strings.Join(lines, "\n")
+}
+
+// pycelCondLine returns the ruff-stable `if not (expr):` line for a message-
+// level bool-returning CEL validator. The expression's outer parens are
+// stripped to avoid double-parens inside `not (…)`, and long lines are
+// split into ruff's binary-operator continuation style.
+func pycelCondLine(bi, expr string) string {
+	methodIndent := bi + "    "
+	stripped := stripOuterParens(expr)
+	single := methodIndent + "if not (" + stripped + "):"
+	if len(single) <= 88 {
+		return single
+	}
+	innerIndent := methodIndent + "    "
+	formatted := formatBoolExpr(stripped, innerIndent)
+	return methodIndent + "if not (\n" + formatted + "\n" + methodIndent + "):"
+}
+
+// formatAnnotationElement formats a single element of an _Annotated[…] type
+// to be ruff-stable at the given base indent (the indent level where this
+// element will appear). If the element is an _AfterValidator(…) call that
+// doesn't fit on one line, it is wrapped across multiple lines matching
+// ruff's function-call expansion style.
+func formatAnnotationElement(s, elemIndent string) string {
+	// If the element plus its trailing comma fits at this indent: single line.
+	if len(elemIndent+s+",") <= 88 {
+		return s
+	}
+	// Try to wrap _AfterValidator(inner) onto two lines.
+	const avPrefix = "_AfterValidator("
+	if strings.HasPrefix(s, avPrefix) && strings.HasSuffix(s, ")") {
+		inner := s[len(avPrefix) : len(s)-1]
+		innerIndent := elemIndent + "    "
+		// If inner fits on one line at innerIndent (no trailing comma — it's
+		// inside a function call, not a list/annotation element):
+		if len(innerIndent+inner) <= 88 {
+			return "_AfterValidator(\n" + innerIndent + inner + "\n" + elemIndent + ")"
+		}
+		// inner is also too long — try to wrap the factory call inside it.
+		factoryWrapped := formatFactoryCall(inner, innerIndent)
+		if factoryWrapped != "" {
+			return "_AfterValidator(\n" + innerIndent + factoryWrapped + "\n" + elemIndent + ")"
+		}
+	}
+	return s
+}
+
+// formatFactoryCall wraps a factory(args) call onto two lines when it doesn't
+// fit on one line at indent. Returns "" if the call cannot be formatted (e.g.
+// the args still don't fit even after expansion).
+func formatFactoryCall(s, indent string) string {
+	parenIdx := strings.Index(s, "(")
+	if parenIdx < 0 || !strings.HasSuffix(s, ")") {
+		return ""
+	}
+	factory := s[:parenIdx]
+	args := s[parenIdx+1 : len(s)-1]
+	innerIndent := indent + "    "
+	if len(innerIndent+args) <= 88 {
+		return factory + "(\n" + innerIndent + args + "\n" + indent + ")"
+	}
+	return ""
+}
+
 func formatPythonFloat(f float64) string {
 	s := fmt.Sprintf("%g", f)
 	if !strings.Contains(s, ".") && !strings.Contains(s, "e") {

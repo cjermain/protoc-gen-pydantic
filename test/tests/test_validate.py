@@ -9,6 +9,12 @@ from api.v1.validate_pydantic import (
     ValidatedBytes,
     ValidatedBytesIP,
     ValidatedCEL,
+    ValidatedCELCrossField,
+    ValidatedCELDropped,
+    ValidatedCELField,
+    ValidatedCELHas,
+    ValidatedCELMessage,
+    ValidatedCELStringReturn,
     ValidatedConst,
     ValidatedConstOptional,
     ValidatedDropped,
@@ -1520,18 +1526,147 @@ def test_validated_float_examples_gt_enforced():
 
 
 # ---------------------------------------------------------------------------
-# ValidatedCEL — cel constraint drop path
+# ValidatedCEL — basic field-level CEL transpilation (existing message)
 # ---------------------------------------------------------------------------
 
 
 def test_validated_cel_default():
+    # Default (age=0) is not explicitly validated by Pydantic — succeeds.
     m = ValidatedCEL()
     assert m.age == 0
 
 
-def test_validated_cel_in_generated_file():
+def test_validated_cel_enforces_constraint():
+    m = ValidatedCEL(age=1)
+    assert m.age == 1
+
+
+def test_validated_cel_rejects_negative():
+    with pytest.raises(ValidationError):
+        ValidatedCEL(age=-1)
+
+
+def test_validated_cel_no_dropped_comment():
+    # After transpilation the simple "this > 0" should not appear as dropped.
     text = _GEN_VALIDATE.read_text()
-    assert "# buf.validate: cel (not translated)" in text
+    # The old generic drop comment must not appear for the simple CEL case.
+    assert "# buf.validate: cel (not translated)" not in text
+
+
+# ---------------------------------------------------------------------------
+# ValidatedCELField — field-level CEL transpilation
+# ---------------------------------------------------------------------------
+
+
+def test_cel_field_age_valid():
+    m = ValidatedCELField(age=5, name="Alice", code="XYZ")
+    assert m.age == 5
+
+
+def test_cel_field_age_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedCELField(age=-1, name="Alice", code="XYZ")
+
+
+def test_cel_field_name_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedCELField(age=1, name="alice", code="XYZ")  # lowercase
+
+
+def test_cel_field_code_prefix_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedCELField(age=1, name="Alice", code="ABC")  # wrong prefix
+
+
+def test_cel_field_code_len_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedCELField(age=1, name="Alice", code="X")  # too short
+
+
+# ---------------------------------------------------------------------------
+# ValidatedCELMessage — message-level cross-field CEL
+# ---------------------------------------------------------------------------
+
+
+def test_cel_message_unique_valid():
+    m = ValidatedCELMessage(bar=["a", "b"], baz=["c"])
+    assert m.baz == ["c"]
+
+
+def test_cel_message_unique_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedCELMessage(bar=["a"], baz=["a"])
+
+
+def test_cel_message_unique_empty():
+    m = ValidatedCELMessage()  # empty lists → unique trivially
+    assert m.bar == []
+
+
+# ---------------------------------------------------------------------------
+# ValidatedCELHas — has() presence macro
+# ---------------------------------------------------------------------------
+
+
+def test_cel_has_first_name_set():
+    m = ValidatedCELHas(first_name="Alice")
+    assert m.first_name == "Alice"
+
+
+def test_cel_has_last_name_set():
+    m = ValidatedCELHas(last_name="Smith")
+    assert m.last_name == "Smith"
+
+
+def test_cel_has_neither_set():
+    with pytest.raises(ValidationError):
+        ValidatedCELHas()
+
+
+# ---------------------------------------------------------------------------
+# ValidatedCELCrossField — cross-field numeric comparison
+# ---------------------------------------------------------------------------
+
+
+def test_cel_cross_field_valid():
+    m = ValidatedCELCrossField(min_val=1, max_val=10)
+    assert m.min_val == 1
+
+
+def test_cel_cross_field_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedCELCrossField(min_val=10, max_val=1)
+
+
+# ---------------------------------------------------------------------------
+# ValidatedCELDropped — drop path for unsupported CEL (comprehension)
+# ---------------------------------------------------------------------------
+
+
+def test_cel_dropped_comment_in_generated_file():
+    text = Path("gen/api/v1/validate_pydantic.py").read_text()
+    assert 'cel id="all_positive" (not translated' in text
+
+
+def test_cel_dropped_no_validation():
+    # Unsupported CEL (comprehension) is dropped; the field has no constraint.
+    m = ValidatedCELDropped(scores=[1, -2, 3])
+    assert m.scores == [1, -2, 3]  # no error — constraint was not translated
+
+
+# ---------------------------------------------------------------------------
+# ValidatedCELStringReturn — string-returning CEL expression
+# ---------------------------------------------------------------------------
+
+
+def test_cel_string_return_valid():
+    m = ValidatedCELStringReturn(value=5)
+    assert m.value == 5
+
+
+def test_cel_string_return_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedCELStringReturn(value=-1)
 
 
 # ---------------------------------------------------------------------------

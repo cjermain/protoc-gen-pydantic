@@ -105,6 +105,33 @@ def _make_not_in_validator(excluded_values):
     return _validate
 
 
+def _make_cel_validator(pred, message: str):
+    def _validate(v):
+        if not pred(v):
+            raise ValueError(message)
+        return v
+
+    return _validate
+
+
+def _make_cel_str_validator(fn):
+    def _validate(v):
+        msg = fn(v)
+        if msg:
+            raise ValueError(msg)
+        return v
+
+    return _validate
+
+
+def _is_unique(v) -> bool:
+    return len(v) == len(set(v))
+
+
+def _cel_matches(pattern: str, s: str) -> bool:
+    return bool(_re.search(pattern, s))
+
+
 def _validate_email(v: str) -> str:
     if not v:
         return v

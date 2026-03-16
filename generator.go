@@ -12,6 +12,7 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/reflect/protoregistry"
 	"google.golang.org/protobuf/types/descriptorpb"
+	"google.golang.org/protobuf/types/dynamicpb"
 )
 
 type generator struct {
@@ -25,9 +26,11 @@ type generator struct {
 
 	customOptionFields []CustomOptionField
 
-	config             GeneratorConfig
-	resolver           *protoregistry.Types
-	fieldConstraintExt protoreflect.ExtensionDescriptor
+	config               GeneratorConfig
+	resolver             *protoregistry.Types
+	fieldConstraintExt   protoreflect.ExtensionDescriptor
+	messageConstraintExt protoreflect.ExtensionDescriptor // buf.validate.message extension
+	celEnvCache          *celEnvCache                     // cached CEL environments
 }
 
 func NewGenerator(c GeneratorConfig) *generator {
@@ -411,9 +414,76 @@ func (e *generator) processMessage(
 		e.addStdImport("_ModelValidator")
 	}
 
+	// Extract message-level CEL constraints.
+	if e.messageConstraintExt != nil && msgProto.GetOptions() != nil && e.celEnvCache != nil {
+		e.extractMessageCEL(msgProto.GetOptions(), &def)
+	}
+	if len(def.CelValidators) > 0 {
+		e.addStdImport("_ModelValidator")
+		for _, cv := range def.CelValidators {
+			for _, imp := range cv.Imports {
+				e.addRuntimeImport(imp)
+			}
+		}
+	}
+
 	e.addStdImport("_BaseModel")
 	e.addStdImport("_Field")
 	return def, nil
+}
+
+// extractMessageCEL reads buf.validate.message CEL rules from MessageOptions.
+// Successful transpilations go to def.CelValidators; failures to def.DroppedCelConstraints.
+func (e *generator) extractMessageCEL(opts *descriptorpb.MessageOptions, def *Message) {
+	if opts == nil || e.messageConstraintExt == nil {
+		return
+	}
+
+	raw, err := proto.Marshal(opts)
+	if err != nil {
+		return
+	}
+	extType := dynamicpb.NewExtensionType(e.messageConstraintExt)
+	resolver := &protoregistry.Types{}
+	_ = resolver.RegisterExtension(extType)
+	resolved := &descriptorpb.MessageOptions{}
+	if err := (proto.UnmarshalOptions{Resolver: resolver}).Unmarshal(raw, resolved); err != nil {
+		return
+	}
+
+	// Build proto→Python field name map for has() and this.field resolution.
+	fieldNameMap := make(map[string]string, len(def.Fields))
+	for _, f := range def.Fields {
+		if f.Alias != "" {
+			fieldNameMap[f.Alias] = f.Name // proto name → Python name (e.g. "float" → "float_")
+		} else {
+			fieldNameMap[f.Name] = f.Name
+		}
+	}
+
+	resolved.ProtoReflect().Range(func(fd protoreflect.FieldDescriptor, v protoreflect.Value) bool {
+		if !fd.IsExtension() || string(fd.Name()) != "message" {
+			return true
+		}
+		v.Message().Range(func(rfd protoreflect.FieldDescriptor, rv protoreflect.Value) bool {
+			if string(rfd.Name()) != "cel" {
+				return true
+			}
+			list := rv.List()
+			for i := 0; i < list.Len(); i++ {
+				rule := extractCelRule(list.Get(i).Message())
+				cv, cerr := transpileCELMessage(rule, fieldNameMap, e.celEnvCache)
+				if cerr != nil {
+					def.DroppedCelConstraints = append(def.DroppedCelConstraints,
+						fmt.Sprintf("cel id=%q (not translated: %v)", rule.ID, cerr))
+				} else {
+					def.CelValidators = append(def.CelValidators, cv)
+				}
+			}
+			return true
+		})
+		return false
+	})
 }
 
 func (e *generator) addExternalImport(importLine string) {

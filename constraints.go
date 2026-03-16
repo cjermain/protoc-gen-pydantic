@@ -252,6 +252,32 @@ func (e *generator) applyConstraintTypeOverrides(f *Field) {
 			f.Default = "default=" + *fc.ConstDefault
 		}
 	}
+	// CEL field-level validators → AfterValidator wrapping via lambda factories.
+	for _, cv := range fc.CelValidators {
+		// Strip redundant outer parens from the expression when it is the
+		// entire body of a lambda: "lambda v: (v > 0)" → "lambda v: v > 0".
+		lambdaExpr := stripOuterParens(cv.Expression)
+		var validatorStr string
+		if cv.ReturnsBool {
+			validatorStr = fmt.Sprintf(
+				"_AfterValidator(_make_cel_validator(lambda v: %s, %s))",
+				lambdaExpr, pyQuote(cv.Message),
+			)
+			e.addRuntimeImport("_make_cel_validator")
+		} else {
+			validatorStr = fmt.Sprintf(
+				"_AfterValidator(_make_cel_str_validator(lambda v: %s))",
+				lambdaExpr,
+			)
+			e.addRuntimeImport("_make_cel_str_validator")
+		}
+		validators = append(validators, validatorStr)
+		for _, imp := range cv.Imports {
+			e.addRuntimeImport(imp)
+		}
+		e.addStdImport("_Annotated")
+		e.addStdImport("_AfterValidator")
+	}
 	if len(validators) > 0 {
 		f.Type = wrapWithAnnotated(f.Type, validators)
 	}
@@ -305,8 +331,18 @@ func (e *generator) extractFieldConstraints(
 				result.HasIgnore = true
 			}
 		case name == "cel":
-			// cel is a repeated Constraint message; not translated.
-			result.DroppedConstraints = append(result.DroppedConstraints, "cel")
+			// Attempt to transpile each Constraint message; failures are dropped.
+			list := v.List()
+			for i := 0; i < list.Len(); i++ {
+				rule := extractCelRule(list.Get(i).Message())
+				cv, err := transpileCELField(rule, field, e.celEnvCache)
+				if err != nil {
+					result.DroppedConstraints = append(result.DroppedConstraints,
+						fmt.Sprintf("cel id=%q (not translated: %v)", rule.ID, err))
+				} else {
+					result.CelValidators = append(result.CelValidators, cv)
+				}
+			}
 		case fd.Kind() == protoreflect.MessageKind && !fd.IsList():
 			// Type-specific rules sub-message (int32, string, repeated, map, etc.)
 			v.Message().Range(func(rfd protoreflect.FieldDescriptor, rv protoreflect.Value) bool {
@@ -345,7 +381,8 @@ func (e *generator) extractFieldConstraints(
 	}
 	if len(result.InValues) > 0 || len(result.NotInValues) > 0 || result.UniqueItems || result.FormatValidator != nil ||
 		result.RequireFinite || result.ConstFloatLiteral != nil || result.NotContains != nil ||
-		result.MinBytes != nil || result.MaxBytes != nil || result.LenBytes != nil {
+		result.MinBytes != nil || result.MaxBytes != nil || result.LenBytes != nil ||
+		len(result.CelValidators) > 0 {
 		e.addStdImport("_Annotated")
 		e.addStdImport("_AfterValidator")
 	}
@@ -365,6 +402,7 @@ func (e *generator) extractConstraintsFromMsg(
 		name := string(fd.Name())
 		switch {
 		case name == "cel":
+			// CEL inside items/keys/values: drop with a comment (no field descriptor available).
 			result.DroppedConstraints = append(result.DroppedConstraints, "cel")
 		case fd.Kind() == protoreflect.MessageKind && !fd.IsList():
 			v.Message().Range(func(rfd protoreflect.FieldDescriptor, rv protoreflect.Value) bool {

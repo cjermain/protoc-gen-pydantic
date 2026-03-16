@@ -141,6 +141,15 @@ func (e Enum) HasOptions() bool {
 	return false
 }
 
+// CelValidator holds a successfully transpiled CEL constraint.
+type CelValidator struct {
+	RuleID      string   // rule.id sanitised to a Python identifier
+	Expression  string   // transpiled Python expression ("v" field-level, "self" msg-level)
+	Message     string   // non-empty for bool-returning rules; empty for string-returning
+	ReturnsBool bool     // true → raise if not expr; false → raise if expr is non-empty
+	Imports     []string // _proto_types.py symbols needed (e.g. "_is_unique", "_cel_matches")
+}
+
 type Field struct {
 	Name                string
 	Alias               string // non-empty when Name was renamed to avoid shadowing Python builtins
@@ -220,7 +229,9 @@ func (f Field) TypeAnnotationFormatted(bi string) string {
 			var sb strings.Builder
 			sb.WriteString("_Annotated[\n")
 			for _, p := range parts {
-				sb.WriteString(indent + strings.TrimSpace(p) + ",\n")
+				trimmed := strings.TrimSpace(p)
+				formatted := formatAnnotationElement(trimmed, indent)
+				sb.WriteString(indent + formatted + ",\n")
 			}
 			sb.WriteString(bi + "]")
 			return sb.String()
@@ -377,6 +388,7 @@ type FieldConstraints struct {
 	ItemConstraints    *FieldConstraints // per-element constraints from repeated.items
 	KeyConstraints     *FieldConstraints // per-key constraints from map.keys
 	ValueConstraints   *FieldConstraints // per-value constraints from map.values
+	CelValidators      []CelValidator    // successfully transpiled field-level CEL
 }
 
 func (c *FieldConstraints) HasAny() bool {
@@ -393,7 +405,8 @@ func (c *FieldConstraints) HasAny() bool {
 		len(c.DroppedConstraints) > 0 ||
 		c.ItemConstraints != nil ||
 		c.KeyConstraints != nil ||
-		c.ValueConstraints != nil
+		c.ValueConstraints != nil ||
+		len(c.CelValidators) > 0
 }
 
 // PydanticArgs returns ["gt=0", "le=150", ...] to inject into _Field().
@@ -431,13 +444,19 @@ func (c *FieldConstraints) PydanticArgs() []string {
 
 // DroppedConstraintComments returns a Python comment string for each
 // constraint that was recognised but could not be translated.
+// CEL entries already carry "(not translated: ...)" in the stored string;
+// all other entries get the standard "(not translated)" suffix appended.
 func (c *FieldConstraints) DroppedConstraintComments() []string {
 	if c == nil || len(c.DroppedConstraints) == 0 {
 		return nil
 	}
 	comments := make([]string, len(c.DroppedConstraints))
 	for i, name := range c.DroppedConstraints {
-		comments[i] = fmt.Sprintf("# buf.validate: %s (not translated)", name)
+		if strings.Contains(name, "(not translated") {
+			comments[i] = "# buf.validate: " + name
+		} else {
+			comments[i] = fmt.Sprintf("# buf.validate: %s (not translated)", name)
+		}
 	}
 	return comments
 }
@@ -570,14 +589,18 @@ func (c *FieldConstraints) inValuesContainZero(kind protoreflect.Kind) bool {
 }
 
 type Message struct {
-	Name             string
-	Fields           []Field
-	NestedMessages   []Message
-	NestedEnums      []Enum
-	LeadingComments  []string
-	TrailingComments []string
-	OneOfGroups      []OneOf // deduplicated oneof groups; populated after all fields are processed
+	Name                  string
+	Fields                []Field
+	NestedMessages        []Message
+	NestedEnums           []Enum
+	LeadingComments       []string
+	TrailingComments      []string
+	OneOfGroups           []OneOf        // deduplicated oneof groups; populated after all fields are processed
+	CelValidators         []CelValidator // successfully transpiled message-level CEL
+	DroppedCelConstraints []string       // failed message-level CEL (comment strings)
 }
+
+func (m Message) HasCelValidators() bool { return len(m.CelValidators) > 0 }
 
 func (m Message) HasAlias() bool {
 	for _, f := range m.Fields {

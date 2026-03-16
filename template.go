@@ -284,6 +284,23 @@ class _ProtoEnum({{ if $config.UseIntegersForEnums }}int{{ else }}str{{ end }}, 
 {{ pyRaiseOneof $bi $oo.Name }}
 {{$bi}}    return self
 {{- end }}
+{{- if $m.CelValidators }}
+{{ end }}{{- range $cv := $m.CelValidators }}
+{{$bi}}@_model_validator(mode="after")
+{{$bi}}def _validate_cel_{{ $cv.RuleID }}(self) -> "{{ $m.Name }}":
+{{- if $cv.ReturnsBool }}
+{{ pycelCondLine $bi $cv.Expression }}
+{{$bi}}        raise ValueError({{ pyQuote $cv.Message }})
+{{- else }}
+{{$bi}}    _cel_msg = {{ $cv.Expression }}
+{{$bi}}    if _cel_msg:
+{{$bi}}        raise ValueError(_cel_msg)
+{{- end }}
+{{$bi}}    return self
+{{- end }}
+{{- range $comment := $m.DroppedCelConstraints }}
+{{$bi}}# buf.validate: {{ $comment }}
+{{- end }}
 {{- if and (eq (len $m.Fields) 0) (eq (len $m.NestedEnums) 0) (eq (len $m.NestedMessages) 0) }}
 {{$bi}}pass
 {{- end }}
@@ -385,6 +402,33 @@ def _make_not_in_validator(excluded_values):
         return v
 
     return _validate
+
+
+def _make_cel_validator(pred, message: str):
+    def _validate(v):
+        if not pred(v):
+            raise ValueError(message)
+        return v
+
+    return _validate
+
+
+def _make_cel_str_validator(fn):
+    def _validate(v):
+        msg = fn(v)
+        if msg:
+            raise ValueError(msg)
+        return v
+
+    return _validate
+
+
+def _is_unique(v) -> bool:
+    return len(v) == len(set(v))
+
+
+def _cel_matches(pattern: str, s: str) -> bool:
+    return bool(_re.search(pattern, s))
 `
 
 // Each per-validator constant starts with two newlines so that when appended
