@@ -511,3 +511,15 @@ def _is_inf(v: float, direction: int = 0) -> bool:
     if direction < 0:
         return v < 0
     return True
+
+
+def _cel_now() -> _datetime.datetime:
+    return _datetime.datetime.now(tz=_datetime.timezone.utc)
+
+
+def _cel_duration(total_seconds: float) -> _datetime.timedelta:
+    return _datetime.timedelta(seconds=total_seconds)
+
+
+def _cel_timestamp(s: str) -> _datetime.datetime:
+    return _datetime.datetime.fromisoformat(s.replace("Z", "+00:00"))

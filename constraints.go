@@ -257,6 +257,16 @@ func (e *generator) applyConstraintTypeOverrides(f *Field) {
 		// Strip redundant outer parens from the expression when it is the
 		// entire body of a lambda: "lambda v: (v > 0)" → "lambda v: v > 0".
 		lambdaExpr := stripOuterParens(cv.Expression)
+
+		// Null-safe fields (WKT message types like Timestamp/Duration) are
+		// Optional in Python.  When the field is absent (v is None), CEL rules
+		// are skipped in protovalidate, so we replicate that with a guard.
+		// The stripped expression is re-wrapped in parens so that operator
+		// precedence is preserved: "v is None or (a and b)" stays correct.
+		if cv.NullSafe {
+			lambdaExpr = fmt.Sprintf("v is None or (%s)", lambdaExpr)
+		}
+
 		var validatorStr string
 		if cv.ReturnsBool {
 			validatorStr = fmt.Sprintf(

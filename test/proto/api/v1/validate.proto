@@ -700,3 +700,48 @@ message ValidatedCELStillDropped {
     message: "must be after the current time"
   }];
 }
+
+// ValidatedCELTimestamp — 'this > now' on a Timestamp field.
+message ValidatedCELTimestamp {
+  google.protobuf.Timestamp deadline = 1 [(buf.validate.field).cel = {
+    id: "in_future",
+    expression: "this > now",
+    message: "deadline must be in the future"
+  }];
+}
+
+// ValidatedCELDuration — 'this > duration("0s")' on a Duration field.
+message ValidatedCELDuration {
+  google.protobuf.Duration window = 1 [(buf.validate.field).cel = {
+    id: "window_positive",
+    expression: "this > duration(\"0s\")",
+    message: "window must be positive"
+  }];
+}
+
+// ValidatedCELDurationRange — duration bounded between two literals.
+message ValidatedCELDurationRange {
+  google.protobuf.Duration ttl = 1 [(buf.validate.field).cel = {
+    id: "ttl_in_range",
+    expression: "this >= duration(\"1m\") && this <= duration(\"1h\")",
+    message: "ttl must be between 1 minute and 1 hour"
+  }];
+}
+
+// ValidatedCELTimestampAfter — timestamp compared to a fixed literal.
+message ValidatedCELTimestampAfter {
+  google.protobuf.Timestamp created = 1 [(buf.validate.field).cel = {
+    id: "after_epoch",
+    expression: "this >= timestamp(\"2020-01-01T00:00:00Z\")",
+    message: "must be on or after 2020-01-01"
+  }];
+}
+
+// ValidatedCELTimestampWindow — arithmetic: now + duration window.
+message ValidatedCELTimestampWindow {
+  google.protobuf.Timestamp expires = 1 [(buf.validate.field).cel = {
+    id: "within_one_hour",
+    expression: "this <= now + duration(\"3600s\")",
+    message: "expiry must be at most one hour from now"
+  }];
+}

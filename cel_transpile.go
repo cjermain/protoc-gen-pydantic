@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/google/cel-go/cel"
 	celast "github.com/google/cel-go/common/ast"
@@ -174,6 +175,11 @@ func celFieldKey(fd protoreflect.FieldDescriptor) string {
 	if fd.IsList() {
 		return fmt.Sprintf("list_%d", fd.Kind())
 	}
+	// Message-kind fields need a key that includes the full type name so that
+	// different message types (e.g. Timestamp vs Duration) don't share an env.
+	if fd.Kind() == protoreflect.MessageKind {
+		return fmt.Sprintf("msg_%s", fd.Message().FullName())
+	}
 	return fmt.Sprintf("scalar_%d", fd.Kind())
 }
 
@@ -183,6 +189,16 @@ func celTypeForField(fd protoreflect.FieldDescriptor) *cel.Type {
 	}
 	if fd.IsList() {
 		return cel.ListType(celTypeForKind(fd.Kind()))
+	}
+	// Map well-known protobuf message types to their concrete CEL types so
+	// that temporal expressions (e.g. "this > now") type-check correctly.
+	if fd.Kind() == protoreflect.MessageKind {
+		switch string(fd.Message().FullName()) {
+		case "google.protobuf.Timestamp":
+			return cel.TimestampType
+		case "google.protobuf.Duration":
+			return cel.DurationType
+		}
 	}
 	return celTypeForKind(fd.Kind())
 }
@@ -278,7 +294,8 @@ func (t *transpiler) ident(e celast.NavigableExpr) (string, error) {
 		}
 		return "v", nil
 	case "now":
-		return "", fmt.Errorf("'now' not supported")
+		t.imports["_cel_now"] = true
+		return "_cel_now()", nil
 	case "true":
 		return "True", nil
 	case "false":
@@ -662,9 +679,35 @@ func (t *transpiler) globalFunc(fn string, args []celast.NavigableExpr) (string,
 		}
 		return fmt.Sprintf("bytes(%s)", arg), nil
 	case "duration":
-		return "", fmt.Errorf("duration() not supported")
+		if len(args) != 1 {
+			return "", fmt.Errorf("duration: expected 1 argument")
+		}
+		if args[0].Kind() != celast.LiteralKind {
+			return "", fmt.Errorf("duration: argument must be a string literal")
+		}
+		s, ok := args[0].AsLiteral().Value().(string)
+		if !ok {
+			return "", fmt.Errorf("duration: argument must be a string")
+		}
+		secs, err := parseCELDuration(s)
+		if err != nil {
+			return "", fmt.Errorf("duration(%q): %w", s, err)
+		}
+		t.imports["_cel_duration"] = true
+		return fmt.Sprintf("_cel_duration(%s)", formatDurationSecs(secs)), nil
 	case "timestamp":
-		return "", fmt.Errorf("timestamp() not supported")
+		if len(args) != 1 {
+			return "", fmt.Errorf("timestamp: expected 1 argument")
+		}
+		if args[0].Kind() != celast.LiteralKind {
+			return "", fmt.Errorf("timestamp: argument must be a string literal")
+		}
+		s, ok := args[0].AsLiteral().Value().(string)
+		if !ok {
+			return "", fmt.Errorf("timestamp: argument must be a string")
+		}
+		t.imports["_cel_timestamp"] = true
+		return fmt.Sprintf("_cel_timestamp(%s)", pyQuote(s)), nil
 	case "type":
 		return "", fmt.Errorf("type() not supported")
 	case "getField":
@@ -959,6 +1002,32 @@ func extractMapThenElem(thenBranch celast.NavigableExpr) (celast.NavigableExpr, 
 	return extractSingleListElement(children[1])
 }
 
+// ─── temporal helpers ────────────────────────────────────────────────────────
+
+// parseCELDuration converts a CEL/Go duration string (e.g. "1h30m", "300s",
+// "1.5s") to total seconds as float64 using Go's time.ParseDuration.
+func parseCELDuration(s string) (float64, error) {
+	d, err := time.ParseDuration(s)
+	if err != nil {
+		return 0, err
+	}
+	return d.Seconds(), nil
+}
+
+// formatDurationSecs formats a float64 seconds value as a clean Python numeric
+// literal for use in _cel_duration(N).
+func formatDurationSecs(secs float64) string {
+	return strconv.FormatFloat(secs, 'g', -1, 64)
+}
+
+// isCELNullSafeField reports whether field-level CEL validators for fd need a
+// "v is None or (...)" guard. This is true for non-repeated message-kind
+// fields, which include all WKT types (Timestamp → datetime, Duration →
+// timedelta) and are represented as Optional in generated Python.
+func isCELNullSafeField(fd protoreflect.FieldDescriptor) bool {
+	return !fd.IsList() && !fd.IsMap() && fd.Kind() == protoreflect.MessageKind
+}
+
 func joinStrings(parts []string, sep string) string {
 	result := ""
 	for i, p := range parts {
@@ -1036,6 +1105,7 @@ func transpileCELField(rule celRule, field protoreflect.FieldDescriptor, cache *
 		Expression:  pyExpr,
 		Message:     rule.Message,
 		ReturnsBool: returnsBool,
+		NullSafe:    isCELNullSafeField(field),
 		Imports:     importList(t.imports),
 	}, nil
 }

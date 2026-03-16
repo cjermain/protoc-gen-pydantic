@@ -337,7 +337,91 @@ func formatFactoryCall(s, indent string) string {
 		}
 	}
 
+	// Strategy 3: lambda body wrap — used when the first argument is a
+	// "lambda v: body" whose body is too long for a single line at innerIndent.
+	// Ruff wraps it as:
+	//
+	//   factory(
+	//       lambda v: (
+	//           body           ← or split at or/and
+	//       ),
+	//       other_args,
+	//   )
+	if len(parts) >= 1 {
+		firstArg := strings.TrimSpace(parts[0])
+		if wrappedLambda := formatLambdaArg(firstArg, innerIndent); wrappedLambda != "" {
+			restFit := true
+			for _, p := range parts[1:] {
+				if len(innerIndent+strings.TrimSpace(p)+",") > 88 {
+					restFit = false
+					break
+				}
+			}
+			if restFit {
+				var sb strings.Builder
+				sb.WriteString(factory + "(\n")
+				sb.WriteString(innerIndent + wrappedLambda + ",\n")
+				for _, p := range parts[1:] {
+					sb.WriteString(innerIndent + strings.TrimSpace(p) + ",\n")
+				}
+				sb.WriteString(indent + ")")
+				return sb.String()
+			}
+		}
+	}
+
 	return ""
+}
+
+// formatLambdaArg wraps a "lambda v: body" expression when body is too long
+// for a single line at innerIndent. It first tries the single-line body form:
+//
+//	lambda v: (
+//	    body
+//	)
+//
+// If body itself doesn't fit, it splits at top-level or/and operators:
+//
+//	lambda v: (
+//	    part1
+//	    or part2
+//	)
+//
+// Returns "" if no stable form is found.
+func formatLambdaArg(s, innerIndent string) string {
+	const prefix = "lambda v: "
+	if !strings.HasPrefix(s, prefix) {
+		return ""
+	}
+	// Only attempt wrapping when the whole lambda doesn't fit at innerIndent.
+	if len(innerIndent+s+",") <= 88 {
+		return ""
+	}
+	body := s[len(prefix):]
+	bodyIndent := innerIndent + "    "
+
+	// Try single-line body: "lambda v: (\n    body\n)"
+	if len(bodyIndent+body) <= 88 {
+		return "lambda v: (\n" + bodyIndent + body + "\n" + innerIndent + ")"
+	}
+
+	// Try splitting the body at top-level or/and operators.
+	parts := splitBoolOps(body)
+	if len(parts) <= 1 {
+		return ""
+	}
+	for _, p := range parts {
+		if len(bodyIndent+p) > 88 {
+			return ""
+		}
+	}
+	var sb strings.Builder
+	sb.WriteString("lambda v: (\n")
+	for _, p := range parts {
+		sb.WriteString(bodyIndent + p + "\n")
+	}
+	sb.WriteString(innerIndent + ")")
+	return sb.String()
 }
 
 func formatPythonFloat(f float64) string {

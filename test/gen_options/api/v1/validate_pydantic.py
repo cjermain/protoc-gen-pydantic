@@ -16,7 +16,10 @@ from ._proto_types import (
     ProtoInt64,
     ProtoTimestamp,
     ProtoUInt64,
+    _cel_duration,
     _cel_matches,
+    _cel_now,
+    _cel_timestamp,
     _is_email,
     _is_host_and_port,
     _is_hostname,
@@ -1209,7 +1212,121 @@ class ValidatedCELStillDropped(_ProtoModel):
     expressions containing 'now' (unsupported temporal).
     """
 
-    created: _Optional[ProtoTimestamp] = _Field(
+    created: _Optional[
+        _Annotated[
+            ProtoTimestamp,
+            _AfterValidator(
+                _make_cel_validator(
+                    lambda v: v is None or (v > _cel_now()),
+                    "must be after the current time",
+                )
+            ),
+        ]
+    ] = _Field(
         default=None,
-        # buf.validate: cel id="after_now" (not translated: 'now' not supported)
+    )
+
+
+class ValidatedCELTimestamp(_ProtoModel):
+    """
+    ValidatedCELTimestamp — 'this > now' on a Timestamp field.
+    """
+
+    deadline: _Optional[
+        _Annotated[
+            ProtoTimestamp,
+            _AfterValidator(
+                _make_cel_validator(
+                    lambda v: v is None or (v > _cel_now()),
+                    "deadline must be in the future",
+                )
+            ),
+        ]
+    ] = _Field(
+        default=None,
+    )
+
+
+class ValidatedCELDuration(_ProtoModel):
+    """
+    ValidatedCELDuration — 'this > duration("0s")' on a Duration field.
+    """
+
+    window: _Optional[
+        _Annotated[
+            ProtoDuration,
+            _AfterValidator(
+                _make_cel_validator(
+                    lambda v: v is None or (v > _cel_duration(0)),
+                    "window must be positive",
+                )
+            ),
+        ]
+    ] = _Field(
+        default=None,
+    )
+
+
+class ValidatedCELDurationRange(_ProtoModel):
+    """
+    ValidatedCELDurationRange — duration bounded between two literals.
+    """
+
+    ttl: _Optional[
+        _Annotated[
+            ProtoDuration,
+            _AfterValidator(
+                _make_cel_validator(
+                    lambda v: (
+                        v is None
+                        or ((v >= _cel_duration(60)) and (v <= _cel_duration(3600)))
+                    ),
+                    "ttl must be between 1 minute and 1 hour",
+                )
+            ),
+        ]
+    ] = _Field(
+        default=None,
+    )
+
+
+class ValidatedCELTimestampAfter(_ProtoModel):
+    """
+    ValidatedCELTimestampAfter — timestamp compared to a fixed literal.
+    """
+
+    created: _Optional[
+        _Annotated[
+            ProtoTimestamp,
+            _AfterValidator(
+                _make_cel_validator(
+                    lambda v: (
+                        v is None or (v >= _cel_timestamp("2020-01-01T00:00:00Z"))
+                    ),
+                    "must be on or after 2020-01-01",
+                )
+            ),
+        ]
+    ] = _Field(
+        default=None,
+    )
+
+
+class ValidatedCELTimestampWindow(_ProtoModel):
+    """
+    ValidatedCELTimestampWindow — arithmetic: now + duration window.
+    """
+
+    expires: _Optional[
+        _Annotated[
+            ProtoTimestamp,
+            _AfterValidator(
+                _make_cel_validator(
+                    lambda v: v is None or (v <= (_cel_now() + _cel_duration(3600))),
+                    "expiry must be at most one hour from now",
+                )
+            ),
+        ]
+    ] = _Field(
+        default=None,
     )

@@ -898,6 +898,24 @@ def _is_inf(v: float, direction: int = 0) -> bool:
     return True
 `
 
+const protoTypesCELNowFunc = `
+
+def _cel_now() -> _datetime.datetime:
+    return _datetime.datetime.now(tz=_datetime.timezone.utc)
+`
+
+const protoTypesCELDurationFunc = `
+
+def _cel_duration(total_seconds: float) -> _datetime.timedelta:
+    return _datetime.timedelta(seconds=total_seconds)
+`
+
+const protoTypesCELTimestampFunc = `
+
+def _cel_timestamp(s: str) -> _datetime.datetime:
+    return _datetime.datetime.fromisoformat(s.replace("Z", "+00:00"))
+`
+
 // buildProtoTypesContent assembles the content for _proto_types.py, including
 // only the format validator functions (and their imports) that are actually
 // used by files in the same output directory.
@@ -1076,6 +1094,15 @@ func buildProtoTypesContent(needed map[string]bool) string {
 	}
 	if needed["_is_inf"] {
 		b.WriteString(protoTypesCELIsInfFunc)
+	}
+	if needed["_cel_now"] {
+		b.WriteString(protoTypesCELNowFunc)
+	}
+	if needed["_cel_duration"] {
+		b.WriteString(protoTypesCELDurationFunc)
+	}
+	if needed["_cel_timestamp"] {
+		b.WriteString(protoTypesCELTimestampFunc)
 	}
 
 	return b.String()

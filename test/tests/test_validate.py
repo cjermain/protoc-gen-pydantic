@@ -4,6 +4,8 @@ import pytest
 from pydantic import ValidationError
 
 import datetime
+from datetime import datetime as _dt_datetime
+from datetime import timedelta, timezone
 
 from api.v1.validate_pydantic import (
     ValidatedBytes,
@@ -24,11 +26,16 @@ from api.v1.validate_pydantic import (
     ValidatedCELIsIpPrefix,
     ValidatedCELIsNanInf,
     ValidatedCELIsUri,
+    ValidatedCELDuration,
+    ValidatedCELDurationRange,
     ValidatedCELMapAll,
     ValidatedCELMessage,
     ValidatedCELMessageAll,
     ValidatedCELStillDropped,
     ValidatedCELStringReturn,
+    ValidatedCELTimestamp,
+    ValidatedCELTimestampAfter,
+    ValidatedCELTimestampWindow,
     ValidatedConst,
     ValidatedConstOptional,
     ValidatedDropped,
@@ -1803,19 +1810,165 @@ def test_cel_message_all_empty_passes():
 
 
 # ---------------------------------------------------------------------------
-# ValidatedCELStillDropped — 'now' is still unsupported (drop path)
+# ValidatedCELStillDropped — 'this > now' is now transpiled (not dropped)
 # ---------------------------------------------------------------------------
 
 
-def test_cel_still_dropped_comment():
+def test_cel_still_dropped_now_transpiled():
+    # 'now' is now supported; the dropped comment must be gone.
     text = Path("gen/api/v1/validate_pydantic.py").read_text()
-    assert 'cel id="after_now" (not translated' in text
+    assert 'cel id="after_now" (not translated' not in text
 
 
-def test_cel_still_dropped_no_validation():
-    # The 'now' rule is dropped; the field accepts any value.
+def test_cel_still_dropped_none_valid():
+    # Null-safe: an unset Timestamp field is always valid.
     m = ValidatedCELStillDropped()
     assert m.created is None
+
+
+def test_cel_still_dropped_future_valid():
+    future = _dt_datetime.now(tz=timezone.utc) + timedelta(days=1)
+    m = ValidatedCELStillDropped(created=future)
+    assert m.created == future
+
+
+def test_cel_still_dropped_past_invalid():
+    past = _dt_datetime(2020, 1, 1, tzinfo=timezone.utc)
+    with pytest.raises(ValidationError):
+        ValidatedCELStillDropped(created=past)
+
+
+# ---------------------------------------------------------------------------
+# ValidatedCELTimestamp — this > now
+# ---------------------------------------------------------------------------
+
+
+def test_cel_timestamp_none_valid():
+    # Null-safe: unset Timestamp field passes.
+    m = ValidatedCELTimestamp()
+    assert m.deadline is None
+
+
+def test_cel_timestamp_future_valid():
+    future = _dt_datetime.now(tz=timezone.utc) + timedelta(days=1)
+    m = ValidatedCELTimestamp(deadline=future)
+    assert m.deadline == future
+
+
+def test_cel_timestamp_past_invalid():
+    past = _dt_datetime(2020, 1, 1, tzinfo=timezone.utc)
+    with pytest.raises(ValidationError):
+        ValidatedCELTimestamp(deadline=past)
+
+
+# ---------------------------------------------------------------------------
+# ValidatedCELDuration — this > duration("0s")
+# ---------------------------------------------------------------------------
+
+
+def test_cel_duration_none_valid():
+    m = ValidatedCELDuration()
+    assert m.window is None
+
+
+def test_cel_duration_positive_valid():
+    m = ValidatedCELDuration(window=timedelta(seconds=30))
+    assert m.window == timedelta(seconds=30)
+
+
+def test_cel_duration_zero_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedCELDuration(window=timedelta(0))
+
+
+def test_cel_duration_negative_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedCELDuration(window=timedelta(seconds=-1))
+
+
+# ---------------------------------------------------------------------------
+# ValidatedCELDurationRange — this >= duration("1m") && this <= duration("1h")
+# ---------------------------------------------------------------------------
+
+
+def test_cel_duration_range_none_valid():
+    m = ValidatedCELDurationRange()
+    assert m.ttl is None
+
+
+def test_cel_duration_range_mid_valid():
+    m = ValidatedCELDurationRange(ttl=timedelta(minutes=30))
+    assert m.ttl == timedelta(minutes=30)
+
+
+def test_cel_duration_range_lower_bound_valid():
+    m = ValidatedCELDurationRange(ttl=timedelta(minutes=1))
+    assert m.ttl == timedelta(minutes=1)
+
+
+def test_cel_duration_range_upper_bound_valid():
+    m = ValidatedCELDurationRange(ttl=timedelta(hours=1))
+    assert m.ttl == timedelta(hours=1)
+
+
+def test_cel_duration_range_below_min_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedCELDurationRange(ttl=timedelta(seconds=30))
+
+
+def test_cel_duration_range_above_max_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedCELDurationRange(ttl=timedelta(hours=2))
+
+
+# ---------------------------------------------------------------------------
+# ValidatedCELTimestampAfter — this >= timestamp("2020-01-01T00:00:00Z")
+# ---------------------------------------------------------------------------
+
+
+def test_cel_timestamp_after_none_valid():
+    m = ValidatedCELTimestampAfter()
+    assert m.created is None
+
+
+def test_cel_timestamp_after_valid():
+    ts = _dt_datetime(2024, 6, 1, tzinfo=timezone.utc)
+    m = ValidatedCELTimestampAfter(created=ts)
+    assert m.created == ts
+
+
+def test_cel_timestamp_after_boundary_valid():
+    boundary = _dt_datetime(2020, 1, 1, tzinfo=timezone.utc)
+    m = ValidatedCELTimestampAfter(created=boundary)
+    assert m.created == boundary
+
+
+def test_cel_timestamp_after_invalid():
+    old = _dt_datetime(2019, 12, 31, tzinfo=timezone.utc)
+    with pytest.raises(ValidationError):
+        ValidatedCELTimestampAfter(created=old)
+
+
+# ---------------------------------------------------------------------------
+# ValidatedCELTimestampWindow — this <= now + duration("3600s")
+# ---------------------------------------------------------------------------
+
+
+def test_cel_timestamp_window_none_valid():
+    m = ValidatedCELTimestampWindow()
+    assert m.expires is None
+
+
+def test_cel_timestamp_window_near_valid():
+    soon = _dt_datetime.now(tz=timezone.utc) + timedelta(minutes=30)
+    m = ValidatedCELTimestampWindow(expires=soon)
+    assert m.expires == soon
+
+
+def test_cel_timestamp_window_too_far_invalid():
+    far = _dt_datetime.now(tz=timezone.utc) + timedelta(hours=2)
+    with pytest.raises(ValidationError):
+        ValidatedCELTimestampWindow(expires=far)
 
 
 # ---------------------------------------------------------------------------

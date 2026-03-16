@@ -147,6 +147,7 @@ type CelValidator struct {
 	Expression  string   // transpiled Python expression ("v" field-level, "self" msg-level)
 	Message     string   // non-empty for bool-returning rules; empty for string-returning
 	ReturnsBool bool     // true → raise if not expr; false → raise if expr is non-empty
+	NullSafe    bool     // true → lambda wraps with "v is None or (...)" guard
 	Imports     []string // _proto_types.py symbols needed (e.g. "_is_unique", "_cel_matches")
 }
 
@@ -207,6 +208,72 @@ func (f Field) TypeAnnotationFormatted(bi string) string {
 		return annotation
 	}
 	annotationLine := bi + f.Name + ": " + annotation
+
+	// _Optional[_Annotated[...]] — ruff splits as two nested brackets:
+	//   field: _Optional[
+	//       _Annotated[
+	//           Type,
+	//           _AfterValidator(...),
+	//       ]
+	//   ] = _Field(...)
+	if strings.HasPrefix(annotation, "_Optional[") && strings.HasSuffix(annotation, "]") {
+		optInner := annotation[len("_Optional[") : len(annotation)-1]
+		if strings.HasPrefix(optInner, "_Annotated[") && strings.HasSuffix(optInner, "]") {
+			if len(annotationLine+" = _Field(") <= 88 {
+				return annotation // fits on one line
+			}
+			inner := optInner[len("_Annotated[") : len(optInner)-1]
+			// Elements at bi+8: bi+4 for _Optional wrap, bi+4 for _Annotated.
+			elemIndent := bi + "        "
+			parts := splitTopLevelCommas(inner)
+			var sb strings.Builder
+			sb.WriteString("_Optional[\n")
+			sb.WriteString(bi + "    _Annotated[\n")
+			for _, p := range parts {
+				trimmed := strings.TrimSpace(p)
+				formatted := formatAnnotationElement(trimmed, elemIndent)
+				sb.WriteString(elemIndent + formatted + ",\n")
+			}
+			sb.WriteString(bi + "    ]\n")
+			sb.WriteString(bi + "]")
+			return sb.String()
+		}
+	}
+
+	// _Annotated[...] | None — ruff uses a parenthesised union form:
+	//   field: (
+	//       _Annotated[
+	//           Type,
+	//           _AfterValidator(...),
+	//       ]
+	//       | None
+	//   ) = _Field(...)
+	const unionNone = " | None"
+	if strings.HasPrefix(annotation, "_Annotated[") && strings.HasSuffix(annotation, unionNone) {
+		annotPart := annotation[:len(annotation)-len(unionNone)]
+		if strings.HasSuffix(annotPart, "]") {
+			if len(annotationLine+" = _Field(") <= 88 {
+				return annotation // fits on one line
+			}
+			inner := annotPart[len("_Annotated[") : len(annotPart)-1]
+			// Elements inside the outer paren are indented bi+8 (extra 4 for
+			// the paren and extra 4 for _Annotated[]).
+			elemIndent := bi + "        "
+			parts := splitTopLevelCommas(inner)
+			var sb strings.Builder
+			sb.WriteString("(\n")
+			sb.WriteString(bi + "    _Annotated[\n")
+			for _, p := range parts {
+				trimmed := strings.TrimSpace(p)
+				formatted := formatAnnotationElement(trimmed, elemIndent)
+				sb.WriteString(elemIndent + formatted + ",\n")
+			}
+			sb.WriteString(bi + "    ]\n")
+			sb.WriteString(bi + "    | None\n")
+			sb.WriteString(bi + ")")
+			return sb.String()
+		}
+	}
 
 	// _Annotated[...] splitting.
 	if strings.HasPrefix(annotation, "_Annotated[") && strings.HasSuffix(annotation, "]") {
