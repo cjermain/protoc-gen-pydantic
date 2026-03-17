@@ -16,10 +16,15 @@ from ._proto_types import (
     ProtoInt64,
     ProtoTimestamp,
     ProtoUInt64,
+    _cel_dur_get_hours,
+    _cel_dur_get_milliseconds,
+    _cel_dur_get_minutes,
+    _cel_dur_get_seconds,
     _cel_duration,
     _cel_matches,
     _cel_now,
     _cel_timestamp,
+    _cel_ts_in_tz,
     _is_email,
     _is_host_and_port,
     _is_hostname,
@@ -1478,6 +1483,284 @@ class ValidatedCELTimestampWindow(_ProtoModel):
                 _make_cel_validator(
                     lambda v: v is None or (v <= (_cel_now() + _cel_duration(3600))),
                     "expiry must be at most one hour from now",
+                )
+            ),
+        ]
+        | None
+    ) = _Field(
+        default=None,
+    )
+
+
+class ValidatedCELTsYear(_ProtoModel):
+    """
+    ValidatedCELTsYear — getFullYear() returns the 4-digit year.
+    """
+
+    t: (
+        _Annotated[
+            ProtoTimestamp,
+            _AfterValidator(
+                _make_cel_validator(
+                    lambda v: v is None or (v.year == 2024), "must be in 2024"
+                )
+            ),
+        ]
+        | None
+    ) = _Field(
+        default=None,
+    )
+
+
+class ValidatedCELTsMonth(_ProtoModel):
+    """
+    ValidatedCELTsMonth — getMonth() is 0-indexed (January == 0).
+    """
+
+    t: (
+        _Annotated[
+            ProtoTimestamp,
+            _AfterValidator(
+                _make_cel_validator(
+                    lambda v: v is None or ((v.month - 1) == 0),
+                    "must be in January (month index 0)",
+                )
+            ),
+        ]
+        | None
+    ) = _Field(
+        default=None,
+    )
+
+
+class ValidatedCELTsDayOfMonth(_ProtoModel):
+    """
+    ValidatedCELTsDayOfMonth — getDayOfMonth() is 0-indexed (1st == 0).
+    """
+
+    t: (
+        _Annotated[
+            ProtoTimestamp,
+            _AfterValidator(
+                _make_cel_validator(
+                    lambda v: v is None or ((v.day - 1) == 14),
+                    "must be on the 15th (0-indexed day 14)",
+                )
+            ),
+        ]
+        | None
+    ) = _Field(
+        default=None,
+    )
+
+
+class ValidatedCELTsDayOfWeek(_ProtoModel):
+    """
+    ValidatedCELTsDayOfWeek — getDayOfWeek(): Sun=0, Mon=1, …, Sat=6.
+    """
+
+    t: (
+        _Annotated[
+            ProtoTimestamp,
+            _AfterValidator(
+                _make_cel_validator(
+                    lambda v: (
+                        v is None
+                        or (((v.isoweekday() % 7) >= 1) and ((v.isoweekday() % 7) <= 5))
+                    ),
+                    "must be a weekday (Mon–Fri)",
+                )
+            ),
+        ]
+        | None
+    ) = _Field(
+        default=None,
+    )
+
+
+class ValidatedCELTsDayOfYear(_ProtoModel):
+    """
+    ValidatedCELTsDayOfYear — getDayOfYear() is 0-indexed (Jan 1 == 0).
+    """
+
+    t: (
+        _Annotated[
+            ProtoTimestamp,
+            _AfterValidator(
+                _make_cel_validator(
+                    lambda v: v is None or ((v.timetuple().tm_yday - 1) >= 182),
+                    "must be in the second half of the year (day index >= 182)",
+                )
+            ),
+        ]
+        | None
+    ) = _Field(
+        default=None,
+    )
+
+
+class ValidatedCELTsHours(_ProtoModel):
+    """
+    ValidatedCELTsHours — getHours() returns the hour (0–23, UTC).
+    """
+
+    t: (
+        _Annotated[
+            ProtoTimestamp,
+            _AfterValidator(
+                _make_cel_validator(
+                    lambda v: v is None or (v.hour >= 12),
+                    "must be afternoon or later (UTC)",
+                )
+            ),
+        ]
+        | None
+    ) = _Field(
+        default=None,
+    )
+
+
+class ValidatedCELTsMillis(_ProtoModel):
+    """
+    ValidatedCELTsMillis — getMilliseconds() returns the ms component (0–999).
+    """
+
+    t: (
+        _Annotated[
+            ProtoTimestamp,
+            _AfterValidator(
+                _make_cel_validator(
+                    lambda v: v is None or ((v.microsecond // 1000) == 0),
+                    "must not have sub-second precision",
+                )
+            ),
+        ]
+        | None
+    ) = _Field(
+        default=None,
+    )
+
+
+class ValidatedCELTsHoursUTC(_ProtoModel):
+    """
+    ValidatedCELTsHoursUTC — getHours("UTC") is equivalent to getHours().
+    """
+
+    t: (
+        _Annotated[
+            ProtoTimestamp,
+            _AfterValidator(
+                _make_cel_validator(
+                    lambda v: v is None or (v.hour >= 12),
+                    "must be afternoon or later (explicit UTC)",
+                )
+            ),
+        ]
+        | None
+    ) = _Field(
+        default=None,
+    )
+
+
+class ValidatedCELTsHoursTZ(_ProtoModel):
+    """
+    ValidatedCELTsHoursTZ — getHours("America/New_York") uses IANA timezone.
+    2024-01-15T17:00:00Z == 12:00 EST (UTC-5, no DST in January).
+    """
+
+    t: (
+        _Annotated[
+            ProtoTimestamp,
+            _AfterValidator(
+                _make_cel_validator(
+                    lambda v: (
+                        v is None or (_cel_ts_in_tz(v, "America/New_York").hour >= 12)
+                    ),
+                    "must be afternoon or later in New York",
+                )
+            ),
+        ]
+        | None
+    ) = _Field(
+        default=None,
+    )
+
+
+class ValidatedCELDurGetHours(_ProtoModel):
+    """
+    ValidatedCELDurGetHours — getHours() returns total hours (truncated).
+    """
+
+    d: (
+        _Annotated[
+            ProtoDuration,
+            _AfterValidator(
+                _make_cel_validator(
+                    lambda v: v is None or (_cel_dur_get_hours(v) >= 2),
+                    "must be at least 2 hours",
+                )
+            ),
+        ]
+        | None
+    ) = _Field(
+        default=None,
+    )
+
+
+class ValidatedCELDurGetMinutes(_ProtoModel):
+    """
+    ValidatedCELDurGetMinutes — getMinutes() returns total minutes (truncated).
+    """
+
+    d: (
+        _Annotated[
+            ProtoDuration,
+            _AfterValidator(
+                _make_cel_validator(
+                    lambda v: v is None or (_cel_dur_get_minutes(v) >= 90),
+                    "must be at least 90 total minutes",
+                )
+            ),
+        ]
+        | None
+    ) = _Field(
+        default=None,
+    )
+
+
+class ValidatedCELDurGetSeconds(_ProtoModel):
+    """
+    ValidatedCELDurGetSeconds — getSeconds() returns total seconds (truncated).
+    """
+
+    d: (
+        _Annotated[
+            ProtoDuration,
+            _AfterValidator(
+                _make_cel_validator(
+                    lambda v: v is None or (_cel_dur_get_seconds(v) == 3600),
+                    "must be exactly 1 hour (3600 seconds)",
+                )
+            ),
+        ]
+        | None
+    ) = _Field(
+        default=None,
+    )
+
+
+class ValidatedCELDurGetMillis(_ProtoModel):
+    """
+    ValidatedCELDurGetMillis — getMilliseconds() returns total ms (truncated).
+    """
+
+    d: (
+        _Annotated[
+            ProtoDuration,
+            _AfterValidator(
+                _make_cel_validator(
+                    lambda v: v is None or (_cel_dur_get_milliseconds(v) >= 1500),
+                    "must be at least 1500 total milliseconds",
                 )
             ),
         ]

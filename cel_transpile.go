@@ -424,11 +424,18 @@ func (t *transpiler) call(e celast.NavigableExpr) (string, error) {
 
 	// Member functions: recv.fn(args...)
 	if c.IsMemberFunction() {
-		recv, err := t.node(children[0])
+		target := children[0]
+		recv, err := t.node(target)
 		if err != nil {
 			return "", err
 		}
-		return t.memberFunc(fn, recv, children[1:])
+		// Carry the receiver's CEL type name so that overloaded functions
+		// (e.g. getHours on Timestamp vs Duration) can dispatch correctly.
+		recvTypeName := ""
+		if rt := target.Type(); rt != nil {
+			recvTypeName = rt.TypeName()
+		}
+		return t.memberFunc(fn, recv, recvTypeName, children[1:])
 	}
 
 	// Global functions
@@ -447,7 +454,63 @@ func (t *transpiler) binaryOp(children []celast.NavigableExpr, op string) (strin
 	return fmt.Sprintf("(%s %s %s)", lhs, op, rhs), nil
 }
 
-func (t *transpiler) memberFunc(fn, recv string, args []celast.NavigableExpr) (string, error) {
+func (t *transpiler) memberFunc(fn, recv, recvTypeName string, args []celast.NavigableExpr) (string, error) {
+	// ── Timestamp member accessors ──────────────────────────────────────────
+	//
+	// tsGetterEntry.suffix is appended to the base expression (the receiver,
+	// or _cel_ts_in_tz(recv, "tz") for a non-UTC timezone argument).
+	// When needsParens is true the whole expression is wrapped in parens.
+	type tsGetterEntry struct {
+		suffix      string
+		needsParens bool
+	}
+	tsGetters := map[string]tsGetterEntry{
+		"getFullYear":     {".year", false},
+		"getMonth":        {".month - 1", true},               // CEL 0-indexed
+		"getDayOfMonth":   {".day - 1", true},                 // CEL 0-indexed
+		"getDate":         {".day", false},                    // CEL 1-indexed convenience alias
+		"getDayOfYear":    {".timetuple().tm_yday - 1", true}, // CEL 0-indexed
+		"getDayOfWeek":    {".isoweekday() % 7", true},        // Sun=0 … Sat=6
+		"getHours":        {".hour", false},
+		"getMinutes":      {".minute", false},
+		"getSeconds":      {".second", false},
+		"getMilliseconds": {".microsecond // 1000", true},
+	}
+	if info, ok := tsGetters[fn]; ok && recvTypeName == "google.protobuf.Timestamp" {
+		base, err := t.tsGetterBase(recv, args)
+		if err != nil {
+			return "", fmt.Errorf("%s: %w", fn, err)
+		}
+		result := base + info.suffix
+		if info.needsParens {
+			return "(" + result + ")", nil
+		}
+		return result, nil
+	}
+
+	// ── Duration member accessors ────────────────────────────────────────────
+	//
+	// CEL duration getters return TOTAL units (not calendar components):
+	//   getHours()        → total hours truncated to int
+	//   getMinutes()      → total minutes truncated to int
+	//   getSeconds()      → total seconds truncated to int
+	//   getMilliseconds() → total milliseconds truncated to int
+	if recvTypeName == "google.protobuf.Duration" {
+		durGetters := map[string]string{
+			"getHours":        "_cel_dur_get_hours",
+			"getMinutes":      "_cel_dur_get_minutes",
+			"getSeconds":      "_cel_dur_get_seconds",
+			"getMilliseconds": "_cel_dur_get_milliseconds",
+		}
+		if helper, ok := durGetters[fn]; ok {
+			if len(args) != 0 {
+				return "", fmt.Errorf("%s: expected 0 arguments for duration getter", fn)
+			}
+			t.imports[helper] = true
+			return fmt.Sprintf("%s(%s)", helper, recv), nil
+		}
+	}
+
 	switch fn {
 	case "startsWith":
 		if len(args) != 1 {
@@ -1000,6 +1063,34 @@ func extractMapThenElem(thenBranch celast.NavigableExpr) (celast.NavigableExpr, 
 		return nil, fmt.Errorf("then-branch: too few children")
 	}
 	return extractSingleListElement(children[1])
+}
+
+// ─── timestamp getter helper ─────────────────────────────────────────────────
+
+// tsGetterBase returns the Python base expression to which a timestamp getter
+// suffix is appended. With no arguments the base is the receiver itself
+// (assumed UTC). With a literal "UTC" argument the base is also the receiver.
+// With any other literal string argument the base is _cel_ts_in_tz(recv, tz).
+func (t *transpiler) tsGetterBase(recv string, args []celast.NavigableExpr) (string, error) {
+	switch len(args) {
+	case 0:
+		return recv, nil
+	case 1:
+		if args[0].Kind() != celast.LiteralKind {
+			return "", fmt.Errorf("timezone argument must be a string literal")
+		}
+		tz, ok := args[0].AsLiteral().Value().(string)
+		if !ok {
+			return "", fmt.Errorf("timezone argument must be a string")
+		}
+		if tz == "UTC" {
+			return recv, nil
+		}
+		t.imports["_cel_ts_in_tz"] = true
+		return fmt.Sprintf("_cel_ts_in_tz(%s, %s)", recv, pyQuote(tz)), nil
+	default:
+		return "", fmt.Errorf("expected 0 or 1 arguments")
+	}
 }
 
 // ─── temporal helpers ────────────────────────────────────────────────────────

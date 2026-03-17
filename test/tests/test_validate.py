@@ -26,6 +26,10 @@ from api.v1.validate_pydantic import (
     ValidatedCELIsIpPrefix,
     ValidatedCELIsNanInf,
     ValidatedCELIsUri,
+    ValidatedCELDurGetHours,
+    ValidatedCELDurGetMillis,
+    ValidatedCELDurGetMinutes,
+    ValidatedCELDurGetSeconds,
     ValidatedCELDuration,
     ValidatedCELDurationRange,
     ValidatedCELMapAll,
@@ -36,6 +40,15 @@ from api.v1.validate_pydantic import (
     ValidatedCELTimestamp,
     ValidatedCELTimestampAfter,
     ValidatedCELTimestampWindow,
+    ValidatedCELTsDayOfMonth,
+    ValidatedCELTsDayOfWeek,
+    ValidatedCELTsDayOfYear,
+    ValidatedCELTsHours,
+    ValidatedCELTsHoursTZ,
+    ValidatedCELTsHoursUTC,
+    ValidatedCELTsMillis,
+    ValidatedCELTsMonth,
+    ValidatedCELTsYear,
     ValidatedConst,
     ValidatedConstOptional,
     ValidatedDropped,
@@ -2581,3 +2594,297 @@ def test_cel_is_inf_invalid():
 def test_cel_is_inf_negative_invalid():
     with pytest.raises(ValidationError):
         ValidatedCELIsNanInf(value=1.0, bounded=float("-inf"))
+
+
+# ---------------------------------------------------------------------------
+# ValidatedCELTsYear — getFullYear()
+# ---------------------------------------------------------------------------
+
+
+def test_cel_ts_year_none_valid():
+    assert ValidatedCELTsYear().t is None
+
+
+def test_cel_ts_year_valid():
+    t = _dt_datetime(2024, 6, 15, 12, 0, tzinfo=timezone.utc)
+    assert ValidatedCELTsYear(t=t).t == t
+
+
+def test_cel_ts_year_invalid():
+    t = _dt_datetime(2023, 6, 15, 12, 0, tzinfo=timezone.utc)
+    with pytest.raises(ValidationError):
+        ValidatedCELTsYear(t=t)
+
+
+# ---------------------------------------------------------------------------
+# ValidatedCELTsMonth — getMonth() (0-indexed, January == 0)
+# ---------------------------------------------------------------------------
+
+
+def test_cel_ts_month_none_valid():
+    assert ValidatedCELTsMonth().t is None
+
+
+def test_cel_ts_month_valid():
+    t = _dt_datetime(2024, 1, 15, 0, 0, tzinfo=timezone.utc)  # January
+    assert ValidatedCELTsMonth(t=t).t == t
+
+
+def test_cel_ts_month_invalid():
+    t = _dt_datetime(2024, 2, 15, 0, 0, tzinfo=timezone.utc)  # February = index 1
+    with pytest.raises(ValidationError):
+        ValidatedCELTsMonth(t=t)
+
+
+# ---------------------------------------------------------------------------
+# ValidatedCELTsDayOfMonth — getDayOfMonth() (0-indexed, 1st == 0)
+# ---------------------------------------------------------------------------
+
+
+def test_cel_ts_dom_none_valid():
+    assert ValidatedCELTsDayOfMonth().t is None
+
+
+def test_cel_ts_dom_valid():
+    t = _dt_datetime(2024, 1, 15, 0, 0, tzinfo=timezone.utc)  # 15th = index 14
+    assert ValidatedCELTsDayOfMonth(t=t).t == t
+
+
+def test_cel_ts_dom_invalid():
+    t = _dt_datetime(2024, 1, 14, 0, 0, tzinfo=timezone.utc)  # 14th = index 13
+    with pytest.raises(ValidationError):
+        ValidatedCELTsDayOfMonth(t=t)
+
+
+# ---------------------------------------------------------------------------
+# ValidatedCELTsDayOfWeek — getDayOfWeek() (Sun=0, Mon=1, …, Sat=6)
+# ---------------------------------------------------------------------------
+
+
+def test_cel_ts_dow_none_valid():
+    assert ValidatedCELTsDayOfWeek().t is None
+
+
+def test_cel_ts_dow_monday_valid():
+    # 2024-01-15 is a Monday → getDayOfWeek() == 1
+    t = _dt_datetime(2024, 1, 15, 12, 0, tzinfo=timezone.utc)
+    assert ValidatedCELTsDayOfWeek(t=t).t == t
+
+
+def test_cel_ts_dow_friday_valid():
+    # 2024-01-19 is a Friday → getDayOfWeek() == 5
+    t = _dt_datetime(2024, 1, 19, 12, 0, tzinfo=timezone.utc)
+    assert ValidatedCELTsDayOfWeek(t=t).t == t
+
+
+def test_cel_ts_dow_sunday_invalid():
+    # 2024-01-21 is a Sunday → getDayOfWeek() == 0
+    t = _dt_datetime(2024, 1, 21, 12, 0, tzinfo=timezone.utc)
+    with pytest.raises(ValidationError):
+        ValidatedCELTsDayOfWeek(t=t)
+
+
+def test_cel_ts_dow_saturday_invalid():
+    # 2024-01-20 is a Saturday → getDayOfWeek() == 6
+    t = _dt_datetime(2024, 1, 20, 12, 0, tzinfo=timezone.utc)
+    with pytest.raises(ValidationError):
+        ValidatedCELTsDayOfWeek(t=t)
+
+
+# ---------------------------------------------------------------------------
+# ValidatedCELTsDayOfYear — getDayOfYear() (0-indexed, Jan 1 == 0)
+# ---------------------------------------------------------------------------
+
+
+def test_cel_ts_doy_none_valid():
+    assert ValidatedCELTsDayOfYear().t is None
+
+
+def test_cel_ts_doy_valid():
+    # 2024-07-01 is day 183 (1-indexed) → index 182 — exactly the boundary
+    t = _dt_datetime(2024, 7, 1, 0, 0, tzinfo=timezone.utc)
+    assert ValidatedCELTsDayOfYear(t=t).t == t
+
+
+def test_cel_ts_doy_invalid():
+    # 2024-06-30 is day 182 (1-indexed) → index 181 < 182
+    t = _dt_datetime(2024, 6, 30, 0, 0, tzinfo=timezone.utc)
+    with pytest.raises(ValidationError):
+        ValidatedCELTsDayOfYear(t=t)
+
+
+# ---------------------------------------------------------------------------
+# ValidatedCELTsHours — getHours() (UTC, 0–23)
+# ---------------------------------------------------------------------------
+
+
+def test_cel_ts_hours_none_valid():
+    assert ValidatedCELTsHours().t is None
+
+
+def test_cel_ts_hours_valid():
+    t = _dt_datetime(2024, 1, 15, 14, 0, tzinfo=timezone.utc)  # 14:00 UTC
+    assert ValidatedCELTsHours(t=t).t == t
+
+
+def test_cel_ts_hours_invalid():
+    t = _dt_datetime(2024, 1, 15, 10, 0, tzinfo=timezone.utc)  # 10:00 UTC
+    with pytest.raises(ValidationError):
+        ValidatedCELTsHours(t=t)
+
+
+# ---------------------------------------------------------------------------
+# ValidatedCELTsMillis — getMilliseconds() (0–999)
+# ---------------------------------------------------------------------------
+
+
+def test_cel_ts_millis_none_valid():
+    assert ValidatedCELTsMillis().t is None
+
+
+def test_cel_ts_millis_valid():
+    t = _dt_datetime(2024, 1, 15, 12, 0, 0, 0, tzinfo=timezone.utc)  # no sub-second
+    assert ValidatedCELTsMillis(t=t).t == t
+
+
+def test_cel_ts_millis_invalid():
+    t = _dt_datetime(2024, 1, 15, 12, 0, 0, 500_000, tzinfo=timezone.utc)  # 500ms
+    with pytest.raises(ValidationError):
+        ValidatedCELTsMillis(t=t)
+
+
+# ---------------------------------------------------------------------------
+# ValidatedCELTsHoursUTC — getHours("UTC") same as getHours()
+# ---------------------------------------------------------------------------
+
+
+def test_cel_ts_hours_utc_none_valid():
+    assert ValidatedCELTsHoursUTC().t is None
+
+
+def test_cel_ts_hours_utc_valid():
+    t = _dt_datetime(2024, 1, 15, 14, 0, tzinfo=timezone.utc)
+    assert ValidatedCELTsHoursUTC(t=t).t == t
+
+
+def test_cel_ts_hours_utc_invalid():
+    t = _dt_datetime(2024, 1, 15, 10, 0, tzinfo=timezone.utc)
+    with pytest.raises(ValidationError):
+        ValidatedCELTsHoursUTC(t=t)
+
+
+# ---------------------------------------------------------------------------
+# ValidatedCELTsHoursTZ — getHours("America/New_York")
+# 2024-01-15T17:00:00Z == 12:00 EST (UTC-5, no DST in January) → passes
+# 2024-01-15T16:00:00Z == 11:00 EST → fails
+# ---------------------------------------------------------------------------
+
+
+def test_cel_ts_hours_tz_none_valid():
+    assert ValidatedCELTsHoursTZ().t is None
+
+
+def test_cel_ts_hours_tz_valid():
+    t = _dt_datetime(2024, 1, 15, 17, 0, tzinfo=timezone.utc)  # 12:00 EST
+    assert ValidatedCELTsHoursTZ(t=t).t == t
+
+
+def test_cel_ts_hours_tz_invalid():
+    t = _dt_datetime(2024, 1, 15, 16, 0, tzinfo=timezone.utc)  # 11:00 EST
+    with pytest.raises(ValidationError):
+        ValidatedCELTsHoursTZ(t=t)
+
+
+# ---------------------------------------------------------------------------
+# ValidatedCELDurGetHours — Duration.getHours() (total hours, truncated)
+# ---------------------------------------------------------------------------
+
+
+def test_cel_dur_get_hours_none_valid():
+    assert ValidatedCELDurGetHours().d is None
+
+
+def test_cel_dur_get_hours_valid():
+    d = timedelta(hours=3)  # getHours() = 3 >= 2
+    assert ValidatedCELDurGetHours(d=d).d == d
+
+
+def test_cel_dur_get_hours_truncated_valid():
+    d = timedelta(hours=2, minutes=30)  # getHours() = 2 (truncated) >= 2
+    assert ValidatedCELDurGetHours(d=d).d == d
+
+
+def test_cel_dur_get_hours_invalid():
+    d = timedelta(hours=1, minutes=59)  # getHours() = 1 < 2
+    with pytest.raises(ValidationError):
+        ValidatedCELDurGetHours(d=d)
+
+
+# ---------------------------------------------------------------------------
+# ValidatedCELDurGetMinutes — Duration.getMinutes() (total minutes, truncated)
+# ---------------------------------------------------------------------------
+
+
+def test_cel_dur_get_minutes_none_valid():
+    assert ValidatedCELDurGetMinutes().d is None
+
+
+def test_cel_dur_get_minutes_valid():
+    d = timedelta(hours=2)  # getMinutes() = 120 >= 90
+    assert ValidatedCELDurGetMinutes(d=d).d == d
+
+
+def test_cel_dur_get_minutes_exact_valid():
+    d = timedelta(minutes=90)  # getMinutes() = 90 >= 90
+    assert ValidatedCELDurGetMinutes(d=d).d == d
+
+
+def test_cel_dur_get_minutes_invalid():
+    d = timedelta(minutes=89, seconds=59)  # getMinutes() = 89 < 90
+    with pytest.raises(ValidationError):
+        ValidatedCELDurGetMinutes(d=d)
+
+
+# ---------------------------------------------------------------------------
+# ValidatedCELDurGetSeconds — Duration.getSeconds() (total seconds, truncated)
+# ---------------------------------------------------------------------------
+
+
+def test_cel_dur_get_seconds_none_valid():
+    assert ValidatedCELDurGetSeconds().d is None
+
+
+def test_cel_dur_get_seconds_valid():
+    d = timedelta(hours=1)  # getSeconds() = 3600 == 3600
+    assert ValidatedCELDurGetSeconds(d=d).d == d
+
+
+def test_cel_dur_get_seconds_invalid():
+    d = timedelta(minutes=59)  # getSeconds() = 3540 != 3600
+    with pytest.raises(ValidationError):
+        ValidatedCELDurGetSeconds(d=d)
+
+
+# ---------------------------------------------------------------------------
+# ValidatedCELDurGetMillis — Duration.getMilliseconds() (total ms, truncated)
+# ---------------------------------------------------------------------------
+
+
+def test_cel_dur_get_millis_none_valid():
+    assert ValidatedCELDurGetMillis().d is None
+
+
+def test_cel_dur_get_millis_valid():
+    d = timedelta(seconds=2)  # getMilliseconds() = 2000 >= 1500
+    assert ValidatedCELDurGetMillis(d=d).d == d
+
+
+def test_cel_dur_get_millis_exact_valid():
+    d = timedelta(milliseconds=1500)  # getMilliseconds() = 1500 >= 1500
+    assert ValidatedCELDurGetMillis(d=d).d == d
+
+
+def test_cel_dur_get_millis_invalid():
+    d = timedelta(milliseconds=1499)  # getMilliseconds() = 1499 < 1500
+    with pytest.raises(ValidationError):
+        ValidatedCELDurGetMillis(d=d)

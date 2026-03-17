@@ -523,3 +523,29 @@ def _cel_duration(total_seconds: float) -> _datetime.timedelta:
 
 def _cel_timestamp(s: str) -> _datetime.datetime:
     return _datetime.datetime.fromisoformat(s.replace("Z", "+00:00"))
+
+
+def _cel_ts_in_tz(v: _datetime.datetime, tz: str) -> _datetime.datetime:
+    if tz == "UTC":
+        return v
+    try:
+        import zoneinfo as _zoneinfo
+    except ImportError:
+        from backports import zoneinfo as _zoneinfo  # type: ignore[no-redef]
+    return v.astimezone(_zoneinfo.ZoneInfo(tz))
+
+
+def _cel_dur_get_hours(v: _datetime.timedelta) -> int:
+    return (v.days * 86400 + v.seconds) // 3600
+
+
+def _cel_dur_get_minutes(v: _datetime.timedelta) -> int:
+    return (v.days * 86400 + v.seconds) // 60
+
+
+def _cel_dur_get_seconds(v: _datetime.timedelta) -> int:
+    return v.days * 86400 + v.seconds
+
+
+def _cel_dur_get_milliseconds(v: _datetime.timedelta) -> int:
+    return v.days * 86400000 + v.seconds * 1000 + v.microseconds // 1000

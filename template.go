@@ -898,6 +898,42 @@ def _is_inf(v: float, direction: int = 0) -> bool:
     return True
 `
 
+const protoTypesCELTsInTzFunc = `
+
+def _cel_ts_in_tz(v: _datetime.datetime, tz: str) -> _datetime.datetime:
+    if tz == "UTC":
+        return v
+    try:
+        import zoneinfo as _zoneinfo
+    except ImportError:
+        from backports import zoneinfo as _zoneinfo  # type: ignore[no-redef]
+    return v.astimezone(_zoneinfo.ZoneInfo(tz))
+`
+
+const protoTypesCELDurGetHoursFunc = `
+
+def _cel_dur_get_hours(v: _datetime.timedelta) -> int:
+    return (v.days * 86400 + v.seconds) // 3600
+`
+
+const protoTypesCELDurGetMinutesFunc = `
+
+def _cel_dur_get_minutes(v: _datetime.timedelta) -> int:
+    return (v.days * 86400 + v.seconds) // 60
+`
+
+const protoTypesCELDurGetSecondsFunc = `
+
+def _cel_dur_get_seconds(v: _datetime.timedelta) -> int:
+    return v.days * 86400 + v.seconds
+`
+
+const protoTypesCELDurGetMillisFunc = `
+
+def _cel_dur_get_milliseconds(v: _datetime.timedelta) -> int:
+    return v.days * 86400000 + v.seconds * 1000 + v.microseconds // 1000
+`
+
 const protoTypesCELNowFunc = `
 
 def _cel_now() -> _datetime.datetime:
@@ -1103,6 +1139,21 @@ func buildProtoTypesContent(needed map[string]bool) string {
 	}
 	if needed["_cel_timestamp"] {
 		b.WriteString(protoTypesCELTimestampFunc)
+	}
+	if needed["_cel_ts_in_tz"] {
+		b.WriteString(protoTypesCELTsInTzFunc)
+	}
+	if needed["_cel_dur_get_hours"] {
+		b.WriteString(protoTypesCELDurGetHoursFunc)
+	}
+	if needed["_cel_dur_get_minutes"] {
+		b.WriteString(protoTypesCELDurGetMinutesFunc)
+	}
+	if needed["_cel_dur_get_seconds"] {
+		b.WriteString(protoTypesCELDurGetSecondsFunc)
+	}
+	if needed["_cel_dur_get_milliseconds"] {
+		b.WriteString(protoTypesCELDurGetMillisFunc)
 	}
 
 	return b.String()
