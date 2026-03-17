@@ -105,6 +105,33 @@ def _make_not_in_validator(excluded_values):
     return _validate
 
 
+def _make_cel_validator(pred, message: str):
+    def _validate(v):
+        if not pred(v):
+            raise ValueError(message)
+        return v
+
+    return _validate
+
+
+def _make_cel_str_validator(fn):
+    def _validate(v):
+        msg = fn(v)
+        if msg:
+            raise ValueError(msg)
+        return v
+
+    return _validate
+
+
+def _is_unique(v) -> bool:
+    return len(v) == len(set(v))
+
+
+def _cel_matches(pattern: str, s: str) -> bool:
+    return bool(_re.search(pattern, s))
+
+
 def _validate_email(v: str) -> str:
     if not v:
         return v
@@ -377,3 +404,148 @@ def _make_len_bytes_validator(n):
         return v
 
     return _validate
+
+
+def _is_email(v: str) -> bool:
+    if not v:
+        return False
+    try:
+        from pydantic.networks import validate_email as _pydantic_validate_email
+
+        _pydantic_validate_email(v)
+        return True
+    except Exception:
+        return False
+
+
+def _is_ip(v: str, version: int) -> bool:
+    if not v:
+        return False
+    try:
+        if version == 4:
+            _ipaddress.IPv4Address(v)
+        elif version == 6:
+            _ipaddress.IPv6Address(v)
+        else:
+            _ipaddress.ip_address(v)
+        return True
+    except ValueError:
+        return False
+
+
+def _is_ip_prefix(v: str, version: int, *, strict: bool = False) -> bool:
+    if not v:
+        return False
+    try:
+        if version == 4:
+            _ipaddress.IPv4Network(v, strict=strict)
+        elif version == 6:
+            _ipaddress.IPv6Network(v, strict=strict)
+        else:
+            try:
+                _ipaddress.IPv6Network(v, strict=strict)
+                return True
+            except ValueError:
+                _ipaddress.IPv4Network(v, strict=strict)
+        return True
+    except ValueError:
+        return False
+
+
+def _is_hostname(v: str) -> bool:
+    if not v:
+        return False
+    try:
+        _validate_hostname(v)
+        return True
+    except ValueError:
+        return False
+
+
+def _is_uri(v: str) -> bool:
+    if not v:
+        return False
+    try:
+        _url_adapter.validate_python(v)
+        return True
+    except Exception:
+        return False
+
+
+def _is_uri_ref(v: str) -> bool:
+    if not v:
+        return False
+    return not bool(_re.search(r"[\x00-\x1f\x7f\s]", v))
+
+
+def _is_host_and_port(v: str, requires_port: bool) -> bool:
+    if not v:
+        return False
+    try:
+        _validate_host_and_port(v)
+        return True
+    except ValueError:
+        if not requires_port:
+            try:
+                _validate_hostname(v)
+                return True
+            except ValueError:
+                pass
+            try:
+                _ipaddress.ip_address(v)
+                return True
+            except ValueError:
+                pass
+        return False
+
+
+def _is_nan(v: float) -> bool:
+    return _math.isnan(v)
+
+
+def _is_inf(v: float, direction: int = 0) -> bool:
+    if not _math.isinf(v):
+        return False
+    if direction > 0:
+        return v > 0
+    if direction < 0:
+        return v < 0
+    return True
+
+
+def _cel_now() -> _datetime.datetime:
+    return _datetime.datetime.now(tz=_datetime.timezone.utc)
+
+
+def _cel_duration(total_seconds: float) -> _datetime.timedelta:
+    return _datetime.timedelta(seconds=total_seconds)
+
+
+def _cel_timestamp(s: str) -> _datetime.datetime:
+    return _datetime.datetime.fromisoformat(s.replace("Z", "+00:00"))
+
+
+def _cel_ts_in_tz(v: _datetime.datetime, tz: str) -> _datetime.datetime:
+    if tz == "UTC":
+        return v
+    try:
+        import zoneinfo as _zoneinfo
+    except ImportError:
+        from backports import zoneinfo as _zoneinfo  # type: ignore[no-redef]
+    return v.astimezone(_zoneinfo.ZoneInfo(tz))
+
+
+def _cel_dur_get_hours(v: _datetime.timedelta) -> int:
+    return (v.days * 86400 + v.seconds) // 3600
+
+
+def _cel_dur_get_minutes(v: _datetime.timedelta) -> int:
+    return (v.days * 86400 + v.seconds) // 60
+
+
+def _cel_dur_get_seconds(v: _datetime.timedelta) -> int:
+    return v.days * 86400 + v.seconds
+
+
+def _cel_dur_get_milliseconds(v: _datetime.timedelta) -> int:
+    return v.days * 86400000 + v.seconds * 1000 + v.microseconds // 1000

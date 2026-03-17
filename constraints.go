@@ -43,12 +43,23 @@ func splitDictType(t string) (key, val string, ok bool) {
 func splitTopLevelCommas(s string) []string {
 	var parts []string
 	depth := 0
+	inDouble := false
 	start := 0
+	prev := rune(0)
 	for i, ch := range s {
+		if inDouble {
+			if ch == '"' && prev != '\\' {
+				inDouble = false
+			}
+			prev = ch
+			continue
+		}
 		switch ch {
-		case '[', '(':
+		case '"':
+			inDouble = true
+		case '[', '(', '{':
 			depth++
-		case ']', ')':
+		case ']', ')', '}':
 			depth--
 		case ',':
 			if depth == 0 {
@@ -56,9 +67,80 @@ func splitTopLevelCommas(s string) []string {
 				start = i + 1
 			}
 		}
+		prev = ch
 	}
 	parts = append(parts, s[start:])
 	return parts
+}
+
+// quoteAnnotatedInnerType inserts double-quote marks around the first type
+// argument inside _Annotated[...] after a NeedsQuote field has been wrapped
+// by wrapWithAnnotated. Without this, the class reference would be unquoted
+// inside _Annotated[...], causing TypeAnnotation() to wrap the whole
+// expression in outer quotes, producing invalid Python syntax.
+//
+// Input:  _Annotated[Outer.Inner, AfterValidator(...)] | None
+// Output: _Annotated["Outer.Inner", AfterValidator(...)] | None
+//
+// Also handles the _Optional[_Annotated[...]] form used by gen_options.
+func quoteAnnotatedInnerType(typ string) string {
+	const annPfx = "_Annotated["
+	const optPfx = "_Optional["
+
+	// Strip trailing " | None".
+	suffix, core := "", typ
+	if strings.HasSuffix(core, " | None") {
+		core, suffix = strings.TrimSuffix(core, " | None"), " | None"
+	}
+
+	// Unwrap _Optional[...] (gen_options path).
+	optWrap := false
+	if strings.HasPrefix(core, optPfx) && strings.HasSuffix(core, "]") {
+		core, optWrap = core[len(optPfx):len(core)-1], true
+	}
+
+	// core must now be _Annotated[TypeName, validators...].
+	if !strings.HasPrefix(core, annPfx) || !strings.HasSuffix(core, "]") {
+		return typ
+	}
+	content := core[len(annPfx) : len(core)-1]
+
+	// Find the first top-level comma: separator between type and validators.
+	depth, inStr, commaIdx := 0, false, -1
+	for i, ch := range content {
+		if inStr {
+			if ch == '"' {
+				inStr = false
+			}
+			continue
+		}
+		switch ch {
+		case '"':
+			inStr = true
+		case '(', '[', '{':
+			depth++
+		case ')', ']', '}':
+			depth--
+		case ',':
+			if depth == 0 {
+				commaIdx = i
+			}
+		}
+		if commaIdx >= 0 {
+			break
+		}
+	}
+	if commaIdx < 0 {
+		return typ
+	}
+
+	typeName := content[:commaIdx]
+	rest := content[commaIdx:] // includes leading ", "
+	result := annPfx + `"` + typeName + `"` + rest + "]"
+	if optWrap {
+		result = optPfx + result + "]"
+	}
+	return result + suffix
 }
 
 // wrapWithAnnotated wraps a type string with _Annotated[..., validators],
@@ -252,8 +334,52 @@ func (e *generator) applyConstraintTypeOverrides(f *Field) {
 			f.Default = "default=" + *fc.ConstDefault
 		}
 	}
+	// CEL field-level validators → AfterValidator wrapping via lambda factories.
+	for _, cv := range fc.CelValidators {
+		// Strip redundant outer parens from the expression when it is the
+		// entire body of a lambda: "lambda v: (v > 0)" → "lambda v: v > 0".
+		lambdaExpr := stripOuterParens(cv.Expression)
+
+		// Null-safe fields (WKT message types like Timestamp/Duration) are
+		// Optional in Python.  When the field is absent (v is None), CEL rules
+		// are skipped in protovalidate, so we replicate that with a guard.
+		// The stripped expression is re-wrapped in parens so that operator
+		// precedence is preserved: "v is None or (a and b)" stays correct.
+		if cv.NullSafe {
+			lambdaExpr = fmt.Sprintf("v is None or (%s)", lambdaExpr)
+		}
+
+		var validatorStr string
+		if cv.ReturnsBool {
+			validatorStr = fmt.Sprintf(
+				"_AfterValidator(_make_cel_validator(lambda v: %s, %s))",
+				lambdaExpr, pyQuote(cv.Message),
+			)
+			e.addRuntimeImport("_make_cel_validator")
+		} else {
+			validatorStr = fmt.Sprintf(
+				"_AfterValidator(_make_cel_str_validator(lambda v: %s))",
+				lambdaExpr,
+			)
+			e.addRuntimeImport("_make_cel_str_validator")
+		}
+		validators = append(validators, validatorStr)
+		for _, imp := range cv.Imports {
+			e.addRuntimeImport(imp)
+		}
+		e.addStdImport("_Annotated")
+		e.addStdImport("_AfterValidator")
+	}
 	if len(validators) > 0 {
 		f.Type = wrapWithAnnotated(f.Type, validators)
+		if f.NeedsQuote {
+			// wrapWithAnnotated embeds the class name unquoted inside
+			// _Annotated[...]. Re-insert the quotes around just the inner
+			// type reference so TypeAnnotation() doesn't wrap the entire
+			// _Annotated[...] expression in outer string quotes.
+			f.Type = quoteAnnotatedInnerType(f.Type)
+			f.NeedsQuote = false
+		}
 	}
 }
 
@@ -305,8 +431,18 @@ func (e *generator) extractFieldConstraints(
 				result.HasIgnore = true
 			}
 		case name == "cel":
-			// cel is a repeated Constraint message; not translated.
-			result.DroppedConstraints = append(result.DroppedConstraints, "cel")
+			// Attempt to transpile each Constraint message; failures are dropped.
+			list := v.List()
+			for i := 0; i < list.Len(); i++ {
+				rule := extractCelRule(list.Get(i).Message())
+				cv, err := transpileCELField(rule, field, e.celEnvCache)
+				if err != nil {
+					result.DroppedConstraints = append(result.DroppedConstraints,
+						fmt.Sprintf("cel id=%q (not translated: %v)", rule.ID, err))
+				} else {
+					result.CelValidators = append(result.CelValidators, cv)
+				}
+			}
 		case fd.Kind() == protoreflect.MessageKind && !fd.IsList():
 			// Type-specific rules sub-message (int32, string, repeated, map, etc.)
 			v.Message().Range(func(rfd protoreflect.FieldDescriptor, rv protoreflect.Value) bool {
@@ -345,7 +481,8 @@ func (e *generator) extractFieldConstraints(
 	}
 	if len(result.InValues) > 0 || len(result.NotInValues) > 0 || result.UniqueItems || result.FormatValidator != nil ||
 		result.RequireFinite || result.ConstFloatLiteral != nil || result.NotContains != nil ||
-		result.MinBytes != nil || result.MaxBytes != nil || result.LenBytes != nil {
+		result.MinBytes != nil || result.MaxBytes != nil || result.LenBytes != nil ||
+		len(result.CelValidators) > 0 {
 		e.addStdImport("_Annotated")
 		e.addStdImport("_AfterValidator")
 	}
@@ -365,6 +502,7 @@ func (e *generator) extractConstraintsFromMsg(
 		name := string(fd.Name())
 		switch {
 		case name == "cel":
+			// CEL inside items/keys/values: drop with a comment (no field descriptor available).
 			result.DroppedConstraints = append(result.DroppedConstraints, "cel")
 		case fd.Kind() == protoreflect.MessageKind && !fd.IsList():
 			v.Message().Range(func(rfd protoreflect.FieldDescriptor, rv protoreflect.Value) bool {

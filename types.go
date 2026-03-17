@@ -141,6 +141,16 @@ func (e Enum) HasOptions() bool {
 	return false
 }
 
+// CelValidator holds a successfully transpiled CEL constraint.
+type CelValidator struct {
+	RuleID      string   // rule.id sanitised to a Python identifier
+	Expression  string   // transpiled Python expression ("v" field-level, "self" msg-level)
+	Message     string   // non-empty for bool-returning rules; empty for string-returning
+	ReturnsBool bool     // true → raise if not expr; false → raise if expr is non-empty
+	NullSafe    bool     // true → lambda wraps with "v is None or (...)" guard
+	Imports     []string // _proto_types.py symbols needed (e.g. "_is_unique", "_cel_matches")
+}
+
 type Field struct {
 	Name                string
 	Alias               string // non-empty when Name was renamed to avoid shadowing Python builtins
@@ -157,10 +167,6 @@ type Field struct {
 
 func (f Field) IsDefaultFactory() bool {
 	return strings.HasPrefix(f.Default, "default_factory=")
-}
-
-func (f Field) HasConstraints() bool {
-	return f.Constraints != nil && f.Constraints.HasAny()
 }
 
 // HasConstraintKwargs returns true when the field has content for _Field() beyond
@@ -199,6 +205,72 @@ func (f Field) TypeAnnotationFormatted(bi string) string {
 	}
 	annotationLine := bi + f.Name + ": " + annotation
 
+	// _Optional[_Annotated[...]] — ruff splits as two nested brackets:
+	//   field: _Optional[
+	//       _Annotated[
+	//           Type,
+	//           _AfterValidator(...),
+	//       ]
+	//   ] = _Field(...)
+	if strings.HasPrefix(annotation, "_Optional[") && strings.HasSuffix(annotation, "]") {
+		optInner := annotation[len("_Optional[") : len(annotation)-1]
+		if strings.HasPrefix(optInner, "_Annotated[") && strings.HasSuffix(optInner, "]") {
+			if len(annotationLine+" = _Field(") <= 88 {
+				return annotation // fits on one line
+			}
+			inner := optInner[len("_Annotated[") : len(optInner)-1]
+			// Elements at bi+8: bi+4 for _Optional wrap, bi+4 for _Annotated.
+			elemIndent := bi + "        "
+			parts := splitTopLevelCommas(inner)
+			var sb strings.Builder
+			sb.WriteString("_Optional[\n")
+			sb.WriteString(bi + "    _Annotated[\n")
+			for _, p := range parts {
+				trimmed := strings.TrimSpace(p)
+				formatted := formatAnnotationElement(trimmed, elemIndent)
+				sb.WriteString(elemIndent + formatted + ",\n")
+			}
+			sb.WriteString(bi + "    ]\n")
+			sb.WriteString(bi + "]")
+			return sb.String()
+		}
+	}
+
+	// _Annotated[...] | None — ruff uses a parenthesised union form:
+	//   field: (
+	//       _Annotated[
+	//           Type,
+	//           _AfterValidator(...),
+	//       ]
+	//       | None
+	//   ) = _Field(...)
+	const unionNone = " | None"
+	if strings.HasPrefix(annotation, "_Annotated[") && strings.HasSuffix(annotation, unionNone) {
+		annotPart := annotation[:len(annotation)-len(unionNone)]
+		if strings.HasSuffix(annotPart, "]") {
+			if len(annotationLine+" = _Field(") <= 88 {
+				return annotation // fits on one line
+			}
+			inner := annotPart[len("_Annotated[") : len(annotPart)-1]
+			// Elements inside the outer paren are indented bi+8 (extra 4 for
+			// the paren and extra 4 for _Annotated[]).
+			elemIndent := bi + "        "
+			parts := splitTopLevelCommas(inner)
+			var sb strings.Builder
+			sb.WriteString("(\n")
+			sb.WriteString(bi + "    _Annotated[\n")
+			for _, p := range parts {
+				trimmed := strings.TrimSpace(p)
+				formatted := formatAnnotationElement(trimmed, elemIndent)
+				sb.WriteString(elemIndent + formatted + ",\n")
+			}
+			sb.WriteString(bi + "    ]\n")
+			sb.WriteString(bi + "    | None\n")
+			sb.WriteString(bi + ")")
+			return sb.String()
+		}
+	}
+
 	// _Annotated[...] splitting.
 	if strings.HasPrefix(annotation, "_Annotated[") && strings.HasSuffix(annotation, "]") {
 		// Case 1: full line fits — no wrapping needed.
@@ -220,7 +292,9 @@ func (f Field) TypeAnnotationFormatted(bi string) string {
 			var sb strings.Builder
 			sb.WriteString("_Annotated[\n")
 			for _, p := range parts {
-				sb.WriteString(indent + strings.TrimSpace(p) + ",\n")
+				trimmed := strings.TrimSpace(p)
+				formatted := formatAnnotationElement(trimmed, indent)
+				sb.WriteString(indent + formatted + ",\n")
 			}
 			sb.WriteString(bi + "]")
 			return sb.String()
@@ -377,6 +451,7 @@ type FieldConstraints struct {
 	ItemConstraints    *FieldConstraints // per-element constraints from repeated.items
 	KeyConstraints     *FieldConstraints // per-key constraints from map.keys
 	ValueConstraints   *FieldConstraints // per-value constraints from map.values
+	CelValidators      []CelValidator    // successfully transpiled field-level CEL
 }
 
 func (c *FieldConstraints) HasAny() bool {
@@ -393,7 +468,8 @@ func (c *FieldConstraints) HasAny() bool {
 		len(c.DroppedConstraints) > 0 ||
 		c.ItemConstraints != nil ||
 		c.KeyConstraints != nil ||
-		c.ValueConstraints != nil
+		c.ValueConstraints != nil ||
+		len(c.CelValidators) > 0
 }
 
 // PydanticArgs returns ["gt=0", "le=150", ...] to inject into _Field().
@@ -431,13 +507,19 @@ func (c *FieldConstraints) PydanticArgs() []string {
 
 // DroppedConstraintComments returns a Python comment string for each
 // constraint that was recognised but could not be translated.
+// CEL entries already carry "(not translated: ...)" in the stored string;
+// all other entries get the standard "(not translated)" suffix appended.
 func (c *FieldConstraints) DroppedConstraintComments() []string {
 	if c == nil || len(c.DroppedConstraints) == 0 {
 		return nil
 	}
 	comments := make([]string, len(c.DroppedConstraints))
 	for i, name := range c.DroppedConstraints {
-		comments[i] = fmt.Sprintf("# buf.validate: %s (not translated)", name)
+		if strings.Contains(name, "(not translated") {
+			comments[i] = "# buf.validate: " + name
+		} else {
+			comments[i] = fmt.Sprintf("# buf.validate: %s (not translated)", name)
+		}
 	}
 	return comments
 }
@@ -570,13 +652,15 @@ func (c *FieldConstraints) inValuesContainZero(kind protoreflect.Kind) bool {
 }
 
 type Message struct {
-	Name             string
-	Fields           []Field
-	NestedMessages   []Message
-	NestedEnums      []Enum
-	LeadingComments  []string
-	TrailingComments []string
-	OneOfGroups      []OneOf // deduplicated oneof groups; populated after all fields are processed
+	Name                  string
+	Fields                []Field
+	NestedMessages        []Message
+	NestedEnums           []Enum
+	LeadingComments       []string
+	TrailingComments      []string
+	OneOfGroups           []OneOf        // deduplicated oneof groups; populated after all fields are processed
+	CelValidators         []CelValidator // successfully transpiled message-level CEL
+	DroppedCelConstraints []string       // failed message-level CEL (comment strings)
 }
 
 func (m Message) HasAlias() bool {

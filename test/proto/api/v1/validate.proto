@@ -367,9 +367,9 @@ message ValidatedFloatExamples {
   uint32 code = 4 [(buf.validate.field).uint32 = {gt: 0, example: 7, example: 42}];
 }
 
-// ValidatedCEL exercises the cel constraint drop path.
+// ValidatedCEL exercises basic field-level CEL transpilation.
 message ValidatedCEL {
-  // Age with a CEL expression that is not translated.
+  // Age must be positive.
   int32 age = 1 [(buf.validate.field).cel = {
     id: "positive",
     expression: "this > 0",
@@ -377,6 +377,90 @@ message ValidatedCEL {
   }];
 }
 
+
+// ValidatedCELField exercises field-level CEL transpilation.
+message ValidatedCELField {
+  // Must be positive.
+  int32 age = 1 [(buf.validate.field).cel = {
+    id: "positive",
+    expression: "this > 0",
+    message: "age must be positive"
+  }];
+  // Must start with an uppercase letter.
+  string name = 2 [(buf.validate.field).cel = {
+    id: "uppercase_start",
+    expression: "this.matches(\"^[A-Z]\")",
+    message: "name must start with uppercase"
+  }];
+  // Combined: both bool-returning and chained.
+  string code = 3 [
+    (buf.validate.field).cel = {
+      id: "code_prefix",
+      expression: "this.startsWith(\"X\")",
+      message: "code must start with X"
+    },
+    (buf.validate.field).cel = {
+      id: "code_len",
+      expression: "this.size() > 2",
+      message: "code must be longer than 2 chars"
+    }
+  ];
+}
+
+// ValidatedCELMessage exercises message-level cross-field CEL.
+message ValidatedCELMessage {
+  repeated string bar = 1;
+  repeated string baz = 2;
+
+  option (buf.validate.message).cel = {
+    id: "globally_unique",
+    expression: "(this.bar + this.baz).unique()",
+    message: "all values in bar and baz must be globally unique"
+  };
+}
+
+// ValidatedCELHas exercises the has() presence macro.
+message ValidatedCELHas {
+  optional string first_name = 1;
+  optional string last_name = 2;
+
+  option (buf.validate.message).cel = {
+    id: "name_required",
+    expression: "has(this.first_name) || has(this.last_name)",
+    message: "at least one name field must be set"
+  };
+}
+
+// ValidatedCELCrossField exercises a cross-field numeric comparison.
+message ValidatedCELCrossField {
+  int32 min_val = 1;
+  int32 max_val = 2;
+
+  option (buf.validate.message).cel = {
+    id: "min_less_than_max",
+    expression: "this.min_val < this.max_val",
+    message: "min_val must be less than max_val"
+  };
+}
+
+// ValidatedCELDropped exercises the drop path for unsupported CEL
+// (comprehension). The dropped comment must appear in the generated file.
+message ValidatedCELDropped {
+  repeated int32 scores = 1 [(buf.validate.field).cel = {
+    id: "all_positive",
+    expression: "this.all(x, x > 0)",
+    message: "all scores must be positive"
+  }];
+}
+
+// ValidatedCELStringReturn exercises a string-returning CEL expression
+// (the expression itself is the error message).
+message ValidatedCELStringReturn {
+  int32 value = 1 [(buf.validate.field).cel = {
+    id: "positive_msg",
+    expression: "this > 0 ? '' : 'value must be positive'"
+  }];
+}
 
 // ValidatedBytesIP exercises bytes.ip/ipv4/ipv6 binary address validation.
 message ValidatedBytesIP {
@@ -460,4 +544,570 @@ message ValidatedStringBytes {
     (buf.validate.field).string.min_bytes = 2,
     (buf.validate.field).string.max_bytes = 64
   ];
+}
+
+// ValidatedCELIsEmail exercises isEmail() in a CEL expression.
+message ValidatedCELIsEmail {
+  string contact = 1 [(buf.validate.field).cel = {
+    id: "valid_email",
+    expression: "this.isEmail()",
+    message: "contact must be a valid email"
+  }];
+}
+
+// ValidatedCELIsIp exercises isIp() with optional version argument.
+message ValidatedCELIsIp {
+  string addr = 1 [(buf.validate.field).cel = {
+    id: "valid_ip",
+    expression: "this.isIp()",
+    message: "must be a valid IP address"
+  }];
+  string addr_v4 = 2 [(buf.validate.field).cel = {
+    id: "valid_ipv4",
+    expression: "this.isIp(4)",
+    message: "must be a valid IPv4 address"
+  }];
+  string addr_v6 = 3 [(buf.validate.field).cel = {
+    id: "valid_ipv6",
+    expression: "this.isIp(6)",
+    message: "must be a valid IPv6 address"
+  }];
+}
+
+// ValidatedCELIsIpPrefix exercises isIpPrefix().
+message ValidatedCELIsIpPrefix {
+  string prefix = 1 [(buf.validate.field).cel = {
+    id: "valid_prefix",
+    expression: "this.isIpPrefix()",
+    message: "must be a valid IP prefix (CIDR)"
+  }];
+  string prefix_v4 = 2 [(buf.validate.field).cel = {
+    id: "valid_prefix_v4",
+    expression: "this.isIpPrefix(4, false)",
+    message: "must be a valid IPv4 prefix"
+  }];
+}
+
+// ValidatedCELIsHostname exercises isHostname().
+message ValidatedCELIsHostname {
+  string host = 1 [(buf.validate.field).cel = {
+    id: "valid_hostname",
+    expression: "this.isHostname()",
+    message: "must be a valid hostname"
+  }];
+}
+
+// ValidatedCELIsUri exercises isUri() and isUriRef().
+message ValidatedCELIsUri {
+  string link = 1 [(buf.validate.field).cel = {
+    id: "valid_uri",
+    expression: "this.isUri()",
+    message: "must be a valid URI"
+  }];
+  string ref = 2 [(buf.validate.field).cel = {
+    id: "valid_uri_ref",
+    expression: "this.isUriRef()",
+    message: "must be a valid URI reference"
+  }];
+}
+
+// ValidatedCELIsHostAndPort exercises isHostAndPort().
+message ValidatedCELIsHostAndPort {
+  string endpoint = 1 [(buf.validate.field).cel = {
+    id: "valid_host_port",
+    expression: "this.isHostAndPort(true)",
+    message: "must be a valid host:port"
+  }];
+}
+
+// ValidatedCELIsNanInf exercises isNan() and isInf() in CEL.
+message ValidatedCELIsNanInf {
+  double value = 1 [(buf.validate.field).cel = {
+    id: "not_nan",
+    expression: "!this.isNan()",
+    message: "value must not be NaN"
+  }];
+  double bounded = 2 [(buf.validate.field).cel = {
+    id: "not_inf",
+    expression: "!this.isInf()",
+    message: "bounded must not be infinite"
+  }];
+}
+
+// ValidatedCELAll exercises all() comprehension on a repeated field.
+message ValidatedCELAll {
+  repeated int32 scores = 1 [(buf.validate.field).cel = {
+    id: "all_positive",
+    expression: "this.all(x, x > 0)",
+    message: "all scores must be positive"
+  }];
+}
+
+// ValidatedCELExists exercises exists() comprehension.
+message ValidatedCELExists {
+  repeated string tags = 1 [(buf.validate.field).cel = {
+    id: "has_admin",
+    expression: "this.exists(t, t == \"admin\")",
+    message: "must include an admin tag"
+  }];
+}
+
+// ValidatedCELExistsOne exercises exists_one() comprehension.
+message ValidatedCELExistsOne {
+  repeated string roles = 1 [(buf.validate.field).cel = {
+    id: "exactly_one_admin",
+    expression: "this.exists_one(r, r == \"admin\")",
+    message: "must have exactly one admin role"
+  }];
+}
+
+// ValidatedCELFilter exercises filter() comprehension chained with size().
+message ValidatedCELFilter {
+  repeated int32 values = 1 [(buf.validate.field).cel = {
+    id: "two_positive",
+    expression: "this.filter(x, x > 0).size() >= 2",
+    message: "must contain at least 2 positive values"
+  }];
+}
+
+// ValidatedCELMapAll exercises map() chained with all() (nested comprehension).
+message ValidatedCELMapAll {
+  repeated string words = 1 [(buf.validate.field).cel = {
+    id: "all_long",
+    expression: "this.map(w, w.size()).all(l, l >= 3)",
+    message: "all words must be at least 3 characters"
+  }];
+}
+
+// ValidatedCELMessageAll exercises all() in a message-level CEL expression.
+message ValidatedCELMessageAll {
+  repeated int32 prices = 1;
+  repeated int32 quantities = 2;
+
+  option (buf.validate.message).cel = {
+    id: "all_positive",
+    expression: "this.prices.all(p, p > 0) && this.quantities.all(q, q > 0)",
+    message: "all prices and quantities must be positive"
+  };
+}
+
+// ValidatedCELStillDropped verifies the drop path still works for
+// expressions containing 'now' (unsupported temporal).
+message ValidatedCELStillDropped {
+  google.protobuf.Timestamp created = 1 [(buf.validate.field).cel = {
+    id: "after_now",
+    expression: "this > now",
+    message: "must be after the current time"
+  }];
+}
+
+// ValidatedCELTimestamp — 'this > now' on a Timestamp field.
+message ValidatedCELTimestamp {
+  google.protobuf.Timestamp deadline = 1 [(buf.validate.field).cel = {
+    id: "in_future",
+    expression: "this > now",
+    message: "deadline must be in the future"
+  }];
+}
+
+// ValidatedCELDuration — 'this > duration("0s")' on a Duration field.
+message ValidatedCELDuration {
+  google.protobuf.Duration window = 1 [(buf.validate.field).cel = {
+    id: "window_positive",
+    expression: "this > duration(\"0s\")",
+    message: "window must be positive"
+  }];
+}
+
+// ValidatedCELDurationRange — duration bounded between two literals.
+message ValidatedCELDurationRange {
+  google.protobuf.Duration ttl = 1 [(buf.validate.field).cel = {
+    id: "ttl_in_range",
+    expression: "this >= duration(\"1m\") && this <= duration(\"1h\")",
+    message: "ttl must be between 1 minute and 1 hour"
+  }];
+}
+
+// ValidatedCELTimestampAfter — timestamp compared to a fixed literal.
+message ValidatedCELTimestampAfter {
+  google.protobuf.Timestamp created = 1 [(buf.validate.field).cel = {
+    id: "after_epoch",
+    expression: "this >= timestamp(\"2020-01-01T00:00:00Z\")",
+    message: "must be on or after 2020-01-01"
+  }];
+}
+
+// ValidatedCELTimestampWindow — arithmetic: now + duration window.
+message ValidatedCELTimestampWindow {
+  google.protobuf.Timestamp expires = 1 [(buf.validate.field).cel = {
+    id: "within_one_hour",
+    expression: "this <= now + duration(\"3600s\")",
+    message: "expiry must be at most one hour from now"
+  }];
+}
+
+// ── Timestamp member accessor tests ─────────────────────────────────────────
+
+// ValidatedCELTsYear — getFullYear() returns the 4-digit year.
+message ValidatedCELTsYear {
+  google.protobuf.Timestamp t = 1 [(buf.validate.field).cel = {
+    id: "in_2024",
+    expression: "this.getFullYear() == 2024",
+    message: "must be in 2024"
+  }];
+}
+
+// ValidatedCELTsMonth — getMonth() is 0-indexed (January == 0).
+message ValidatedCELTsMonth {
+  google.protobuf.Timestamp t = 1 [(buf.validate.field).cel = {
+    id: "in_jan",
+    expression: "this.getMonth() == 0",
+    message: "must be in January (month index 0)"
+  }];
+}
+
+// ValidatedCELTsDayOfMonth — getDayOfMonth() is 0-indexed (1st == 0).
+message ValidatedCELTsDayOfMonth {
+  google.protobuf.Timestamp t = 1 [(buf.validate.field).cel = {
+    id: "day_15",
+    expression: "this.getDayOfMonth() == 14",
+    message: "must be on the 15th (0-indexed day 14)"
+  }];
+}
+
+// ValidatedCELTsDayOfWeek — getDayOfWeek(): Sun=0, Mon=1, …, Sat=6.
+message ValidatedCELTsDayOfWeek {
+  google.protobuf.Timestamp t = 1 [(buf.validate.field).cel = {
+    id: "weekday",
+    expression: "this.getDayOfWeek() >= 1 && this.getDayOfWeek() <= 5",
+    message: "must be a weekday (Mon–Fri)"
+  }];
+}
+
+// ValidatedCELTsDayOfYear — getDayOfYear() is 0-indexed (Jan 1 == 0).
+message ValidatedCELTsDayOfYear {
+  google.protobuf.Timestamp t = 1 [(buf.validate.field).cel = {
+    id: "second_half",
+    expression: "this.getDayOfYear() >= 182",
+    message: "must be in the second half of the year (day index >= 182)"
+  }];
+}
+
+// ValidatedCELTsHours — getHours() returns the hour (0–23, UTC).
+message ValidatedCELTsHours {
+  google.protobuf.Timestamp t = 1 [(buf.validate.field).cel = {
+    id: "afternoon",
+    expression: "this.getHours() >= 12",
+    message: "must be afternoon or later (UTC)"
+  }];
+}
+
+// ValidatedCELTsMillis — getMilliseconds() returns the ms component (0–999).
+message ValidatedCELTsMillis {
+  google.protobuf.Timestamp t = 1 [(buf.validate.field).cel = {
+    id: "whole_seconds",
+    expression: "this.getMilliseconds() == 0",
+    message: "must not have sub-second precision"
+  }];
+}
+
+// ValidatedCELTsHoursUTC — getHours("UTC") is equivalent to getHours().
+message ValidatedCELTsHoursUTC {
+  google.protobuf.Timestamp t = 1 [(buf.validate.field).cel = {
+    id: "afternoon_utc_explicit",
+    expression: "this.getHours(\"UTC\") >= 12",
+    message: "must be afternoon or later (explicit UTC)"
+  }];
+}
+
+// ValidatedCELTsHoursTZ — getHours("America/New_York") uses IANA timezone.
+// 2024-01-15T17:00:00Z == 12:00 EST (UTC-5, no DST in January).
+message ValidatedCELTsHoursTZ {
+  google.protobuf.Timestamp t = 1 [(buf.validate.field).cel = {
+    id: "afternoon_ny",
+    expression: "this.getHours(\"America/New_York\") >= 12",
+    message: "must be afternoon or later in New York"
+  }];
+}
+
+// ── Duration member accessor tests ──────────────────────────────────────────
+
+// ValidatedCELDurGetHours — getHours() returns total hours (truncated).
+message ValidatedCELDurGetHours {
+  google.protobuf.Duration d = 1 [(buf.validate.field).cel = {
+    id: "at_least_2h",
+    expression: "this.getHours() >= 2",
+    message: "must be at least 2 hours"
+  }];
+}
+
+// ValidatedCELDurGetMinutes — getMinutes() returns total minutes (truncated).
+message ValidatedCELDurGetMinutes {
+  google.protobuf.Duration d = 1 [(buf.validate.field).cel = {
+    id: "at_least_90min",
+    expression: "this.getMinutes() >= 90",
+    message: "must be at least 90 total minutes"
+  }];
+}
+
+// ValidatedCELDurGetSeconds — getSeconds() returns total seconds (truncated).
+message ValidatedCELDurGetSeconds {
+  google.protobuf.Duration d = 1 [(buf.validate.field).cel = {
+    id: "exactly_3600s",
+    expression: "this.getSeconds() == 3600",
+    message: "must be exactly 1 hour (3600 seconds)"
+  }];
+}
+
+// ValidatedCELDurGetMillis — getMilliseconds() returns total ms (truncated).
+message ValidatedCELDurGetMillis {
+  google.protobuf.Duration d = 1 [(buf.validate.field).cel = {
+    id: "at_least_1500ms",
+    expression: "this.getMilliseconds() >= 1500",
+    message: "must be at least 1500 total milliseconds"
+  }];
+}
+
+// ── String member functions ──────────────────────────────────────────────────
+
+// ValidatedCELEndsWith — endsWith() member function (0% coverage).
+message ValidatedCELEndsWith {
+  string filename = 1 [(buf.validate.field).cel = {
+    id: "proto_ext",
+    expression: "this.endsWith(\".proto\")",
+    message: "filename must end with .proto"
+  }];
+}
+
+// ValidatedCELContains — contains() member function (0% coverage).
+message ValidatedCELContains {
+  string tag = 1 [(buf.validate.field).cel = {
+    id: "has_at",
+    expression: "this.contains(\"@\")",
+    message: "tag must contain @"
+  }];
+}
+
+// ── Operators ────────────────────────────────────────────────────────────────
+
+// ValidatedCELNegate — unary negate operator; -1 parses as Negate(Literal(1)).
+message ValidatedCELNegate {
+  int32 value = 1 [(buf.validate.field).cel = {
+    id: "above_neg_one",
+    expression: "this > -1",
+    message: "value must be greater than -1"
+  }];
+}
+
+// ValidatedCELIndex — index operator this[i] (0% coverage).
+message ValidatedCELIndex {
+  repeated string items = 1 [(buf.validate.field).cel = {
+    id: "first_admin",
+    expression: "this.size() > 0 && this[0] == \"admin\"",
+    message: "first item must be admin"
+  }];
+}
+
+// ValidatedCELInList — in operator with list literal (list() 0% coverage).
+message ValidatedCELInList {
+  string role = 1 [(buf.validate.field).cel = {
+    id: "valid_role",
+    expression: "this in [\"admin\", \"editor\", \"viewer\"]",
+    message: "role must be admin, editor, or viewer"
+  }];
+}
+
+// ── Null ident ───────────────────────────────────────────────────────────────
+
+// ValidatedCELNullCheck — null ident (ident() null case, 0% coverage).
+// Message-level: this.name != null → (self.name != None).
+message ValidatedCELNullCheck {
+  optional string name = 1;
+
+  option (buf.validate.message).cel = {
+    id: "name_not_null",
+    expression: "this.name != null",
+    message: "name must not be null"
+  };
+}
+
+// ── Numeric literal types ────────────────────────────────────────────────────
+
+// ValidatedCELUint — uint32 field exercises celTypeForKind UintKind and
+// the uint64 literal case in literal() (both 0% coverage).
+// Use uint literal 0u so the comparison is uint > uint (not uint > int).
+message ValidatedCELUint {
+  uint32 count = 1 [(buf.validate.field).cel = {
+    id: "positive_count",
+    expression: "this > 0u",
+    message: "count must be positive"
+  }];
+}
+
+// ValidatedCELFloatLiteral — float64 literal (e.g. 0.5) in a CEL expression
+// exercises the float64 case in literal() (0% coverage).
+message ValidatedCELFloatLiteral {
+  double score = 1 [(buf.validate.field).cel = {
+    id: "above_half",
+    expression: "this > 0.5",
+    message: "score must be above 0.5"
+  }];
+}
+
+// ── Global functions ─────────────────────────────────────────────────────────
+
+// ValidatedCELGlobalSize — size() as a global call (not member) is 0% covered.
+message ValidatedCELGlobalSize {
+  repeated string tags = 1 [(buf.validate.field).cel = {
+    id: "non_empty",
+    expression: "size(this) > 0",
+    message: "tags must not be empty"
+  }];
+}
+
+// ValidatedCELCastInt — int() global type-cast (globalFunc int 0% covered).
+message ValidatedCELCastInt {
+  double fraction = 1 [(buf.validate.field).cel = {
+    id: "non_negative_int_part",
+    expression: "int(this) >= 0",
+    message: "integer part must be non-negative"
+  }];
+}
+
+// ── is* function overloads ────────────────────────────────────────────────────
+
+// ValidatedCELIsInfDir — isInf(direction) 1-arg form (0% covered).
+message ValidatedCELIsInfDir {
+  double value = 1 [(buf.validate.field).cel = {
+    id: "not_pos_inf",
+    expression: "!this.isInf(1)",
+    message: "must not be positive infinity"
+  }];
+  double magnitude = 2 [(buf.validate.field).cel = {
+    id: "not_neg_inf",
+    expression: "!this.isInf(-1)",
+    message: "must not be negative infinity"
+  }];
+}
+
+// ValidatedCELIsIpPrefixV6 — isIpPrefix(version) 1-arg form (0% covered).
+message ValidatedCELIsIpPrefixV6 {
+  string prefix = 1 [(buf.validate.field).cel = {
+    id: "ipv6_prefix",
+    expression: "this.isIpPrefix(6)",
+    message: "must be a valid IPv6 prefix"
+  }];
+}
+
+// ── Timestamp getters: getDate / getMinutes / getSeconds ─────────────────────
+
+// ValidatedCELTsDate — getDate() (1-indexed day; 0% covered).
+message ValidatedCELTsDate {
+  google.protobuf.Timestamp t = 1 [(buf.validate.field).cel = {
+    id: "on_15th",
+    expression: "this.getDate() == 15",
+    message: "must be on the 15th of the month"
+  }];
+}
+
+// ValidatedCELTsMinutes — getMinutes() (0% covered).
+message ValidatedCELTsMinutes {
+  google.protobuf.Timestamp t = 1 [(buf.validate.field).cel = {
+    id: "on_hour",
+    expression: "this.getMinutes() == 0",
+    message: "must be exactly on the hour"
+  }];
+}
+
+// ValidatedCELTsSeconds — getSeconds() (0% covered).
+message ValidatedCELTsSeconds {
+  google.protobuf.Timestamp t = 1 [(buf.validate.field).cel = {
+    id: "whole_minute",
+    expression: "this.getSeconds() == 0",
+    message: "must be on a whole minute (0 seconds)"
+  }];
+}
+
+// ── Field type coverage ──────────────────────────────────────────────────────
+
+// ValidatedCELBool — bool field exercises celTypeForKind BoolKind (44.4% fn).
+// Also exercises literal() bool case (True path).
+message ValidatedCELBool {
+  bool active = 1 [(buf.validate.field).cel = {
+    id: "must_be_true",
+    expression: "this == true",
+    message: "active must be true"
+  }];
+}
+
+// ValidatedCELBytes — bytes field exercises celTypeForKind BytesKind (44.4%).
+message ValidatedCELBytes {
+  bytes data = 1 [(buf.validate.field).cel = {
+    id: "non_empty_bytes",
+    expression: "this.size() > 0",
+    message: "data must not be empty"
+  }];
+}
+
+// ── Coverage: globalFunc casts, mapExpr, map field, enum field ───────────────
+
+// ValidatedCELMapLiteral — map literal {k:v} covers mapExpr (was 0%).
+message ValidatedCELMapLiteral {
+  string role = 1 [(buf.validate.field).cel = {
+    id: "valid_role_map",
+    expression: "this in {\"admin\": true, \"editor\": true}",
+    message: "role must be admin or editor"
+  }];
+}
+
+// ValidatedCELCastDouble — double() covers globalFunc double (was 0%).
+message ValidatedCELCastDouble {
+  int32 value = 1 [(buf.validate.field).cel = {
+    id: "small_value",
+    expression: "double(this) < 10.0",
+    message: "value must be less than 10"
+  }];
+}
+
+// ValidatedCELCastString — string() covers globalFunc string (was 0%).
+message ValidatedCELCastString {
+  int32 code = 1 [(buf.validate.field).cel = {
+    id: "not_zero_code",
+    expression: "string(this) != \"0\"",
+    message: "code must not represent zero"
+  }];
+}
+
+// ValidatedCELCastUint — uint() covers globalFunc uint (was 0%).
+message ValidatedCELCastUint {
+  int32 count = 1 [(buf.validate.field).cel = {
+    id: "positive_uint",
+    expression: "uint(this) > 0u",
+    message: "count must be positive"
+  }];
+}
+
+// ValidatedCELMapField — map<K,V> field covers celFieldKey/celTypeForField
+// IsMap branches (both were 0%).
+message ValidatedCELMapField {
+  map<string, int32> labels = 1 [(buf.validate.field).cel = {
+    id: "has_labels",
+    expression: "this.size() > 0",
+    message: "labels must not be empty"
+  }];
+}
+
+// ValidatedCELEnum — enum field covers celTypeForKind EnumKind (was 44%).
+// string(this) also exercises globalFunc string on an enum receiver.
+message ValidatedCELEnum {
+  enum Priority {
+    PRIORITY_UNSPECIFIED = 0;
+    PRIORITY_LOW = 1;
+    PRIORITY_HIGH = 2;
+  }
+  Priority priority = 1 [(buf.validate.field).cel = {
+    id: "priority_named",
+    expression: "string(this) != \"\"",
+    message: "priority must be named"
+  }];
 }

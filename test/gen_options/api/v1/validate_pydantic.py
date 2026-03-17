@@ -16,6 +16,27 @@ from ._proto_types import (
     ProtoInt64,
     ProtoTimestamp,
     ProtoUInt64,
+    _cel_dur_get_hours,
+    _cel_dur_get_milliseconds,
+    _cel_dur_get_minutes,
+    _cel_dur_get_seconds,
+    _cel_duration,
+    _cel_matches,
+    _cel_now,
+    _cel_timestamp,
+    _cel_ts_in_tz,
+    _is_email,
+    _is_host_and_port,
+    _is_hostname,
+    _is_inf,
+    _is_ip,
+    _is_ip_prefix,
+    _is_nan,
+    _is_unique,
+    _is_uri,
+    _is_uri_ref,
+    _make_cel_str_validator,
+    _make_cel_validator,
     _make_const_validator,
     _make_in_validator,
     _make_len_bytes_validator,
@@ -681,13 +702,142 @@ class ValidatedFloatExamples(_ProtoModel):
 
 class ValidatedCEL(_ProtoModel):
     """
-    ValidatedCEL exercises the cel constraint drop path.
+    ValidatedCEL exercises basic field-level CEL transpilation.
     """
 
-    # Age with a CEL expression that is not translated.
-    age: int = _Field(
+    # Age must be positive.
+    age: _Annotated[
+        int,
+        _AfterValidator(_make_cel_validator(lambda v: v > 0, "age must be positive")),
+    ] = _Field(
         default=0,
-        # buf.validate: cel (not translated)
+    )
+
+
+class ValidatedCELField(_ProtoModel):
+    """
+    ValidatedCELField exercises field-level CEL transpilation.
+    """
+
+    # Must be positive.
+    age: _Annotated[
+        int,
+        _AfterValidator(_make_cel_validator(lambda v: v > 0, "age must be positive")),
+    ] = _Field(
+        default=0,
+    )
+    # Must start with an uppercase letter.
+    name: _Annotated[
+        str,
+        _AfterValidator(
+            _make_cel_validator(
+                lambda v: _cel_matches("^[A-Z]", v), "name must start with uppercase"
+            )
+        ),
+    ] = _Field(
+        default="",
+    )
+    # Combined: both bool-returning and chained.
+    code: _Annotated[
+        str,
+        _AfterValidator(
+            _make_cel_validator(lambda v: (v).startswith("X"), "code must start with X")
+        ),
+        _AfterValidator(
+            _make_cel_validator(
+                lambda v: len(v) > 2, "code must be longer than 2 chars"
+            )
+        ),
+    ] = _Field(
+        default="",
+    )
+
+
+class ValidatedCELMessage(_ProtoModel):
+    """
+    ValidatedCELMessage exercises message-level cross-field CEL.
+    """
+
+    bar: list[str] = _Field(
+        default_factory=list,
+    )
+    baz: list[str] = _Field(
+        default_factory=list,
+    )
+
+    @_model_validator(mode="after")
+    def _validate_cel_globally_unique(self) -> "ValidatedCELMessage":
+        if not (_is_unique((self.bar + self.baz))):
+            raise ValueError("all values in bar and baz must be globally unique")
+        return self
+
+
+class ValidatedCELHas(_ProtoModel):
+    """
+    ValidatedCELHas exercises the has() presence macro.
+    """
+
+    firstName: _Optional[str] = _Field(default=None)
+    lastName: _Optional[str] = _Field(default=None)
+
+    @_model_validator(mode="after")
+    def _validate_cel_name_required(self) -> "ValidatedCELHas":
+        if not (
+            "first_name" in self.model_fields_set
+            or "last_name" in self.model_fields_set
+        ):
+            raise ValueError("at least one name field must be set")
+        return self
+
+
+class ValidatedCELCrossField(_ProtoModel):
+    """
+    ValidatedCELCrossField exercises a cross-field numeric comparison.
+    """
+
+    minVal: int = _Field(default=0)
+    maxVal: int = _Field(default=0)
+
+    @_model_validator(mode="after")
+    def _validate_cel_min_less_than_max(self) -> "ValidatedCELCrossField":
+        if not (self.min_val < self.max_val):
+            raise ValueError("min_val must be less than max_val")
+        return self
+
+
+class ValidatedCELDropped(_ProtoModel):
+    """
+    ValidatedCELDropped exercises the drop path for unsupported CEL
+    (comprehension). The dropped comment must appear in the generated file.
+    """
+
+    scores: _Annotated[
+        list[int],
+        _AfterValidator(
+            _make_cel_validator(
+                lambda v: all((x > 0) for x in v), "all scores must be positive"
+            )
+        ),
+    ] = _Field(
+        default_factory=list,
+    )
+
+
+class ValidatedCELStringReturn(_ProtoModel):
+    """
+    ValidatedCELStringReturn exercises a string-returning CEL expression
+    (the expression itself is the error message).
+    """
+
+    value: _Annotated[
+        int,
+        _AfterValidator(
+            _make_cel_str_validator(
+                lambda v: "" if (v > 0) else "value must be positive"
+            )
+        ),
+    ] = _Field(
+        default=0,
     )
 
 
@@ -794,3 +944,1055 @@ class ValidatedStringBytes(_ProtoModel):
         _AfterValidator(_make_min_bytes_validator(2)),
         _AfterValidator(_make_max_bytes_validator(64)),
     ]
+
+
+class ValidatedCELIsEmail(_ProtoModel):
+    """
+    ValidatedCELIsEmail exercises isEmail() in a CEL expression.
+    """
+
+    contact: _Annotated[
+        str,
+        _AfterValidator(
+            _make_cel_validator(lambda v: _is_email(v), "contact must be a valid email")
+        ),
+    ] = _Field(
+        default="",
+    )
+
+
+class ValidatedCELIsIp(_ProtoModel):
+    """
+    ValidatedCELIsIp exercises isIp() with optional version argument.
+    """
+
+    addr: _Annotated[
+        str,
+        _AfterValidator(
+            _make_cel_validator(lambda v: _is_ip(v, 0), "must be a valid IP address")
+        ),
+    ] = _Field(
+        default="",
+    )
+    addrV4: _Annotated[
+        str,
+        _AfterValidator(
+            _make_cel_validator(lambda v: _is_ip(v, 4), "must be a valid IPv4 address")
+        ),
+    ] = _Field(
+        default="",
+    )
+    addrV6: _Annotated[
+        str,
+        _AfterValidator(
+            _make_cel_validator(lambda v: _is_ip(v, 6), "must be a valid IPv6 address")
+        ),
+    ] = _Field(
+        default="",
+    )
+
+
+class ValidatedCELIsIpPrefix(_ProtoModel):
+    """
+    ValidatedCELIsIpPrefix exercises isIpPrefix().
+    """
+
+    prefix: _Annotated[
+        str,
+        _AfterValidator(
+            _make_cel_validator(
+                lambda v: _is_ip_prefix(v, 0), "must be a valid IP prefix (CIDR)"
+            )
+        ),
+    ] = _Field(
+        default="",
+    )
+    prefixV4: _Annotated[
+        str,
+        _AfterValidator(
+            _make_cel_validator(
+                lambda v: _is_ip_prefix(v, 4, strict=False),
+                "must be a valid IPv4 prefix",
+            )
+        ),
+    ] = _Field(
+        default="",
+    )
+
+
+class ValidatedCELIsHostname(_ProtoModel):
+    """
+    ValidatedCELIsHostname exercises isHostname().
+    """
+
+    host: _Annotated[
+        str,
+        _AfterValidator(
+            _make_cel_validator(lambda v: _is_hostname(v), "must be a valid hostname")
+        ),
+    ] = _Field(
+        default="",
+    )
+
+
+class ValidatedCELIsUri(_ProtoModel):
+    """
+    ValidatedCELIsUri exercises isUri() and isUriRef().
+    """
+
+    link: _Annotated[
+        str,
+        _AfterValidator(
+            _make_cel_validator(lambda v: _is_uri(v), "must be a valid URI")
+        ),
+    ] = _Field(
+        default="",
+    )
+    ref: _Annotated[
+        str,
+        _AfterValidator(
+            _make_cel_validator(
+                lambda v: _is_uri_ref(v), "must be a valid URI reference"
+            )
+        ),
+    ] = _Field(
+        default="",
+    )
+
+
+class ValidatedCELIsHostAndPort(_ProtoModel):
+    """
+    ValidatedCELIsHostAndPort exercises isHostAndPort().
+    """
+
+    endpoint: _Annotated[
+        str,
+        _AfterValidator(
+            _make_cel_validator(
+                lambda v: _is_host_and_port(v, True), "must be a valid host:port"
+            )
+        ),
+    ] = _Field(
+        default="",
+    )
+
+
+class ValidatedCELIsNanInf(_ProtoModel):
+    """
+    ValidatedCELIsNanInf exercises isNan() and isInf() in CEL.
+    """
+
+    value: _Annotated[
+        float,
+        _AfterValidator(
+            _make_cel_validator(lambda v: not (_is_nan(v)), "value must not be NaN")
+        ),
+    ] = _Field(
+        default=0.0,
+    )
+    bounded: _Annotated[
+        float,
+        _AfterValidator(
+            _make_cel_validator(
+                lambda v: not (_is_inf(v)), "bounded must not be infinite"
+            )
+        ),
+    ] = _Field(
+        default=0.0,
+    )
+
+
+class ValidatedCELAll(_ProtoModel):
+    """
+    ValidatedCELAll exercises all() comprehension on a repeated field.
+    """
+
+    scores: _Annotated[
+        list[int],
+        _AfterValidator(
+            _make_cel_validator(
+                lambda v: all((x > 0) for x in v), "all scores must be positive"
+            )
+        ),
+    ] = _Field(
+        default_factory=list,
+    )
+
+
+class ValidatedCELExists(_ProtoModel):
+    """
+    ValidatedCELExists exercises exists() comprehension.
+    """
+
+    tags: _Annotated[
+        list[str],
+        _AfterValidator(
+            _make_cel_validator(
+                lambda v: any((t == "admin") for t in v), "must include an admin tag"
+            )
+        ),
+    ] = _Field(
+        default_factory=list,
+    )
+
+
+class ValidatedCELExistsOne(_ProtoModel):
+    """
+    ValidatedCELExistsOne exercises exists_one() comprehension.
+    """
+
+    roles: _Annotated[
+        list[str],
+        _AfterValidator(
+            _make_cel_validator(
+                lambda v: sum(1 for r in v if (r == "admin")) == 1,
+                "must have exactly one admin role",
+            )
+        ),
+    ] = _Field(
+        default_factory=list,
+    )
+
+
+class ValidatedCELFilter(_ProtoModel):
+    """
+    ValidatedCELFilter exercises filter() comprehension chained with size().
+    """
+
+    values: _Annotated[
+        list[int],
+        _AfterValidator(
+            _make_cel_validator(
+                lambda v: len([x for x in v if (x > 0)]) >= 2,
+                "must contain at least 2 positive values",
+            )
+        ),
+    ] = _Field(
+        default_factory=list,
+    )
+
+
+class ValidatedCELMapAll(_ProtoModel):
+    """
+    ValidatedCELMapAll exercises map() chained with all() (nested comprehension).
+    """
+
+    words: _Annotated[
+        list[str],
+        _AfterValidator(
+            _make_cel_validator(
+                lambda v: all((l >= 3) for l in [len(w) for w in v]),
+                "all words must be at least 3 characters",
+            )
+        ),
+    ] = _Field(
+        default_factory=list,
+    )
+
+
+class ValidatedCELMessageAll(_ProtoModel):
+    """
+    ValidatedCELMessageAll exercises all() in a message-level CEL expression.
+    """
+
+    prices: list[int] = _Field(
+        default_factory=list,
+    )
+    quantities: list[int] = _Field(
+        default_factory=list,
+    )
+
+    @_model_validator(mode="after")
+    def _validate_cel_all_positive(self) -> "ValidatedCELMessageAll":
+        if not (
+            all((p > 0) for p in self.prices) and all((q > 0) for q in self.quantities)
+        ):
+            raise ValueError("all prices and quantities must be positive")
+        return self
+
+
+class ValidatedCELStillDropped(_ProtoModel):
+    """
+    ValidatedCELStillDropped verifies the drop path still works for
+    expressions containing 'now' (unsupported temporal).
+    """
+
+    created: _Optional[
+        _Annotated[
+            ProtoTimestamp,
+            _AfterValidator(
+                _make_cel_validator(
+                    lambda v: v is None or (v > _cel_now()),
+                    "must be after the current time",
+                )
+            ),
+        ]
+    ] = _Field(
+        default=None,
+    )
+
+
+class ValidatedCELTimestamp(_ProtoModel):
+    """
+    ValidatedCELTimestamp — 'this > now' on a Timestamp field.
+    """
+
+    deadline: _Optional[
+        _Annotated[
+            ProtoTimestamp,
+            _AfterValidator(
+                _make_cel_validator(
+                    lambda v: v is None or (v > _cel_now()),
+                    "deadline must be in the future",
+                )
+            ),
+        ]
+    ] = _Field(
+        default=None,
+    )
+
+
+class ValidatedCELDuration(_ProtoModel):
+    """
+    ValidatedCELDuration — 'this > duration("0s")' on a Duration field.
+    """
+
+    window: _Optional[
+        _Annotated[
+            ProtoDuration,
+            _AfterValidator(
+                _make_cel_validator(
+                    lambda v: v is None or (v > _cel_duration(0)),
+                    "window must be positive",
+                )
+            ),
+        ]
+    ] = _Field(
+        default=None,
+    )
+
+
+class ValidatedCELDurationRange(_ProtoModel):
+    """
+    ValidatedCELDurationRange — duration bounded between two literals.
+    """
+
+    ttl: _Optional[
+        _Annotated[
+            ProtoDuration,
+            _AfterValidator(
+                _make_cel_validator(
+                    lambda v: (
+                        v is None
+                        or ((v >= _cel_duration(60)) and (v <= _cel_duration(3600)))
+                    ),
+                    "ttl must be between 1 minute and 1 hour",
+                )
+            ),
+        ]
+    ] = _Field(
+        default=None,
+    )
+
+
+class ValidatedCELTimestampAfter(_ProtoModel):
+    """
+    ValidatedCELTimestampAfter — timestamp compared to a fixed literal.
+    """
+
+    created: _Optional[
+        _Annotated[
+            ProtoTimestamp,
+            _AfterValidator(
+                _make_cel_validator(
+                    lambda v: (
+                        v is None or (v >= _cel_timestamp("2020-01-01T00:00:00Z"))
+                    ),
+                    "must be on or after 2020-01-01",
+                )
+            ),
+        ]
+    ] = _Field(
+        default=None,
+    )
+
+
+class ValidatedCELTimestampWindow(_ProtoModel):
+    """
+    ValidatedCELTimestampWindow — arithmetic: now + duration window.
+    """
+
+    expires: _Optional[
+        _Annotated[
+            ProtoTimestamp,
+            _AfterValidator(
+                _make_cel_validator(
+                    lambda v: v is None or (v <= (_cel_now() + _cel_duration(3600))),
+                    "expiry must be at most one hour from now",
+                )
+            ),
+        ]
+    ] = _Field(
+        default=None,
+    )
+
+
+class ValidatedCELTsYear(_ProtoModel):
+    """
+    ValidatedCELTsYear — getFullYear() returns the 4-digit year.
+    """
+
+    t: _Optional[
+        _Annotated[
+            ProtoTimestamp,
+            _AfterValidator(
+                _make_cel_validator(
+                    lambda v: v is None or (v.year == 2024), "must be in 2024"
+                )
+            ),
+        ]
+    ] = _Field(
+        default=None,
+    )
+
+
+class ValidatedCELTsMonth(_ProtoModel):
+    """
+    ValidatedCELTsMonth — getMonth() is 0-indexed (January == 0).
+    """
+
+    t: _Optional[
+        _Annotated[
+            ProtoTimestamp,
+            _AfterValidator(
+                _make_cel_validator(
+                    lambda v: v is None or ((v.month - 1) == 0),
+                    "must be in January (month index 0)",
+                )
+            ),
+        ]
+    ] = _Field(
+        default=None,
+    )
+
+
+class ValidatedCELTsDayOfMonth(_ProtoModel):
+    """
+    ValidatedCELTsDayOfMonth — getDayOfMonth() is 0-indexed (1st == 0).
+    """
+
+    t: _Optional[
+        _Annotated[
+            ProtoTimestamp,
+            _AfterValidator(
+                _make_cel_validator(
+                    lambda v: v is None or ((v.day - 1) == 14),
+                    "must be on the 15th (0-indexed day 14)",
+                )
+            ),
+        ]
+    ] = _Field(
+        default=None,
+    )
+
+
+class ValidatedCELTsDayOfWeek(_ProtoModel):
+    """
+    ValidatedCELTsDayOfWeek — getDayOfWeek(): Sun=0, Mon=1, …, Sat=6.
+    """
+
+    t: _Optional[
+        _Annotated[
+            ProtoTimestamp,
+            _AfterValidator(
+                _make_cel_validator(
+                    lambda v: (
+                        v is None
+                        or (((v.isoweekday() % 7) >= 1) and ((v.isoweekday() % 7) <= 5))
+                    ),
+                    "must be a weekday (Mon–Fri)",
+                )
+            ),
+        ]
+    ] = _Field(
+        default=None,
+    )
+
+
+class ValidatedCELTsDayOfYear(_ProtoModel):
+    """
+    ValidatedCELTsDayOfYear — getDayOfYear() is 0-indexed (Jan 1 == 0).
+    """
+
+    t: _Optional[
+        _Annotated[
+            ProtoTimestamp,
+            _AfterValidator(
+                _make_cel_validator(
+                    lambda v: v is None or ((v.timetuple().tm_yday - 1) >= 182),
+                    "must be in the second half of the year (day index >= 182)",
+                )
+            ),
+        ]
+    ] = _Field(
+        default=None,
+    )
+
+
+class ValidatedCELTsHours(_ProtoModel):
+    """
+    ValidatedCELTsHours — getHours() returns the hour (0–23, UTC).
+    """
+
+    t: _Optional[
+        _Annotated[
+            ProtoTimestamp,
+            _AfterValidator(
+                _make_cel_validator(
+                    lambda v: v is None or (v.hour >= 12),
+                    "must be afternoon or later (UTC)",
+                )
+            ),
+        ]
+    ] = _Field(
+        default=None,
+    )
+
+
+class ValidatedCELTsMillis(_ProtoModel):
+    """
+    ValidatedCELTsMillis — getMilliseconds() returns the ms component (0–999).
+    """
+
+    t: _Optional[
+        _Annotated[
+            ProtoTimestamp,
+            _AfterValidator(
+                _make_cel_validator(
+                    lambda v: v is None or ((v.microsecond // 1000) == 0),
+                    "must not have sub-second precision",
+                )
+            ),
+        ]
+    ] = _Field(
+        default=None,
+    )
+
+
+class ValidatedCELTsHoursUTC(_ProtoModel):
+    """
+    ValidatedCELTsHoursUTC — getHours("UTC") is equivalent to getHours().
+    """
+
+    t: _Optional[
+        _Annotated[
+            ProtoTimestamp,
+            _AfterValidator(
+                _make_cel_validator(
+                    lambda v: v is None or (v.hour >= 12),
+                    "must be afternoon or later (explicit UTC)",
+                )
+            ),
+        ]
+    ] = _Field(
+        default=None,
+    )
+
+
+class ValidatedCELTsHoursTZ(_ProtoModel):
+    """
+    ValidatedCELTsHoursTZ — getHours("America/New_York") uses IANA timezone.
+    2024-01-15T17:00:00Z == 12:00 EST (UTC-5, no DST in January).
+    """
+
+    t: _Optional[
+        _Annotated[
+            ProtoTimestamp,
+            _AfterValidator(
+                _make_cel_validator(
+                    lambda v: (
+                        v is None or (_cel_ts_in_tz(v, "America/New_York").hour >= 12)
+                    ),
+                    "must be afternoon or later in New York",
+                )
+            ),
+        ]
+    ] = _Field(
+        default=None,
+    )
+
+
+class ValidatedCELDurGetHours(_ProtoModel):
+    """
+    ValidatedCELDurGetHours — getHours() returns total hours (truncated).
+    """
+
+    d: _Optional[
+        _Annotated[
+            ProtoDuration,
+            _AfterValidator(
+                _make_cel_validator(
+                    lambda v: v is None or (_cel_dur_get_hours(v) >= 2),
+                    "must be at least 2 hours",
+                )
+            ),
+        ]
+    ] = _Field(
+        default=None,
+    )
+
+
+class ValidatedCELDurGetMinutes(_ProtoModel):
+    """
+    ValidatedCELDurGetMinutes — getMinutes() returns total minutes (truncated).
+    """
+
+    d: _Optional[
+        _Annotated[
+            ProtoDuration,
+            _AfterValidator(
+                _make_cel_validator(
+                    lambda v: v is None or (_cel_dur_get_minutes(v) >= 90),
+                    "must be at least 90 total minutes",
+                )
+            ),
+        ]
+    ] = _Field(
+        default=None,
+    )
+
+
+class ValidatedCELDurGetSeconds(_ProtoModel):
+    """
+    ValidatedCELDurGetSeconds — getSeconds() returns total seconds (truncated).
+    """
+
+    d: _Optional[
+        _Annotated[
+            ProtoDuration,
+            _AfterValidator(
+                _make_cel_validator(
+                    lambda v: v is None or (_cel_dur_get_seconds(v) == 3600),
+                    "must be exactly 1 hour (3600 seconds)",
+                )
+            ),
+        ]
+    ] = _Field(
+        default=None,
+    )
+
+
+class ValidatedCELDurGetMillis(_ProtoModel):
+    """
+    ValidatedCELDurGetMillis — getMilliseconds() returns total ms (truncated).
+    """
+
+    d: _Optional[
+        _Annotated[
+            ProtoDuration,
+            _AfterValidator(
+                _make_cel_validator(
+                    lambda v: v is None or (_cel_dur_get_milliseconds(v) >= 1500),
+                    "must be at least 1500 total milliseconds",
+                )
+            ),
+        ]
+    ] = _Field(
+        default=None,
+    )
+
+
+class ValidatedCELEndsWith(_ProtoModel):
+    """
+    ValidatedCELEndsWith — endsWith() member function (0% coverage).
+    """
+
+    filename: _Annotated[
+        str,
+        _AfterValidator(
+            _make_cel_validator(
+                lambda v: (v).endswith(".proto"), "filename must end with .proto"
+            )
+        ),
+    ] = _Field(
+        default="",
+    )
+
+
+class ValidatedCELContains(_ProtoModel):
+    """
+    ValidatedCELContains — contains() member function (0% coverage).
+    """
+
+    tag: _Annotated[
+        str,
+        _AfterValidator(_make_cel_validator(lambda v: "@" in v, "tag must contain @")),
+    ] = _Field(
+        default="",
+    )
+
+
+class ValidatedCELNegate(_ProtoModel):
+    """
+    ValidatedCELNegate — unary negate operator; -1 parses as Negate(Literal(1)).
+    """
+
+    value: _Annotated[
+        int,
+        _AfterValidator(
+            _make_cel_validator(lambda v: v > -1, "value must be greater than -1")
+        ),
+    ] = _Field(
+        default=0,
+    )
+
+
+class ValidatedCELIndex(_ProtoModel):
+    """
+    ValidatedCELIndex — index operator this[i] (0% coverage).
+    """
+
+    items: _Annotated[
+        list[str],
+        _AfterValidator(
+            _make_cel_validator(
+                lambda v: (len(v) > 0) and ((v)[0] == "admin"),
+                "first item must be admin",
+            )
+        ),
+    ] = _Field(
+        default_factory=list,
+    )
+
+
+class ValidatedCELInList(_ProtoModel):
+    """
+    ValidatedCELInList — in operator with list literal (list() 0% coverage).
+    """
+
+    role: _Annotated[
+        str,
+        _AfterValidator(
+            _make_cel_validator(
+                lambda v: v in ["admin", "editor", "viewer"],
+                "role must be admin, editor, or viewer",
+            )
+        ),
+    ] = _Field(
+        default="",
+    )
+
+
+class ValidatedCELNullCheck(_ProtoModel):
+    """
+    ValidatedCELNullCheck — null ident (ident() null case, 0% coverage).
+    Message-level: this.name != null → (self.name != None).
+    """
+
+    name: _Optional[str] = _Field(default=None)
+
+    @_model_validator(mode="after")
+    def _validate_cel_name_not_null(self) -> "ValidatedCELNullCheck":
+        if not (self.name != None):
+            raise ValueError("name must not be null")
+        return self
+
+
+class ValidatedCELUint(_ProtoModel):
+    """
+    ValidatedCELUint — uint32 field exercises celTypeForKind UintKind and
+    the uint64 literal case in literal() (both 0% coverage).
+    Use uint literal 0u so the comparison is uint > uint (not uint > int).
+    """
+
+    count: _Annotated[
+        int,
+        _AfterValidator(_make_cel_validator(lambda v: v > 0, "count must be positive")),
+    ] = _Field(
+        default=0,
+    )
+
+
+class ValidatedCELFloatLiteral(_ProtoModel):
+    """
+    ValidatedCELFloatLiteral — float64 literal (e.g. 0.5) in a CEL expression
+    exercises the float64 case in literal() (0% coverage).
+    """
+
+    score: _Annotated[
+        float,
+        _AfterValidator(
+            _make_cel_validator(lambda v: v > 0.5, "score must be above 0.5")
+        ),
+    ] = _Field(
+        default=0.0,
+    )
+
+
+class ValidatedCELGlobalSize(_ProtoModel):
+    """
+    ValidatedCELGlobalSize — size() as a global call (not member) is 0% covered.
+    """
+
+    tags: _Annotated[
+        list[str],
+        _AfterValidator(
+            _make_cel_validator(lambda v: len(v) > 0, "tags must not be empty")
+        ),
+    ] = _Field(
+        default_factory=list,
+    )
+
+
+class ValidatedCELCastInt(_ProtoModel):
+    """
+    ValidatedCELCastInt — int() global type-cast (globalFunc int 0% covered).
+    """
+
+    fraction: _Annotated[
+        float,
+        _AfterValidator(
+            _make_cel_validator(
+                lambda v: int(v) >= 0, "integer part must be non-negative"
+            )
+        ),
+    ] = _Field(
+        default=0.0,
+    )
+
+
+class ValidatedCELIsInfDir(_ProtoModel):
+    """
+    ValidatedCELIsInfDir — isInf(direction) 1-arg form (0% covered).
+    """
+
+    value: _Annotated[
+        float,
+        _AfterValidator(
+            _make_cel_validator(
+                lambda v: not (_is_inf(v, 1)), "must not be positive infinity"
+            )
+        ),
+    ] = _Field(
+        default=0.0,
+    )
+    magnitude: _Annotated[
+        float,
+        _AfterValidator(
+            _make_cel_validator(
+                lambda v: not (_is_inf(v, -1)), "must not be negative infinity"
+            )
+        ),
+    ] = _Field(
+        default=0.0,
+    )
+
+
+class ValidatedCELIsIpPrefixV6(_ProtoModel):
+    """
+    ValidatedCELIsIpPrefixV6 — isIpPrefix(version) 1-arg form (0% covered).
+    """
+
+    prefix: _Annotated[
+        str,
+        _AfterValidator(
+            _make_cel_validator(
+                lambda v: _is_ip_prefix(v, 6), "must be a valid IPv6 prefix"
+            )
+        ),
+    ] = _Field(
+        default="",
+    )
+
+
+class ValidatedCELTsDate(_ProtoModel):
+    """
+    ValidatedCELTsDate — getDate() (1-indexed day; 0% covered).
+    """
+
+    t: _Optional[
+        _Annotated[
+            ProtoTimestamp,
+            _AfterValidator(
+                _make_cel_validator(
+                    lambda v: v is None or (v.day == 15),
+                    "must be on the 15th of the month",
+                )
+            ),
+        ]
+    ] = _Field(
+        default=None,
+    )
+
+
+class ValidatedCELTsMinutes(_ProtoModel):
+    """
+    ValidatedCELTsMinutes — getMinutes() (0% covered).
+    """
+
+    t: _Optional[
+        _Annotated[
+            ProtoTimestamp,
+            _AfterValidator(
+                _make_cel_validator(
+                    lambda v: v is None or (v.minute == 0),
+                    "must be exactly on the hour",
+                )
+            ),
+        ]
+    ] = _Field(
+        default=None,
+    )
+
+
+class ValidatedCELTsSeconds(_ProtoModel):
+    """
+    ValidatedCELTsSeconds — getSeconds() (0% covered).
+    """
+
+    t: _Optional[
+        _Annotated[
+            ProtoTimestamp,
+            _AfterValidator(
+                _make_cel_validator(
+                    lambda v: v is None or (v.second == 0),
+                    "must be on a whole minute (0 seconds)",
+                )
+            ),
+        ]
+    ] = _Field(
+        default=None,
+    )
+
+
+class ValidatedCELBool(_ProtoModel):
+    """
+    ValidatedCELBool — bool field exercises celTypeForKind BoolKind (44.4% fn).
+    Also exercises literal() bool case (True path).
+    """
+
+    active: _Annotated[
+        bool,
+        _AfterValidator(
+            _make_cel_validator(lambda v: v == True, "active must be true")
+        ),
+    ] = _Field(
+        default=False,
+    )
+
+
+class ValidatedCELBytes(_ProtoModel):
+    """
+    ValidatedCELBytes — bytes field exercises celTypeForKind BytesKind (44.4%).
+    """
+
+    data: _Annotated[
+        bytes,
+        _AfterValidator(
+            _make_cel_validator(lambda v: len(v) > 0, "data must not be empty")
+        ),
+    ] = _Field(
+        default=b"",
+    )
+
+
+class ValidatedCELMapLiteral(_ProtoModel):
+    """
+    ValidatedCELMapLiteral — map literal {k:v} covers mapExpr (was 0%).
+    """
+
+    role: _Annotated[
+        str,
+        _AfterValidator(
+            _make_cel_validator(
+                lambda v: v in {"admin": True, "editor": True},
+                "role must be admin or editor",
+            )
+        ),
+    ] = _Field(
+        default="",
+    )
+
+
+class ValidatedCELCastDouble(_ProtoModel):
+    """
+    ValidatedCELCastDouble — double() covers globalFunc double (was 0%).
+    """
+
+    value: _Annotated[
+        int,
+        _AfterValidator(
+            _make_cel_validator(lambda v: float(v) < 10.0, "value must be less than 10")
+        ),
+    ] = _Field(
+        default=0,
+    )
+
+
+class ValidatedCELCastString(_ProtoModel):
+    """
+    ValidatedCELCastString — string() covers globalFunc string (was 0%).
+    """
+
+    code: _Annotated[
+        int,
+        _AfterValidator(
+            _make_cel_validator(lambda v: str(v) != "0", "code must not represent zero")
+        ),
+    ] = _Field(
+        default=0,
+    )
+
+
+class ValidatedCELCastUint(_ProtoModel):
+    """
+    ValidatedCELCastUint — uint() covers globalFunc uint (was 0%).
+    """
+
+    count: _Annotated[
+        int,
+        _AfterValidator(
+            _make_cel_validator(lambda v: int(v) > 0, "count must be positive")
+        ),
+    ] = _Field(
+        default=0,
+    )
+
+
+class ValidatedCELMapField(_ProtoModel):
+    """
+    ValidatedCELMapField — map<K,V> field covers celFieldKey/celTypeForField
+    IsMap branches (both were 0%).
+    """
+
+    labels: _Annotated[
+        dict[str, int],
+        _AfterValidator(
+            _make_cel_validator(lambda v: len(v) > 0, "labels must not be empty")
+        ),
+    ] = _Field(
+        default_factory=dict,
+    )
+
+
+class ValidatedCELEnum(_ProtoModel):
+    """
+    ValidatedCELEnum — enum field covers celTypeForKind EnumKind (was 44%).
+    string(this) also exercises globalFunc string on an enum receiver.
+    """
+
+    class Priority(int, _Enum):
+        PRIORITY_UNSPECIFIED = 0  # PRIORITY_UNSPECIFIED
+        PRIORITY_LOW = 1  # PRIORITY_LOW
+        PRIORITY_HIGH = 2  # PRIORITY_HIGH
+
+    priority: _Optional[
+        _Annotated[
+            "ValidatedCELEnum.Priority",
+            _AfterValidator(
+                _make_cel_validator(lambda v: str(v) != "", "priority must be named")
+            ),
+        ]
+    ] = _Field(
+        default=None,
+    )
