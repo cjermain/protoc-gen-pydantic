@@ -867,3 +867,184 @@ message ValidatedCELDurGetMillis {
     message: "must be at least 1500 total milliseconds"
   }];
 }
+
+// ── String member functions ──────────────────────────────────────────────────
+
+// ValidatedCELEndsWith — endsWith() member function (0% coverage).
+message ValidatedCELEndsWith {
+  string filename = 1 [(buf.validate.field).cel = {
+    id: "proto_ext",
+    expression: "this.endsWith(\".proto\")",
+    message: "filename must end with .proto"
+  }];
+}
+
+// ValidatedCELContains — contains() member function (0% coverage).
+message ValidatedCELContains {
+  string tag = 1 [(buf.validate.field).cel = {
+    id: "has_at",
+    expression: "this.contains(\"@\")",
+    message: "tag must contain @"
+  }];
+}
+
+// ── Operators ────────────────────────────────────────────────────────────────
+
+// ValidatedCELNegate — unary negate operator; -1 parses as Negate(Literal(1)).
+message ValidatedCELNegate {
+  int32 value = 1 [(buf.validate.field).cel = {
+    id: "above_neg_one",
+    expression: "this > -1",
+    message: "value must be greater than -1"
+  }];
+}
+
+// ValidatedCELIndex — index operator this[i] (0% coverage).
+message ValidatedCELIndex {
+  repeated string items = 1 [(buf.validate.field).cel = {
+    id: "first_admin",
+    expression: "this.size() > 0 && this[0] == \"admin\"",
+    message: "first item must be admin"
+  }];
+}
+
+// ValidatedCELInList — in operator with list literal (list() 0% coverage).
+message ValidatedCELInList {
+  string role = 1 [(buf.validate.field).cel = {
+    id: "valid_role",
+    expression: "this in [\"admin\", \"editor\", \"viewer\"]",
+    message: "role must be admin, editor, or viewer"
+  }];
+}
+
+// ── Null ident ───────────────────────────────────────────────────────────────
+
+// ValidatedCELNullCheck — null ident (ident() null case, 0% coverage).
+// Message-level: this.name != null → (self.name != None).
+message ValidatedCELNullCheck {
+  optional string name = 1;
+
+  option (buf.validate.message).cel = {
+    id: "name_not_null",
+    expression: "this.name != null",
+    message: "name must not be null"
+  };
+}
+
+// ── Numeric literal types ────────────────────────────────────────────────────
+
+// ValidatedCELUint — uint32 field exercises celTypeForKind UintKind and
+// the uint64 literal case in literal() (both 0% coverage).
+// Use uint literal 0u so the comparison is uint > uint (not uint > int).
+message ValidatedCELUint {
+  uint32 count = 1 [(buf.validate.field).cel = {
+    id: "positive_count",
+    expression: "this > 0u",
+    message: "count must be positive"
+  }];
+}
+
+// ValidatedCELFloatLiteral — float64 literal (e.g. 0.5) in a CEL expression
+// exercises the float64 case in literal() (0% coverage).
+message ValidatedCELFloatLiteral {
+  double score = 1 [(buf.validate.field).cel = {
+    id: "above_half",
+    expression: "this > 0.5",
+    message: "score must be above 0.5"
+  }];
+}
+
+// ── Global functions ─────────────────────────────────────────────────────────
+
+// ValidatedCELGlobalSize — size() as a global call (not member) is 0% covered.
+message ValidatedCELGlobalSize {
+  repeated string tags = 1 [(buf.validate.field).cel = {
+    id: "non_empty",
+    expression: "size(this) > 0",
+    message: "tags must not be empty"
+  }];
+}
+
+// ValidatedCELCastInt — int() global type-cast (globalFunc int 0% covered).
+message ValidatedCELCastInt {
+  double fraction = 1 [(buf.validate.field).cel = {
+    id: "non_negative_int_part",
+    expression: "int(this) >= 0",
+    message: "integer part must be non-negative"
+  }];
+}
+
+// ── is* function overloads ────────────────────────────────────────────────────
+
+// ValidatedCELIsInfDir — isInf(direction) 1-arg form (0% covered).
+message ValidatedCELIsInfDir {
+  double value = 1 [(buf.validate.field).cel = {
+    id: "not_pos_inf",
+    expression: "!this.isInf(1)",
+    message: "must not be positive infinity"
+  }];
+  double magnitude = 2 [(buf.validate.field).cel = {
+    id: "not_neg_inf",
+    expression: "!this.isInf(-1)",
+    message: "must not be negative infinity"
+  }];
+}
+
+// ValidatedCELIsIpPrefixV6 — isIpPrefix(version) 1-arg form (0% covered).
+message ValidatedCELIsIpPrefixV6 {
+  string prefix = 1 [(buf.validate.field).cel = {
+    id: "ipv6_prefix",
+    expression: "this.isIpPrefix(6)",
+    message: "must be a valid IPv6 prefix"
+  }];
+}
+
+// ── Timestamp getters: getDate / getMinutes / getSeconds ─────────────────────
+
+// ValidatedCELTsDate — getDate() (1-indexed day; 0% covered).
+message ValidatedCELTsDate {
+  google.protobuf.Timestamp t = 1 [(buf.validate.field).cel = {
+    id: "on_15th",
+    expression: "this.getDate() == 15",
+    message: "must be on the 15th of the month"
+  }];
+}
+
+// ValidatedCELTsMinutes — getMinutes() (0% covered).
+message ValidatedCELTsMinutes {
+  google.protobuf.Timestamp t = 1 [(buf.validate.field).cel = {
+    id: "on_hour",
+    expression: "this.getMinutes() == 0",
+    message: "must be exactly on the hour"
+  }];
+}
+
+// ValidatedCELTsSeconds — getSeconds() (0% covered).
+message ValidatedCELTsSeconds {
+  google.protobuf.Timestamp t = 1 [(buf.validate.field).cel = {
+    id: "whole_minute",
+    expression: "this.getSeconds() == 0",
+    message: "must be on a whole minute (0 seconds)"
+  }];
+}
+
+// ── Field type coverage ──────────────────────────────────────────────────────
+
+// ValidatedCELBool — bool field exercises celTypeForKind BoolKind (44.4% fn).
+// Also exercises literal() bool case (True path).
+message ValidatedCELBool {
+  bool active = 1 [(buf.validate.field).cel = {
+    id: "must_be_true",
+    expression: "this == true",
+    message: "active must be true"
+  }];
+}
+
+// ValidatedCELBytes — bytes field exercises celTypeForKind BytesKind (44.4%).
+message ValidatedCELBytes {
+  bytes data = 1 [(buf.validate.field).cel = {
+    id: "non_empty_bytes",
+    expression: "this.size() > 0",
+    message: "data must not be empty"
+  }];
+}

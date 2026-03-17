@@ -8,13 +8,14 @@ protoc-gen-pydantic is a `protoc` plugin written in Go that generates Pydantic v
 
 ## Architecture
 
-**Six-file Go plugin** (`package main`):
-- `main.go` — entry point + `buildFieldConstraintExt()` for buf.validate extension resolution
+**Seven-file Go plugin** (`package main`):
+- `main.go` — entry point + `buildFieldConstraintExt()` / `buildMessageConstraintExt()` for buf.validate extension resolution
 - `generator.go` — processing + type resolution: `processFile()` → `processMessage()`/`processEnum()` → `resolveType()`/`resolveBaseType()`/`resolveQualifiedName()`
-- `types.go` — domain types (`generator`, `Message`, `Field`, `Enum`, `EnumValue`, `CustomOption`, `OneOf`) and data maps (`wellKnownTypes`, `reservedNames`)
+- `types.go` — domain types (`generator`, `Message`, `Field`, `Enum`, `EnumValue`, `CustomOption`, `OneOf`, `CelValidator`) and data maps (`wellKnownTypes`, `reservedNames`)
 - `constraints.go` — buf.validate translation: `extractFieldConstraints()`, `applyConstraintTypeOverrides()`
+- `cel_transpile.go` — CEL-to-Python transpiler: `transpileCELField()`, `transpileCELMessage()`, `celEnvCache`, `transpiler` struct with node-dispatch for all supported constructs
 - `template.go` — Python template constants (`modelTemplate`) + `buildProtoTypesContent()`
-- `format.go` — formatting utilities
+- `format.go` — formatting utilities: `formatFactoryCall()`, `formatLambdaArg()`, `pycelCondLine()`, line-wrapping helpers
 
 **Code generation flow:**
 1. Parse plugin options from protoc/buf
@@ -132,11 +133,11 @@ The `wellKnownTypes` map in types.go defines these mappings.
 
 ### buf.validate / protovalidate
 `buf.validate` field constraints are translated to Pydantic constructs.
-`buildFieldConstraintExt()` in `main.go` resolves the extension descriptor;
-`extractFieldConstraints()` and `applyConstraintTypeOverrides()` in `constraints.go`
-perform the translation.
+`buildFieldConstraintExt()` / `buildMessageConstraintExt()` in `main.go` resolve the extension
+descriptors; `extractFieldConstraints()` and `applyConstraintTypeOverrides()` in `constraints.go`
+perform the predefined-rule translation; `cel_transpile.go` handles CEL.
 
-Supported translations:
+Supported predefined-rule translations:
 - Numeric `gt`/`ge`/`lt`/`le` → `Field(gt=..., ge=..., lt=..., le=...)`
 - `string.min_len`/`max_len`/`len`, `repeated.min_items`/`max_items`, `map.min_pairs`/`max_pairs` → `Field(min_length=..., max_length=...)`
 - `string.pattern` → `Field(pattern=...)`
@@ -164,9 +165,33 @@ Supported translations:
 - `bytes.ipv4` → `Annotated[bytes, AfterValidator(_validate_bytes_ipv4)]` (exactly 4 bytes)
 - `bytes.ipv6` → `Annotated[bytes, AfterValidator(_validate_bytes_ipv6)]` (exactly 16 bytes)
 
-Emitted as `# buf.validate: X (not translated)` comments: `required`, CEL,
-`bytes.const`, message-typed bounds (duration, timestamp).
-`enum.defined_only` is a no-op (Python enums enforce this natively).
+Emitted as `# buf.validate: X (not translated)` comments: `required`, `bytes.const`,
+message-typed bounds (duration, timestamp). `enum.defined_only` is a no-op (Python enums
+enforce this natively).
+
+**CEL transpilation** (`cel_transpile.go`): `(buf.validate.field).cel` and
+`option (buf.validate.message).cel` are transpiled to Python at code-generation time using
+`cel-go`. No runtime CEL dependency is added to generated files.
+
+- **Field-level**: transpiled expression becomes `_AfterValidator(_make_cel_validator(lambda v: expr, "msg"))` (bool-returning) or `_AfterValidator(_make_cel_str_validator(lambda v: expr))` (string-returning).
+- **Message-level**: each rule becomes a `@model_validator(mode="after")` method. `has(this.field)` presence checks use `"field" in self.model_fields_set`.
+- **Comprehensions**: `all`, `exists`, `exists_one`, `filter`, `map` → Python `all()`, `any()`, `sum(…)==1`, list comprehensions. Nested comprehensions (e.g. `map().all()`) work via recursive dispatch.
+- **Temporal**: `now` → `_cel_now()`, `duration("1h30m")` → `_cel_duration(5400)`, `timestamp("2020-01-01T00:00:00Z")` → `_cel_timestamp("2020-01-01T00:00:00Z")`. Non-repeated WKT message fields (`Timestamp`, `Duration`) wrap lambdas as `lambda v: v is None or (...)` to match protovalidate's skip-if-absent semantics.
+- **Timestamp accessors**: `this.getFullYear()` → `v.year`, `this.getMonth()` → `(v.month - 1)` (0-indexed), `this.getDayOfWeek()` → `(v.isoweekday() % 7)` (Sun=0), `this.getHours()` → `v.hour`, etc. All accept an optional IANA timezone string arg; non-UTC tz → `_cel_ts_in_tz(v, "tz")`.
+- **Duration accessors**: `this.getHours()` → `_cel_dur_get_hours(v)` = `(v.days * 86400 + v.seconds) // 3600`, etc. (all return TOTAL units, matching CEL semantics).
+- **Boolean format helpers**: `this.isEmail()` → `_is_email(v)`, `this.isIp()` → `_is_ip(v)`, `this.isUri()` → `_is_uri(v)`, etc. (mapped to the same `_proto_types.py` helpers used by predefined format validators).
+- **Dropped**: CEL expressions containing unsupported constructs (`rules` ident, `getField()`, `ext.Strings()` member functions, two-variable map comprehensions, non-literal `duration()`/`timestamp()` args) are emitted as `# buf.validate: cel id="…" (not translated: reason)` comments.
+
+The `celEnvCache` (keyed by field type signature including WKT full names) caches `cel.Env`
+instances. The `transpiler` struct carries `isMsg bool`, `fieldNames map[string]string`,
+`imports map[string]bool`, and `compVars map[string]bool` (comprehension scope).
+`recvTypeName` (from `NavigableExpr.Type().TypeName()`) is passed to `memberFunc` to dispatch
+timestamp vs. duration overloads for `getHours()` etc.
+
+The `CelValidator` struct in `types.go` holds `RuleID`, `Expression`, `Message`,
+`ReturnsBool`, `NullSafe`, and `Imports`. `Field.CelValidators` and `Message.CelValidators`
+accumulate successfully transpiled rules; failures go to `DroppedConstraints` /
+`Message.DroppedCelConstraints`.
 
 **Zero-value validation (ConstrainedRequired)**: Non-optional scalar fields whose constraints
 reject the proto3 zero value (`""`, `0`, `false`, `b""`) become required Pydantic fields (no
@@ -176,8 +201,9 @@ Sets `f.ConstrainedRequired = true; f.Default = ""`. Affected constraint types: 
 validators, `gt` (N≥0), `gte` (N>0), `min_len` (N>0), `min_bytes` (N>0), `len_bytes` (N>0),
 `pattern` (any), `in` (zero not in set).
 **Not** ConstrainedRequired: AfterValidator-only constraints with Pydantic-unvalidated defaults
-(not_in, not_contains, finite, unique, const-float, max_bytes-only), dropped constraints (required, CEL),
-repeated/map fields, optional fields, oneof members, enum fields.
+(not_in, not_contains, finite, unique, const-float, max_bytes-only), dropped constraints (required),
+CEL-only fields (lambdas bypass default validation), repeated/map fields, optional fields, oneof
+members, enum fields.
 
 `ignore = IGNORE_IF_ZERO_VALUE` (or any non-zero `ignore` enum value) opts a field out —
 sets `IgnoreZero = true` in `FieldConstraints` (parsed in `constraints.go` top-level Range
@@ -225,7 +251,8 @@ cd test && uv run pytest -v -k test_wkt_timestamp
 Test coverage includes:
 - Proto field types: enums, scalars, optional/repeated/map, oneof, well-known types
 - Builtin alias handling (`bool_`, `float_`, `bytes_`)
-- Enum value options (built-in and custom), buf.validate field constraints
+- Enum value options (built-in and custom), buf.validate predefined field constraints
+- CEL transpilation: field-level and message-level, comprehensions, temporal expressions, timestamp/duration member accessors, boolean format helpers, drop path
 - JSON/dict roundtrips
 - `test_ruff_format`: ruff format compliance of all generated files
 - `test_ty`: ty type checking of all generated files

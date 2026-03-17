@@ -175,4 +175,4 @@ This project is a fork of [ornew/protoc-gen-pydantic](https://github.com/ornew/p
 by [Arata Furukawa](https://github.com/ornew), which provided the initial plugin structure and
 plugin options. This fork adds well-known type mappings, Python builtin/keyword alias handling,
 cross-package references, enum value options, ProtoJSON-compatible output, buf.validate
-constraint translation, conditional imports, and a full test suite.
+constraint translation, CEL expression transpilation, conditional imports, and a full test suite.

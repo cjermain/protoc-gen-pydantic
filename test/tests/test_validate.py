@@ -12,6 +12,23 @@ from api.v1.validate_pydantic import (
     ValidatedBytesIP,
     ValidatedCEL,
     ValidatedCELAll,
+    ValidatedCELBool,
+    ValidatedCELBytes,
+    ValidatedCELCastInt,
+    ValidatedCELContains,
+    ValidatedCELEndsWith,
+    ValidatedCELFloatLiteral,
+    ValidatedCELGlobalSize,
+    ValidatedCELIndex,
+    ValidatedCELInList,
+    ValidatedCELIsInfDir,
+    ValidatedCELIsIpPrefixV6,
+    ValidatedCELNegate,
+    ValidatedCELNullCheck,
+    ValidatedCELTsDate,
+    ValidatedCELTsMinutes,
+    ValidatedCELTsSeconds,
+    ValidatedCELUint,
     ValidatedCELCrossField,
     ValidatedCELDropped,
     ValidatedCELExists,
@@ -2888,3 +2905,357 @@ def test_cel_dur_get_millis_invalid():
     d = timedelta(milliseconds=1499)  # getMilliseconds() = 1499 < 1500
     with pytest.raises(ValidationError):
         ValidatedCELDurGetMillis(d=d)
+
+
+# ---------------------------------------------------------------------------
+# ValidatedCELEndsWith — endsWith() member function
+# ---------------------------------------------------------------------------
+
+
+def test_cel_ends_with_valid():
+    m = ValidatedCELEndsWith(filename="schema.proto")
+    assert m.filename == "schema.proto"
+
+
+def test_cel_ends_with_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedCELEndsWith(filename="schema.py")
+
+
+def test_cel_ends_with_empty_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedCELEndsWith(filename="")
+
+
+# ---------------------------------------------------------------------------
+# ValidatedCELContains — contains() member function
+# ---------------------------------------------------------------------------
+
+
+def test_cel_contains_valid():
+    m = ValidatedCELContains(tag="user@org")
+    assert m.tag == "user@org"
+
+
+def test_cel_contains_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedCELContains(tag="no-at-sign")
+
+
+def test_cel_contains_empty_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedCELContains(tag="")
+
+
+# ---------------------------------------------------------------------------
+# ValidatedCELNegate — unary negate; -1 is Negate(Literal(1)) in CEL AST
+# ---------------------------------------------------------------------------
+
+
+def test_cel_negate_zero_valid():
+    m = ValidatedCELNegate(value=0)  # 0 > -1 → passes
+    assert m.value == 0
+
+
+def test_cel_negate_positive_valid():
+    m = ValidatedCELNegate(value=5)
+    assert m.value == 5
+
+
+def test_cel_negate_minus_one_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedCELNegate(value=-1)  # -1 > -1 is False
+
+
+def test_cel_negate_minus_two_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedCELNegate(value=-2)
+
+
+# ---------------------------------------------------------------------------
+# ValidatedCELIndex — index operator this[i]
+# ---------------------------------------------------------------------------
+
+
+def test_cel_index_valid():
+    m = ValidatedCELIndex(items=["admin", "user"])
+    assert m.items == ["admin", "user"]
+
+
+def test_cel_index_wrong_first_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedCELIndex(items=["user", "admin"])
+
+
+def test_cel_index_empty_invalid():
+    # size() > 0 is False → whole conjunction is False → raises
+    with pytest.raises(ValidationError):
+        ValidatedCELIndex(items=[])
+
+
+# ---------------------------------------------------------------------------
+# ValidatedCELInList — in operator with list literal
+# ---------------------------------------------------------------------------
+
+
+def test_cel_in_list_admin_valid():
+    m = ValidatedCELInList(role="admin")
+    assert m.role == "admin"
+
+
+def test_cel_in_list_editor_valid():
+    m = ValidatedCELInList(role="editor")
+    assert m.role == "editor"
+
+
+def test_cel_in_list_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedCELInList(role="superuser")
+
+
+# ---------------------------------------------------------------------------
+# ValidatedCELNullCheck — null ident: this.name != null at message level
+# ---------------------------------------------------------------------------
+
+
+def test_cel_null_check_set_valid():
+    m = ValidatedCELNullCheck(name="Alice")
+    assert m.name == "Alice"
+
+
+def test_cel_null_check_none_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedCELNullCheck()  # name is None → self.name != None is False
+
+
+# ---------------------------------------------------------------------------
+# ValidatedCELUint — uint32 field; uint64 literal in CEL AST
+# ---------------------------------------------------------------------------
+
+
+def test_cel_uint_positive_valid():
+    m = ValidatedCELUint(count=10)
+    assert m.count == 10
+
+
+def test_cel_uint_explicit_zero_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedCELUint(count=0)
+
+
+def test_cel_uint_default_not_validated():
+    m = ValidatedCELUint()  # default 0 is not explicitly validated
+    assert m.count == 0
+
+
+# ---------------------------------------------------------------------------
+# ValidatedCELFloatLiteral — float64 literal (0.5) in CEL expression
+# ---------------------------------------------------------------------------
+
+
+def test_cel_float_literal_valid():
+    m = ValidatedCELFloatLiteral(score=0.6)
+    assert m.score == 0.6
+
+
+def test_cel_float_literal_exact_invalid():
+    # 0.5 is not strictly greater than 0.5
+    with pytest.raises(ValidationError):
+        ValidatedCELFloatLiteral(score=0.5)
+
+
+def test_cel_float_literal_below_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedCELFloatLiteral(score=0.1)
+
+
+# ---------------------------------------------------------------------------
+# ValidatedCELGlobalSize — size() as a global call (not member form)
+# ---------------------------------------------------------------------------
+
+
+def test_cel_global_size_valid():
+    m = ValidatedCELGlobalSize(tags=["x", "y"])
+    assert m.tags == ["x", "y"]
+
+
+def test_cel_global_size_explicit_empty_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedCELGlobalSize(tags=[])
+
+
+def test_cel_global_size_default_not_validated():
+    m = ValidatedCELGlobalSize()  # default [] not validated
+    assert m.tags == []
+
+
+# ---------------------------------------------------------------------------
+# ValidatedCELCastInt — int() global type-cast function
+# ---------------------------------------------------------------------------
+
+
+def test_cel_cast_int_positive_valid():
+    m = ValidatedCELCastInt(fraction=2.9)  # int(2.9) = 2 >= 0 → passes
+    assert m.fraction == 2.9
+
+
+def test_cel_cast_int_zero_fraction_valid():
+    m = ValidatedCELCastInt(fraction=0.9)  # int(0.9) = 0 >= 0 → passes
+    assert m.fraction == 0.9
+
+
+def test_cel_cast_int_negative_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedCELCastInt(fraction=-1.5)  # int(-1.5) = -1 < 0 → fails
+
+
+# ---------------------------------------------------------------------------
+# ValidatedCELIsInfDir — isInf(direction) 1-arg form
+# ---------------------------------------------------------------------------
+
+
+def test_cel_is_inf_dir_normal_valid():
+    m = ValidatedCELIsInfDir(value=1.0, magnitude=2.0)
+    assert m.value == 1.0
+
+
+def test_cel_is_inf_dir_neg_inf_value_valid():
+    # value field forbids +inf; -inf is fine
+    m = ValidatedCELIsInfDir(value=float("-inf"), magnitude=1.0)
+    assert m.value == float("-inf")
+
+
+def test_cel_is_inf_dir_pos_inf_value_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedCELIsInfDir(value=float("inf"), magnitude=1.0)
+
+
+def test_cel_is_inf_dir_pos_inf_magnitude_valid():
+    # magnitude field forbids -inf; +inf is fine
+    m = ValidatedCELIsInfDir(value=1.0, magnitude=float("inf"))
+    assert m.magnitude == float("inf")
+
+
+def test_cel_is_inf_dir_neg_inf_magnitude_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedCELIsInfDir(value=1.0, magnitude=float("-inf"))
+
+
+# ---------------------------------------------------------------------------
+# ValidatedCELIsIpPrefixV6 — isIpPrefix(version) 1-arg form
+# ---------------------------------------------------------------------------
+
+
+def test_cel_is_ip_prefix_v6_valid():
+    m = ValidatedCELIsIpPrefixV6(prefix="2001:db8::/32")
+    assert m.prefix == "2001:db8::/32"
+
+
+def test_cel_is_ip_prefix_v6_ipv4_rejected():
+    with pytest.raises(ValidationError):
+        ValidatedCELIsIpPrefixV6(prefix="192.168.0.0/24")  # IPv4, not IPv6
+
+
+def test_cel_is_ip_prefix_v6_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedCELIsIpPrefixV6(prefix="notaprefix")
+
+
+# ---------------------------------------------------------------------------
+# ValidatedCELTsDate — getDate() (1-indexed, distinct from getDayOfMonth)
+# ---------------------------------------------------------------------------
+
+
+def test_cel_ts_date_none_valid():
+    assert ValidatedCELTsDate().t is None
+
+
+def test_cel_ts_date_valid():
+    t = _dt_datetime(2024, 1, 15, 0, 0, tzinfo=timezone.utc)  # day 15 → v.day==15
+    assert ValidatedCELTsDate(t=t).t == t
+
+
+def test_cel_ts_date_invalid():
+    t = _dt_datetime(2024, 1, 14, 0, 0, tzinfo=timezone.utc)  # day 14 → fails
+    with pytest.raises(ValidationError):
+        ValidatedCELTsDate(t=t)
+
+
+# ---------------------------------------------------------------------------
+# ValidatedCELTsMinutes — getMinutes() on Timestamp
+# ---------------------------------------------------------------------------
+
+
+def test_cel_ts_minutes_none_valid():
+    assert ValidatedCELTsMinutes().t is None
+
+
+def test_cel_ts_minutes_valid():
+    t = _dt_datetime(2024, 1, 1, 12, 0, tzinfo=timezone.utc)  # minute=0
+    assert ValidatedCELTsMinutes(t=t).t == t
+
+
+def test_cel_ts_minutes_invalid():
+    t = _dt_datetime(2024, 1, 1, 12, 30, tzinfo=timezone.utc)  # minute=30
+    with pytest.raises(ValidationError):
+        ValidatedCELTsMinutes(t=t)
+
+
+# ---------------------------------------------------------------------------
+# ValidatedCELTsSeconds — getSeconds() on Timestamp
+# ---------------------------------------------------------------------------
+
+
+def test_cel_ts_seconds_none_valid():
+    assert ValidatedCELTsSeconds().t is None
+
+
+def test_cel_ts_seconds_valid():
+    t = _dt_datetime(2024, 1, 1, 12, 0, 0, tzinfo=timezone.utc)  # second=0
+    assert ValidatedCELTsSeconds(t=t).t == t
+
+
+def test_cel_ts_seconds_invalid():
+    t = _dt_datetime(2024, 1, 1, 12, 0, 45, tzinfo=timezone.utc)  # second=45
+    with pytest.raises(ValidationError):
+        ValidatedCELTsSeconds(t=t)
+
+
+# ---------------------------------------------------------------------------
+# ValidatedCELBool — bool field; exercises celTypeForKind BoolKind
+# ---------------------------------------------------------------------------
+
+
+def test_cel_bool_true_valid():
+    m = ValidatedCELBool(active=True)
+    assert m.active is True
+
+
+def test_cel_bool_default_not_validated():
+    m = ValidatedCELBool()  # default False is not explicitly validated
+    assert m.active is False
+
+
+def test_cel_bool_explicit_false_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedCELBool(active=False)
+
+
+# ---------------------------------------------------------------------------
+# ValidatedCELBytes — bytes field; exercises celTypeForKind BytesKind
+# ---------------------------------------------------------------------------
+
+
+def test_cel_bytes_valid():
+    m = ValidatedCELBytes(data=b"hello")
+    assert m.data == b"hello"
+
+
+def test_cel_bytes_default_not_validated():
+    m = ValidatedCELBytes()  # default b"" is not explicitly validated
+    assert m.data == b""
+
+
+def test_cel_bytes_explicit_empty_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedCELBytes(data=b"")

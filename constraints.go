@@ -43,9 +43,20 @@ func splitDictType(t string) (key, val string, ok bool) {
 func splitTopLevelCommas(s string) []string {
 	var parts []string
 	depth := 0
+	inDouble := false
 	start := 0
+	prev := rune(0)
 	for i, ch := range s {
+		if inDouble {
+			if ch == '"' && prev != '\\' {
+				inDouble = false
+			}
+			prev = ch
+			continue
+		}
 		switch ch {
+		case '"':
+			inDouble = true
 		case '[', '(':
 			depth++
 		case ']', ')':
@@ -56,6 +67,7 @@ func splitTopLevelCommas(s string) []string {
 				start = i + 1
 			}
 		}
+		prev = ch
 	}
 	parts = append(parts, s[start:])
 	return parts

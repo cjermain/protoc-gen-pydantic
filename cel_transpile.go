@@ -15,6 +15,7 @@ import (
 	"github.com/google/cel-go/common/types/ref"
 	"github.com/google/cel-go/ext"
 	"google.golang.org/protobuf/reflect/protoreflect"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 // celRule holds the three fields extracted from a buf.validate Constraint message.
@@ -300,6 +301,9 @@ func (t *transpiler) ident(e celast.NavigableExpr) (string, error) {
 		return "True", nil
 	case "false":
 		return "False", nil
+	// "null" is never an IdentKind in cel-go — it is a LiteralKind with
+	// structpb.NullValue and is handled by literal(). The case below is an
+	// unreachable defensive guard kept for documentation purposes.
 	case "null":
 		return "None", nil
 	default:
@@ -325,6 +329,8 @@ func (t *transpiler) literal(e celast.NavigableExpr) (string, error) {
 		return pyQuote(val), nil
 	case []byte:
 		return fmt.Sprintf("b%s", pyQuote(string(val))), nil
+	case structpb.NullValue:
+		return "None", nil
 	default:
 		return "", fmt.Errorf("unsupported literal type %T", v.Value())
 	}

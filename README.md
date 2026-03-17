@@ -45,6 +45,7 @@ Python files alongside them. No runtime dependency on the plugin — only on Pyd
 - Resolves cross-package message references
 - Preserves enum value options (built-in `deprecated`/`debug_redact` and custom extensions) as accessible metadata on enum members
 - Translates [buf.validate (protovalidate)](https://github.com/bufbuild/protovalidate) field constraints to native Pydantic constructs
+- **Transpiles `buf.validate` CEL expressions** to native Python validators at code-generation time — comparisons, string operations, comprehensions (`all`, `exists`, `filter`, `map`), temporal expressions (`now`, `duration()`, `timestamp()`), timestamp/duration member accessors, and boolean format helpers. No runtime CEL dependency in generated code.
 
 ## Installation
 
@@ -202,8 +203,8 @@ See [Plugin Options](https://cjermain.github.io/protoc-gen-pydantic/options/) fo
 ## buf.validate
 
 Field constraints from [buf.validate (protovalidate)](https://github.com/bufbuild/protovalidate)
-are translated to Pydantic `Field()` kwargs automatically — no plugin option
-required. Add the dependency to `buf.yaml` and run `buf dep update`:
+are translated to native Pydantic constructs automatically — no plugin option required. Add
+the dependency to `buf.yaml` and run `buf dep update`:
 
 ```yaml
 # buf.yaml
@@ -214,7 +215,45 @@ deps:
   - buf.build/bufbuild/protovalidate
 ```
 
-See [buf.validate guide](https://cjermain.github.io/protoc-gen-pydantic/buf-validate/) for the full constraint reference.
+Predefined rules (`gt`, `min_len`, `pattern`, `email`, `uuid`, etc.) translate to `Field()`
+kwargs and `Annotated[T, AfterValidator(...)]` wrappers. **CEL expressions** —
+`(buf.validate.field).cel` and `option (buf.validate.message).cel` — are transpiled to
+Python lambdas at code-generation time. No runtime CEL library is needed.
+
+```proto
+message Order {
+  // Total must be positive — enforced by a CEL AfterValidator lambda.
+  double total = 1 [(buf.validate.field).cel = {
+    id: "positive_total",
+    expression: "this > 0.0",
+    message: "total must be positive"
+  }];
+
+  // Line items must all be positive — CEL all() becomes a Python generator.
+  repeated int32 quantities = 2 [(buf.validate.field).cel = {
+    id: "positive_quantities",
+    expression: "this.all(q, q > 0)",
+    message: "all quantities must be positive"
+  }];
+}
+```
+
+```python
+# Generated:
+class Order(_ProtoModel):
+    total: _Annotated[
+        float, _AfterValidator(_make_cel_validator(lambda v: v > 0.0, "total must be positive"))
+    ] = _Field(default=0.0)
+
+    quantities: _Annotated[
+        list[int],
+        _AfterValidator(
+            _make_cel_validator(lambda v: all((q > 0) for q in v), "all quantities must be positive")
+        ),
+    ] = _Field(default_factory=list)
+```
+
+See [buf.validate guide](https://cjermain.github.io/protoc-gen-pydantic/buf-validate/) for the full constraint and CEL reference.
 
 ## Development
 

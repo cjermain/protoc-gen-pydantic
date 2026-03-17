@@ -15,7 +15,15 @@ import sys
 
 sys.path.insert(0, os.path.join(os.environ["MKDOCS_CONFIG_DIR"], "test", "gen"))
 
+from datetime import datetime, timedelta, timezone
+
 from api.v1.validate_pydantic import (
+    ValidatedCELAll,
+    ValidatedCELCrossField,
+    ValidatedCELDurationRange,
+    ValidatedCELField,
+    ValidatedCELHas,
+    ValidatedCELTimestamp,
     ValidatedConst,
     ValidatedDropped,
     ValidatedFinite,
@@ -64,6 +72,8 @@ import "buf/validate/validate.proto";
 
 | buf.validate rule | Generated Pydantic construct |
 |---|---|
+| `(buf.validate.field).cel` | `Annotated[T, AfterValidator(_make_cel_validator(lambda v: ..., "msg"))]` — see [CEL expressions](#cel-expressions) |
+| `option (buf.validate.message).cel` | `@model_validator(mode="after")` method — see [CEL expressions](#cel-expressions) |
 | Numeric `gt` | `Field(gt=...)` |
 | Numeric `gte` | `Field(ge=...)` |
 | Numeric `lt` | `Field(lt=...)` |
@@ -740,6 +750,343 @@ except ValidationError:
     pass
 ```
 
+## CEL expressions
+
+`(buf.validate.field).cel` and `option (buf.validate.message).cel` let you write arbitrary
+validation logic in [CEL](https://cel.dev/). `protoc-gen-pydantic` transpiles CEL expressions
+to native Python validators at code-generation time — no CEL library is needed in generated code.
+
+Expressions that cannot be transpiled are **dropped gracefully**: the field or message keeps its
+normal definition and a `# buf.validate: cel id="…" (not translated: reason)` comment is emitted.
+
+> **`uint32`/`uint64` field comparisons:** CEL integer literals default to `int64`. Comparing
+> a `uint` field with a plain literal like `this > 0` will fail type-checking. Use the `u`
+> suffix to write a uint literal instead: `this > 0u`, `this >= 10u`.
+
+### Field-level CEL
+
+Field-level CEL receives the field value as `this` and must return either `bool`
+(the constraint fires when `false`) or `string` (empty = valid, non-empty = error message).
+
+=== ":lucide-file-code: validate.proto"
+
+    ```proto
+    message ValidatedCELField {
+      // Must be positive.
+      int32 age = 1 [(buf.validate.field).cel = {
+        id: "positive",
+        expression: "this > 0",
+        message: "age must be positive"
+      }];
+      // Must start with an uppercase letter.
+      string name = 2 [(buf.validate.field).cel = {
+        id: "uppercase_start",
+        expression: "this.matches(\"^[A-Z]\")",
+        message: "name must start with uppercase"
+      }];
+      // Two rules on one field — both are checked independently.
+      string code = 3 [
+        (buf.validate.field).cel = {
+          id: "code_prefix",
+          expression: "this.startsWith(\"X\")",
+          message: "code must start with X"
+        },
+        (buf.validate.field).cel = {
+          id: "code_len",
+          expression: "this.size() > 2",
+          message: "code must be longer than 2 chars"
+        }
+      ];
+    }
+    ```
+
+=== ":simple-python: validate_pydantic.py"
+
+    ```python exec="on" session="validate"
+    print(f"```python\n{inspect.getsource(ValidatedCELField).rstrip()}\n```")
+    ```
+
+```python exec="on" session="validate"
+from pydantic import ValidationError
+
+vcf = ValidatedCELField(age=5, name="Alice", code="XYZ")
+assert vcf.age == 5
+
+try:
+    ValidatedCELField(age=-1, name="Alice", code="XYZ")
+except ValidationError:
+    pass  # age must be positive
+
+try:
+    ValidatedCELField(age=1, name="alice", code="XYZ")
+except ValidationError:
+    pass  # name must start with uppercase
+```
+
+### Message-level CEL
+
+Message-level CEL receives the whole message as `this`. Each rule becomes a
+`@model_validator(mode="after")` method. Use `has(this.field)` to check field presence
+(proto3 optional fields).
+
+=== ":lucide-file-code: validate.proto"
+
+    ```proto
+    // Cross-field: min_val must be less than max_val.
+    message ValidatedCELCrossField {
+      int32 min_val = 1;
+      int32 max_val = 2;
+
+      option (buf.validate.message).cel = {
+        id: "min_less_than_max",
+        expression: "this.min_val < this.max_val",
+        message: "min_val must be less than max_val"
+      };
+    }
+
+    // Presence check: at least one name field must be set.
+    message ValidatedCELHas {
+      optional string first_name = 1;
+      optional string last_name  = 2;
+
+      option (buf.validate.message).cel = {
+        id: "name_required",
+        expression: "has(this.first_name) || has(this.last_name)",
+        message: "at least one name field must be set"
+      };
+    }
+    ```
+
+=== ":simple-python: validate_pydantic.py (cross-field)"
+
+    ```python exec="on" session="validate"
+    print(f"```python\n{inspect.getsource(ValidatedCELCrossField).rstrip()}\n```")
+    ```
+
+=== ":simple-python: validate_pydantic.py (has)"
+
+    ```python exec="on" session="validate"
+    print(f"```python\n{inspect.getsource(ValidatedCELHas).rstrip()}\n```")
+    ```
+
+```python exec="on" session="validate"
+from pydantic import ValidationError
+
+vcf = ValidatedCELCrossField(min_val=1, max_val=10)
+assert vcf.min_val == 1
+
+try:
+    ValidatedCELCrossField(min_val=10, max_val=1)
+except ValidationError:
+    pass  # min_val must be less than max_val
+
+vch = ValidatedCELHas(first_name="Alice")
+assert vch.first_name == "Alice"
+
+try:
+    ValidatedCELHas()
+except ValidationError:
+    pass  # at least one name field must be set
+```
+
+> **`has()` vs `!= null`:** `has(this.field)` checks whether a field was *explicitly set*
+> (i.e. it is in `model_fields_set`); `this.field != null` compares the field's *value*
+> against `null` / `None`. For proto3 `optional` fields these behave identically in most
+> cases, but `has()` is preferred because it matches proto3 presence semantics exactly.
+
+### Comprehensions
+
+Five CEL comprehension macros are transpiled to Python generator expressions:
+
+| CEL macro | Python equivalent | Description |
+|---|---|---|
+| `this.all(x, pred)` | `all(pred for x in v)` | every element satisfies `pred` |
+| `this.exists(x, pred)` | `any(pred for x in v)` | at least one element satisfies `pred` |
+| `this.exists_one(x, pred)` | `sum(1 for x in v if pred) == 1` | exactly one element satisfies `pred` |
+| `this.filter(x, pred)` | `[x for x in v if pred]` | elements satisfying `pred`; chain `.size()` etc. |
+| `this.map(x, fn)` | `[fn for x in v]` | transform every element; chain `.all()` etc. |
+
+Comprehensions can be nested — `this.map(w, w.size()).all(l, l >= 3)` transpiles to
+`all((l >= 3) for l in [len(w) for w in v])`.
+
+=== ":lucide-file-code: validate.proto"
+
+    ```proto
+    message ValidatedCELAll {
+      repeated int32 scores = 1 [(buf.validate.field).cel = {
+        id: "all_positive",
+        expression: "this.all(x, x > 0)",
+        message: "all scores must be positive"
+      }];
+    }
+    ```
+
+=== ":simple-python: validate_pydantic.py"
+
+    ```python exec="on" session="validate"
+    print(f"```python\n{inspect.getsource(ValidatedCELAll).rstrip()}\n```")
+    ```
+
+```python exec="on" session="validate"
+from pydantic import ValidationError
+
+vca = ValidatedCELAll(scores=[1, 2, 3])
+assert vca.scores == [1, 2, 3]
+
+# Vacuously true — all() on an empty list passes.
+assert ValidatedCELAll(scores=[]).scores == []
+
+try:
+    ValidatedCELAll(scores=[1, -1, 3])
+except ValidationError:
+    pass  # -1 fails the constraint
+```
+
+### Temporal expressions
+
+`now`, `duration("…")`, and `timestamp("…")` are transpiled to Python `datetime` helpers.
+`now` evaluates to the current UTC time **at validation time** (not at code-generation time).
+
+| CEL | Python | Notes |
+|---|---|---|
+| `now` | `_cel_now()` | `datetime.now(tz=timezone.utc)` |
+| `duration("1h30m")` | `_cel_duration(5400)` | Parsed at code-gen time; any Go `time.ParseDuration` format accepted |
+| `timestamp("2020-01-01T00:00:00Z")` | `_cel_timestamp("2020-01-01T00:00:00Z")` | RFC 3339 string |
+
+Timestamp and Duration fields (Python `datetime | None` / `timedelta | None`) get a
+null-safe wrapper — `v is None` skips validation, matching protovalidate's semantics for
+absent message fields.
+
+=== ":lucide-file-code: validate.proto"
+
+    ```proto
+    message ValidatedCELTimestamp {
+      google.protobuf.Timestamp deadline = 1 [(buf.validate.field).cel = {
+        id: "in_future",
+        expression: "this > now",
+        message: "deadline must be in the future"
+      }];
+    }
+
+    message ValidatedCELDurationRange {
+      google.protobuf.Duration ttl = 1 [(buf.validate.field).cel = {
+        id: "ttl_in_range",
+        expression: "this >= duration(\"1m\") && this <= duration(\"1h\")",
+        message: "ttl must be between 1 minute and 1 hour"
+      }];
+    }
+    ```
+
+=== ":simple-python: validate_pydantic.py (timestamp)"
+
+    ```python exec="on" session="validate"
+    print(f"```python\n{inspect.getsource(ValidatedCELTimestamp).rstrip()}\n```")
+    ```
+
+=== ":simple-python: validate_pydantic.py (duration range)"
+
+    ```python exec="on" session="validate"
+    print(f"```python\n{inspect.getsource(ValidatedCELDurationRange).rstrip()}\n```")
+    ```
+
+```python exec="on" session="validate"
+from pydantic import ValidationError
+
+# Absent field → null-safe wrapper lets it pass.
+assert ValidatedCELTimestamp().deadline is None
+
+future = datetime(2099, 1, 1, tzinfo=timezone.utc)
+vct = ValidatedCELTimestamp(deadline=future)
+assert vct.deadline == future
+
+past = datetime(2020, 1, 1, tzinfo=timezone.utc)
+try:
+    ValidatedCELTimestamp(deadline=past)
+except ValidationError:
+    pass  # deadline must be in the future
+
+vcd = ValidatedCELDurationRange(ttl=timedelta(minutes=30))
+assert vcd.ttl == timedelta(minutes=30)
+
+try:
+    ValidatedCELDurationRange(ttl=timedelta(seconds=30))
+except ValidationError:
+    pass  # below 1 minute minimum
+```
+
+### Timestamp and duration member accessors
+
+Timestamp getters receive the datetime value and an optional IANA timezone string
+(default: UTC). Duration getters return total units (not calendar components).
+
+**Timestamp** (`google.protobuf.Timestamp` → `datetime`):
+
+| CEL | Python | Notes |
+|---|---|---|
+| `this.getFullYear()` | `v.year` | 4-digit year |
+| `this.getMonth()` | `(v.month - 1)` | 0-indexed (January = 0) |
+| `this.getDayOfMonth()` | `(v.day - 1)` | 0-indexed (1st = 0) |
+| `this.getDayOfYear()` | `(v.timetuple().tm_yday - 1)` | 0-indexed (Jan 1 = 0) |
+| `this.getDayOfWeek()` | `(v.isoweekday() % 7)` | Sun=0, Mon=1, …, Sat=6 |
+| `this.getHours()` | `v.hour` | 0–23, UTC unless tz given |
+| `this.getMinutes()` | `v.minute` | 0–59 |
+| `this.getSeconds()` | `v.second` | 0–59 |
+| `this.getMilliseconds()` | `(v.microsecond // 1000)` | 0–999 |
+| `this.getHours("America/New_York")` | `_cel_ts_in_tz(v, "America/New_York").hour` | IANA timezone arg |
+
+**Duration** (`google.protobuf.Duration` → `timedelta`):
+
+| CEL | Python | Notes |
+|---|---|---|
+| `this.getHours()` | `_cel_dur_get_hours(v)` | `(v.days * 86400 + v.seconds) // 3600` — total hours |
+| `this.getMinutes()` | `_cel_dur_get_minutes(v)` | `(v.days * 86400 + v.seconds) // 60` — total minutes |
+| `this.getSeconds()` | `_cel_dur_get_seconds(v)` | `v.days * 86400 + v.seconds` — total seconds |
+| `this.getMilliseconds()` | `_cel_dur_get_milliseconds(v)` | total milliseconds |
+
+### Boolean format helpers
+
+CEL boolean predicates map to the same `_proto_types.py` helpers used by the
+predefined format validators:
+
+| CEL | Helper | Same as predefined |
+|---|---|---|
+| `this.isEmail()` | `_is_email(v)` | `string.email` |
+| `this.isUri()` | `_is_uri(v)` | `string.uri` |
+| `this.isUriRef()` | `_is_uri_ref(v)` | `string.uri_ref` |
+| `this.isIp()` | `_is_ip(v)` | `string.ip` |
+| `this.isIp(4)` | `_is_ip(v, 4)` | `string.ipv4` |
+| `this.isIp(6)` | `_is_ip(v, 6)` | `string.ipv6` |
+| `this.isIpPrefix()` | `_is_ip_prefix(v)` | `string.ip_prefix` |
+| `this.isIpPrefix(4)` | `_is_ip_prefix(v, 4)` | `string.ipv4_prefix` |
+| `this.isIpPrefix(6)` | `_is_ip_prefix(v, 6)` | `string.ipv6_prefix` |
+| `this.isHostname()` | `_is_hostname(v)` | `string.hostname` |
+| `this.isHostAndPort(true)` | `_is_host_and_port(v, True)` | `string.host_and_port` |
+| `this.isNan()` | `_is_nan(v)` | — |
+| `this.isInf()` | `_is_inf(v)` | — |
+| `this.isInf(1)` | `_is_inf(v, 1)` | positive infinity only |
+| `this.isInf(-1)` | `_is_inf(v, -(1))` | negative infinity only |
+
+### Unsupported expressions
+
+CEL constructs that cannot be transpiled are **dropped with a comment** rather than causing
+a build error. The generated field keeps its default definition and a comment records the
+rule that was not translated:
+
+```python
+# buf.validate: cel id="rule_id" (not translated: reason)
+```
+
+Currently dropped:
+
+| Construct | Example |
+|---|---|
+| `ext.Strings()` member functions | `this.lowerAscii()`, `this.trim()`, `this.split(",")` |
+| Two-variable map comprehensions | `this.all(k, v, v > 0)` |
+| `rules` ident | `this > rules.min` |
+| `getField()` | `getField(this, "name")` |
+| Non-literal `duration()`/`timestamp()` args | `duration(this.timeout_str)` |
+| Non-literal timezone arg | `this.getHours(this.tz)` |
+
 ## Constraints not translated
 
 The following constraints have no direct Pydantic equivalent and are emitted as comments
@@ -748,9 +1095,9 @@ inside `_Field()` so they remain visible to developers:
 | Constraint | Reason |
 |---|---|
 | `required` on message-typed or plain scalar fields | No Pydantic equivalent for proto3 plain scalars |
-| CEL expressions | Arbitrary CEL cannot be expressed as a Pydantic validator |
 | `bytes.const` | `Literal[bytes]` is not supported |
-| `duration.gt` / `timestamp.lte` / etc. | Message-typed bounds have no Field() equivalent |
+| `duration.gt` / `timestamp.lte` / etc. | Message-typed bounds have no `Field()` equivalent |
+| CEL with unsupported constructs | `ext.Strings()` functions, two-variable comprehensions, `rules` ident, `getField()`, non-literal `duration()`/`timestamp()` arguments — see [Unsupported expressions](#unsupported-expressions) |
 
 === ":lucide-file-code: validate.proto"
 
