@@ -28,3 +28,6 @@ site/
 .vscode/
 *.swp
 *~
+
+# Local planning notes (not for commit)
+plan/
