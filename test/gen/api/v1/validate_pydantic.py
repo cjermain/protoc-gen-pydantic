@@ -2065,3 +2065,106 @@ class ValidatedCELBytes(_ProtoModel):
     ] = _Field(
         default=b"",
     )
+
+
+class ValidatedCELMapLiteral(_ProtoModel):
+    """
+    ValidatedCELMapLiteral — map literal {k:v} covers mapExpr (was 0%).
+    """
+
+    role: _Annotated[
+        str,
+        _AfterValidator(
+            _make_cel_validator(
+                lambda v: v in {"admin": True, "editor": True},
+                "role must be admin or editor",
+            )
+        ),
+    ] = _Field(
+        default="",
+    )
+
+
+class ValidatedCELCastDouble(_ProtoModel):
+    """
+    ValidatedCELCastDouble — double() covers globalFunc double (was 0%).
+    """
+
+    value: _Annotated[
+        int,
+        _AfterValidator(
+            _make_cel_validator(lambda v: float(v) < 10.0, "value must be less than 10")
+        ),
+    ] = _Field(
+        default=0,
+    )
+
+
+class ValidatedCELCastString(_ProtoModel):
+    """
+    ValidatedCELCastString — string() covers globalFunc string (was 0%).
+    """
+
+    code: _Annotated[
+        int,
+        _AfterValidator(
+            _make_cel_validator(lambda v: str(v) != "0", "code must not represent zero")
+        ),
+    ] = _Field(
+        default=0,
+    )
+
+
+class ValidatedCELCastUint(_ProtoModel):
+    """
+    ValidatedCELCastUint — uint() covers globalFunc uint (was 0%).
+    """
+
+    count: _Annotated[
+        int,
+        _AfterValidator(
+            _make_cel_validator(lambda v: int(v) > 0, "count must be positive")
+        ),
+    ] = _Field(
+        default=0,
+    )
+
+
+class ValidatedCELMapField(_ProtoModel):
+    """
+    ValidatedCELMapField — map<K,V> field covers celFieldKey/celTypeForField
+    IsMap branches (both were 0%).
+    """
+
+    labels: _Annotated[
+        dict[str, int],
+        _AfterValidator(
+            _make_cel_validator(lambda v: len(v) > 0, "labels must not be empty")
+        ),
+    ] = _Field(
+        default_factory=dict,
+    )
+
+
+class ValidatedCELEnum(_ProtoModel):
+    """
+    ValidatedCELEnum — enum field covers celTypeForKind EnumKind (was 44%).
+    string(this) also exercises globalFunc string on an enum receiver.
+    """
+
+    class Priority(str, _Enum):
+        UNSPECIFIED = "UNSPECIFIED"  # 0
+        LOW = "LOW"  # 1
+        HIGH = "HIGH"  # 2
+
+    priority: (
+        _Annotated[
+            "ValidatedCELEnum.Priority",
+            _AfterValidator(
+                _make_cel_validator(lambda v: str(v) != "", "priority must be named")
+            ),
+        ]
+        | None
+    ) = _Field(
+        default=None,
+    )

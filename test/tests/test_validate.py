@@ -14,15 +14,21 @@ from api.v1.validate_pydantic import (
     ValidatedCELAll,
     ValidatedCELBool,
     ValidatedCELBytes,
+    ValidatedCELCastDouble,
     ValidatedCELCastInt,
+    ValidatedCELCastString,
+    ValidatedCELCastUint,
     ValidatedCELContains,
     ValidatedCELEndsWith,
+    ValidatedCELEnum,
     ValidatedCELFloatLiteral,
     ValidatedCELGlobalSize,
     ValidatedCELIndex,
     ValidatedCELInList,
     ValidatedCELIsInfDir,
     ValidatedCELIsIpPrefixV6,
+    ValidatedCELMapField,
+    ValidatedCELMapLiteral,
     ValidatedCELNegate,
     ValidatedCELNullCheck,
     ValidatedCELTsDate,
@@ -3259,3 +3265,125 @@ def test_cel_bytes_default_not_validated():
 def test_cel_bytes_explicit_empty_invalid():
     with pytest.raises(ValidationError):
         ValidatedCELBytes(data=b"")
+
+
+# ---------------------------------------------------------------------------
+# ValidatedCELMapLiteral — map literal {k: v}; covers mapExpr (was 0%)
+# ---------------------------------------------------------------------------
+
+
+def test_cel_map_literal_admin_valid():
+    m = ValidatedCELMapLiteral(role="admin")
+    assert m.role == "admin"
+
+
+def test_cel_map_literal_editor_valid():
+    m = ValidatedCELMapLiteral(role="editor")
+    assert m.role == "editor"
+
+
+def test_cel_map_literal_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedCELMapLiteral(role="superuser")
+
+
+def test_cel_map_literal_default_not_validated():
+    m = ValidatedCELMapLiteral()  # default "" not validated
+    assert m.role == ""
+
+
+# ---------------------------------------------------------------------------
+# ValidatedCELCastDouble — double() global cast
+# ---------------------------------------------------------------------------
+
+
+def test_cel_cast_double_valid():
+    m = ValidatedCELCastDouble(value=5)  # float(5) = 5.0 < 10.0
+    assert m.value == 5
+
+
+def test_cel_cast_double_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedCELCastDouble(value=15)  # 15.0 < 10.0 is False
+
+
+def test_cel_cast_double_default_not_validated():
+    m = ValidatedCELCastDouble()  # default 0 not validated
+    assert m.value == 0
+
+
+# ---------------------------------------------------------------------------
+# ValidatedCELCastString — string() global cast
+# ---------------------------------------------------------------------------
+
+
+def test_cel_cast_string_valid():
+    m = ValidatedCELCastString(code=5)  # str(5)="5", "5"!="0"
+    assert m.code == 5
+
+
+def test_cel_cast_string_zero_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedCELCastString(code=0)  # str(0)="0", "0"!="0" is False
+
+
+def test_cel_cast_string_default_not_validated():
+    m = ValidatedCELCastString()  # default 0 not validated
+    assert m.code == 0
+
+
+# ---------------------------------------------------------------------------
+# ValidatedCELCastUint — uint() global cast
+# ---------------------------------------------------------------------------
+
+
+def test_cel_cast_uint_valid():
+    m = ValidatedCELCastUint(count=5)  # int(5) > 0
+    assert m.count == 5
+
+
+def test_cel_cast_uint_zero_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedCELCastUint(count=0)  # int(0) > 0 is False
+
+
+def test_cel_cast_uint_default_not_validated():
+    m = ValidatedCELCastUint()  # default 0 not validated
+    assert m.count == 0
+
+
+# ---------------------------------------------------------------------------
+# ValidatedCELMapField — map<K,V> field; covers celFieldKey/celTypeForField IsMap
+# ---------------------------------------------------------------------------
+
+
+def test_cel_map_field_valid():
+    m = ValidatedCELMapField(labels={"env": 1})
+    assert m.labels == {"env": 1}
+
+
+def test_cel_map_field_explicit_empty_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedCELMapField(labels={})
+
+
+def test_cel_map_field_default_not_validated():
+    m = ValidatedCELMapField()  # default {} not validated
+    assert m.labels == {}
+
+
+# ---------------------------------------------------------------------------
+# ValidatedCELEnum — enum field; covers celTypeForKind EnumKind
+# The constraint string(this) != "" trivially passes for all enum members;
+# these tests verify the class is generated correctly and importable.
+# ---------------------------------------------------------------------------
+
+
+def test_cel_enum_default_valid():
+    m = ValidatedCELEnum()  # priority=None; str(None)="None", "None"!="" → True
+    assert m.priority is None
+
+
+def test_cel_enum_set_valid():
+    m = ValidatedCELEnum(priority=ValidatedCELEnum.Priority.HIGH)
+    assert m.priority == ValidatedCELEnum.Priority.HIGH

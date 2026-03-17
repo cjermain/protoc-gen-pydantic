@@ -169,10 +169,6 @@ func (f Field) IsDefaultFactory() bool {
 	return strings.HasPrefix(f.Default, "default_factory=")
 }
 
-func (f Field) HasConstraints() bool {
-	return f.Constraints != nil && f.Constraints.HasAny()
-}
-
 // HasConstraintKwargs returns true when the field has content for _Field() beyond
 // a default value: direct constraint kwargs or dropped constraint comments.
 // Used to decide whether a multi-line _Field(...) form is needed.
@@ -666,8 +662,6 @@ type Message struct {
 	CelValidators         []CelValidator // successfully transpiled message-level CEL
 	DroppedCelConstraints []string       // failed message-level CEL (comment strings)
 }
-
-func (m Message) HasCelValidators() bool { return len(m.CelValidators) > 0 }
 
 func (m Message) HasAlias() bool {
 	for _, f := range m.Fields {

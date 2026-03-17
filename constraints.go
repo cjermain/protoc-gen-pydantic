@@ -57,9 +57,9 @@ func splitTopLevelCommas(s string) []string {
 		switch ch {
 		case '"':
 			inDouble = true
-		case '[', '(':
+		case '[', '(', '{':
 			depth++
-		case ']', ')':
+		case ']', ')', '}':
 			depth--
 		case ',':
 			if depth == 0 {
@@ -71,6 +71,76 @@ func splitTopLevelCommas(s string) []string {
 	}
 	parts = append(parts, s[start:])
 	return parts
+}
+
+// quoteAnnotatedInnerType inserts double-quote marks around the first type
+// argument inside _Annotated[...] after a NeedsQuote field has been wrapped
+// by wrapWithAnnotated. Without this, the class reference would be unquoted
+// inside _Annotated[...], causing TypeAnnotation() to wrap the whole
+// expression in outer quotes, producing invalid Python syntax.
+//
+// Input:  _Annotated[Outer.Inner, AfterValidator(...)] | None
+// Output: _Annotated["Outer.Inner", AfterValidator(...)] | None
+//
+// Also handles the _Optional[_Annotated[...]] form used by gen_options.
+func quoteAnnotatedInnerType(typ string) string {
+	const annPfx = "_Annotated["
+	const optPfx = "_Optional["
+
+	// Strip trailing " | None".
+	suffix, core := "", typ
+	if strings.HasSuffix(core, " | None") {
+		core, suffix = strings.TrimSuffix(core, " | None"), " | None"
+	}
+
+	// Unwrap _Optional[...] (gen_options path).
+	optWrap := false
+	if strings.HasPrefix(core, optPfx) && strings.HasSuffix(core, "]") {
+		core, optWrap = core[len(optPfx):len(core)-1], true
+	}
+
+	// core must now be _Annotated[TypeName, validators...].
+	if !strings.HasPrefix(core, annPfx) || !strings.HasSuffix(core, "]") {
+		return typ
+	}
+	content := core[len(annPfx) : len(core)-1]
+
+	// Find the first top-level comma: separator between type and validators.
+	depth, inStr, commaIdx := 0, false, -1
+	for i, ch := range content {
+		if inStr {
+			if ch == '"' {
+				inStr = false
+			}
+			continue
+		}
+		switch ch {
+		case '"':
+			inStr = true
+		case '(', '[', '{':
+			depth++
+		case ')', ']', '}':
+			depth--
+		case ',':
+			if depth == 0 {
+				commaIdx = i
+			}
+		}
+		if commaIdx >= 0 {
+			break
+		}
+	}
+	if commaIdx < 0 {
+		return typ
+	}
+
+	typeName := content[:commaIdx]
+	rest := content[commaIdx:] // includes leading ", "
+	result := annPfx + `"` + typeName + `"` + rest + "]"
+	if optWrap {
+		result = optPfx + result + "]"
+	}
+	return result + suffix
 }
 
 // wrapWithAnnotated wraps a type string with _Annotated[..., validators],
@@ -302,6 +372,14 @@ func (e *generator) applyConstraintTypeOverrides(f *Field) {
 	}
 	if len(validators) > 0 {
 		f.Type = wrapWithAnnotated(f.Type, validators)
+		if f.NeedsQuote {
+			// wrapWithAnnotated embeds the class name unquoted inside
+			// _Annotated[...]. Re-insert the quotes around just the inner
+			// type reference so TypeAnnotation() doesn't wrap the entire
+			// _Annotated[...] expression in outer string quotes.
+			f.Type = quoteAnnotatedInnerType(f.Type)
+			f.NeedsQuote = false
+		}
 	}
 }
 

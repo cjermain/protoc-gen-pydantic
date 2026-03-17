@@ -1048,3 +1048,66 @@ message ValidatedCELBytes {
     message: "data must not be empty"
   }];
 }
+
+// ── Coverage: globalFunc casts, mapExpr, map field, enum field ───────────────
+
+// ValidatedCELMapLiteral — map literal {k:v} covers mapExpr (was 0%).
+message ValidatedCELMapLiteral {
+  string role = 1 [(buf.validate.field).cel = {
+    id: "valid_role_map",
+    expression: "this in {\"admin\": true, \"editor\": true}",
+    message: "role must be admin or editor"
+  }];
+}
+
+// ValidatedCELCastDouble — double() covers globalFunc double (was 0%).
+message ValidatedCELCastDouble {
+  int32 value = 1 [(buf.validate.field).cel = {
+    id: "small_value",
+    expression: "double(this) < 10.0",
+    message: "value must be less than 10"
+  }];
+}
+
+// ValidatedCELCastString — string() covers globalFunc string (was 0%).
+message ValidatedCELCastString {
+  int32 code = 1 [(buf.validate.field).cel = {
+    id: "not_zero_code",
+    expression: "string(this) != \"0\"",
+    message: "code must not represent zero"
+  }];
+}
+
+// ValidatedCELCastUint — uint() covers globalFunc uint (was 0%).
+message ValidatedCELCastUint {
+  int32 count = 1 [(buf.validate.field).cel = {
+    id: "positive_uint",
+    expression: "uint(this) > 0u",
+    message: "count must be positive"
+  }];
+}
+
+// ValidatedCELMapField — map<K,V> field covers celFieldKey/celTypeForField
+// IsMap branches (both were 0%).
+message ValidatedCELMapField {
+  map<string, int32> labels = 1 [(buf.validate.field).cel = {
+    id: "has_labels",
+    expression: "this.size() > 0",
+    message: "labels must not be empty"
+  }];
+}
+
+// ValidatedCELEnum — enum field covers celTypeForKind EnumKind (was 44%).
+// string(this) also exercises globalFunc string on an enum receiver.
+message ValidatedCELEnum {
+  enum Priority {
+    PRIORITY_UNSPECIFIED = 0;
+    PRIORITY_LOW = 1;
+    PRIORITY_HIGH = 2;
+  }
+  Priority priority = 1 [(buf.validate.field).cel = {
+    id: "priority_named",
+    expression: "string(this) != \"\"",
+    message: "priority must be named"
+  }];
+}

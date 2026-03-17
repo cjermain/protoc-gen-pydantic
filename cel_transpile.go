@@ -5,7 +5,6 @@ import (
 	"regexp"
 	"sort"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 
@@ -282,11 +281,6 @@ func (t *transpiler) ident(e celast.NavigableExpr) (string, error) {
 	if t.compVars[name] {
 		return name, nil
 	}
-	// Internal CEL accumulator — must never appear in the sub-expression we
-	// transpile (we extract only the predicate/transform, not the loop step).
-	if strings.HasPrefix(name, "__") && strings.HasSuffix(name, "__") {
-		return "", fmt.Errorf("internal CEL variable %q in transpiled expression", name)
-	}
 
 	switch name {
 	case "this":
@@ -297,18 +291,8 @@ func (t *transpiler) ident(e celast.NavigableExpr) (string, error) {
 	case "now":
 		t.imports["_cel_now"] = true
 		return "_cel_now()", nil
-	case "true":
-		return "True", nil
-	case "false":
-		return "False", nil
-	// "null" is never an IdentKind in cel-go — it is a LiteralKind with
-	// structpb.NullValue and is handled by literal(). The case below is an
-	// unreachable defensive guard kept for documentation purposes.
-	case "null":
-		return "None", nil
-	default:
-		return "", fmt.Errorf("unsupported ident %q", name)
 	}
+	return "", fmt.Errorf("unsupported ident %q", name)
 }
 
 func (t *transpiler) literal(e celast.NavigableExpr) (string, error) {
@@ -991,9 +975,9 @@ func isEmptyList(e celast.NavigableExpr) bool {
 
 // extractAllPred extracts the user predicate from the all() loop step.
 //
-// all desugars to:  __result__ && @not_strictly_false(pred)
-// so pred lives at  children[1].children[0]  (unwrapping the NSF call).
-// If the NSF wrapper is absent, children[1] itself is the predicate.
+// In cel-go v0.27+, all() desugars to:  __result__ && pred
+// The predicate is placed directly as children[1] without the
+// @not_strictly_false wrapper that earlier versions used.
 func extractAllPred(loopStep celast.NavigableExpr) (celast.NavigableExpr, error) {
 	if loopStep.Kind() != celast.CallKind || loopStep.AsCall().FunctionName() != operators.LogicalAnd {
 		return nil, fmt.Errorf("expected _&&_ in all loop_step, got kind=%d", loopStep.Kind())
@@ -1002,16 +986,7 @@ func extractAllPred(loopStep celast.NavigableExpr) (celast.NavigableExpr, error)
 	if len(children) < 2 {
 		return nil, fmt.Errorf("all loop_step: too few children")
 	}
-	rhs := children[1]
-	// Unwrap @not_strictly_false(pred) if present.
-	if rhs.Kind() == celast.CallKind && rhs.AsCall().FunctionName() == operators.NotStrictlyFalse {
-		inner := rhs.Children()
-		if len(inner) < 1 {
-			return nil, fmt.Errorf("all loop_step: empty @not_strictly_false")
-		}
-		return inner[0], nil
-	}
-	return rhs, nil
+	return children[1], nil
 }
 
 // extractExistsPred extracts the predicate from the exists() loop step.
@@ -1185,7 +1160,7 @@ func transpileCELField(rule celRule, field protoreflect.FieldDescriptor, cache *
 		return CelValidator{}, issues.Err()
 	}
 
-	returnsBool, err := resolveOutputType(ast.OutputType(), rule.Message)
+	returnsBool, err := resolveOutputType(ast.OutputType())
 	if err != nil {
 		return CelValidator{}, err
 	}
@@ -1219,7 +1194,7 @@ func transpileCELMessage(rule celRule, fieldNameMap map[string]string, cache *ce
 		return CelValidator{}, issues.Err()
 	}
 
-	returnsBool, err := resolveOutputType(ast.OutputType(), rule.Message)
+	returnsBool, err := resolveOutputType(ast.OutputType())
 	if err != nil {
 		return CelValidator{}, err
 	}
@@ -1241,17 +1216,14 @@ func transpileCELMessage(rule celRule, fieldNameMap map[string]string, cache *ce
 }
 
 // resolveOutputType determines whether the CEL expression returns bool or string.
-// When the type is dyn (can't be determined statically), rule.Message provides a hint.
-func resolveOutputType(outputType *cel.Type, ruleMessage string) (bool, error) {
+// DynType satisfies IsAssignableType(BoolType) in cel-go, so it is handled by
+// the first branch; no special-case is needed.
+func resolveOutputType(outputType *cel.Type) (bool, error) {
 	if outputType.IsAssignableType(cel.BoolType) {
 		return true, nil
 	}
 	if outputType.IsAssignableType(cel.StringType) {
 		return false, nil
-	}
-	// Dynamic type: use rule.Message as a hint (non-empty → bool-returning).
-	if outputType == cel.DynType {
-		return ruleMessage != "", nil
 	}
 	return false, fmt.Errorf("expression output type %s is not bool or string", outputType.String())
 }
