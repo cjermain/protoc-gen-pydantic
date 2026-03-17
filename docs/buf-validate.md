@@ -1064,7 +1064,7 @@ predefined format validators:
 | `this.isNan()` | `_is_nan(v)` | — |
 | `this.isInf()` | `_is_inf(v)` | — |
 | `this.isInf(1)` | `_is_inf(v, 1)` | positive infinity only |
-| `this.isInf(-1)` | `_is_inf(v, -(1))` | negative infinity only |
+| `this.isInf(-1)` | `_is_inf(v, -1)` | negative infinity only |
 
 ### Unsupported expressions
 
