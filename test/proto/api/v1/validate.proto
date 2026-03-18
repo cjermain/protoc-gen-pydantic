@@ -1111,3 +1111,82 @@ message ValidatedCELEnum {
     message: "priority must be named"
   }];
 }
+
+// ValidatedCELExprField — field-level cel_expression shorthand on an int32 field.
+message ValidatedCELExprField {
+  int32 age = 1 [(buf.validate.field).cel_expression = "this > 0"];
+}
+
+// ValidatedCELExprFieldString — cel_expression shorthand on a string field.
+// size() must be > 3 to exercise the string CEL dispatch path.
+message ValidatedCELExprFieldString {
+  string label = 1 [(buf.validate.field).cel_expression = "this.size() > 3"];
+}
+
+// ValidatedCELExprFieldMulti — two cel_expression entries on one field;
+// verifies that all validators are emitted and enforced independently.
+message ValidatedCELExprFieldMulti {
+  int32 score = 1 [
+    (buf.validate.field).cel_expression = "this > 0",
+    (buf.validate.field).cel_expression = "this <= 100"
+  ];
+}
+
+// ValidatedCELExprMessage — message-level cel_expression cross-field rule.
+// Exercises cel_expression on MessageRules.
+message ValidatedCELExprMessage {
+  int32 min_val = 1;
+  int32 max_val = 2;
+  option (buf.validate.message).cel_expression = "this.min_val <= this.max_val";
+}
+
+// ValidatedCELExprMessageMulti — two message-level cel_expression entries;
+// verifies that both @model_validator branches are enforced.
+message ValidatedCELExprMessageMulti {
+  int32 a = 1;
+  int32 b = 2;
+  int32 c = 3;
+  option (buf.validate.message).cel_expression = "this.a <= this.b";
+  option (buf.validate.message).cel_expression = "this.b <= this.c";
+}
+
+// ValidatedCELExprFieldDropped — cel_expression shorthand that cannot be
+// transpiled (lowerAscii is an ext.Strings function with no Python mapping).
+// Verifies the drop path emits a # buf.validate comment.
+message ValidatedCELExprFieldDropped {
+  string tag = 1 [(buf.validate.field).cel_expression = "this.lowerAscii() != \"\""];
+}
+
+// ValidatedCELExprMessageDropped — message-level cel_expression that cannot
+// be transpiled. Verifies the drop path emits a # buf.validate comment.
+message ValidatedCELExprMessageDropped {
+  string name = 1;
+  option (buf.validate.message).cel_expression = "this.name.lowerAscii() != \"\"";
+}
+
+// ValidatedCELInsideItems — verifies that cel and cel_expression inside
+// repeated.items are both surfaced as # buf.validate drop comments rather
+// than silently ignored.
+message ValidatedCELInsideItems {
+  // cel inside repeated.items: dropped with a comment (was silently swallowed).
+  repeated int32 scores = 1 [(buf.validate.field).repeated.items = {
+    cel: [{
+      id: "positive",
+      expression: "this > 0",
+      message: "must be positive"
+    }]
+  }];
+  // cel_expression inside repeated.items: dropped with a comment (was silent).
+  repeated int32 ratings = 2 [(buf.validate.field).repeated.items = {
+    cel_expression: ["this >= 1"]
+  }];
+}
+
+// ValidatedCELInsideMapValues — verifies that cel_expression inside map.values
+// is surfaced as a drop comment rather than silently ignored.
+message ValidatedCELInsideMapValues {
+  map<string, int32> counters = 1 [(buf.validate.field).map.values = {
+    cel_expression: ["this > 0"]
+  }];
+}
+

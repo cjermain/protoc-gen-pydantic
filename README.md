@@ -45,7 +45,7 @@ Python files alongside them. No runtime dependency on the plugin — only on Pyd
 - Resolves cross-package message references
 - Preserves enum value options (built-in `deprecated`/`debug_redact` and custom extensions) as accessible metadata on enum members
 - Translates [buf.validate (protovalidate)](https://github.com/bufbuild/protovalidate) field constraints to native Pydantic constructs
-- **Transpiles `buf.validate` CEL expressions** to native Python validators at code-generation time — comparisons, string operations, comprehensions (`all`, `exists`, `filter`, `map`), temporal expressions (`now`, `duration()`, `timestamp()`), timestamp/duration member accessors, and boolean format helpers. No runtime CEL dependency in generated code.
+- **Transpiles `buf.validate` CEL expressions** to native Python validators at code-generation time — both the full `cel` rule form and the `cel_expression` shorthand. Supports comparisons, string operations, comprehensions (`all`, `exists`, `filter`, `map`), temporal expressions (`now`, `duration()`, `timestamp()`), timestamp/duration member accessors, and boolean format helpers. No runtime CEL dependency in generated code.
 
 ## Installation
 
@@ -217,19 +217,16 @@ deps:
 
 Predefined rules (`gt`, `min_len`, `pattern`, `email`, `uuid`, etc.) translate to `Field()`
 kwargs and `Annotated[T, AfterValidator(...)]` wrappers. **CEL expressions** —
-`(buf.validate.field).cel` and `option (buf.validate.message).cel` — are transpiled to
+`(buf.validate.field).cel`, its shorthand `cel_expression`, and
+`option (buf.validate.message).cel` / `cel_expression` — are transpiled to
 Python lambdas at code-generation time. No runtime CEL library is needed.
 
 ```proto
 message Order {
-  // Total must be positive — enforced by a CEL AfterValidator lambda.
-  double total = 1 [(buf.validate.field).cel = {
-    id: "positive_total",
-    expression: "this > 0.0",
-    message: "total must be positive"
-  }];
+  // Shorthand cel_expression: id and message are derived from the expression itself.
+  double total = 1 [(buf.validate.field).cel_expression = "this > 0.0"];
 
-  // Line items must all be positive — CEL all() becomes a Python generator.
+  // Full cel form with explicit id and message.
   repeated int32 quantities = 2 [(buf.validate.field).cel = {
     id: "positive_quantities",
     expression: "this.all(q, q > 0)",

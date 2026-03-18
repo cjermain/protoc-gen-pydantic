@@ -1996,3 +1996,137 @@ class ValidatedCELEnum(_ProtoModel):
     ] = _Field(
         default=None,
     )
+
+
+class ValidatedCELExprField(_ProtoModel):
+    """
+    ValidatedCELExprField — field-level cel_expression shorthand on an int32 field.
+    """
+
+    age: _Annotated[
+        int, _AfterValidator(_make_cel_validator(lambda v: v > 0, "this > 0"))
+    ] = _Field(
+        default=0,
+    )
+
+
+class ValidatedCELExprFieldString(_ProtoModel):
+    """
+    ValidatedCELExprFieldString — cel_expression shorthand on a string field.
+    size() must be > 3 to exercise the string CEL dispatch path.
+    """
+
+    label: _Annotated[
+        str,
+        _AfterValidator(_make_cel_validator(lambda v: len(v) > 3, "this.size() > 3")),
+    ] = _Field(
+        default="",
+    )
+
+
+class ValidatedCELExprFieldMulti(_ProtoModel):
+    """
+    ValidatedCELExprFieldMulti — two cel_expression entries on one field;
+    verifies that all validators are emitted and enforced independently.
+    """
+
+    score: _Annotated[
+        int,
+        _AfterValidator(_make_cel_validator(lambda v: v > 0, "this > 0")),
+        _AfterValidator(_make_cel_validator(lambda v: v <= 100, "this <= 100")),
+    ] = _Field(
+        default=0,
+    )
+
+
+class ValidatedCELExprMessage(_ProtoModel):
+    """
+    ValidatedCELExprMessage — message-level cel_expression cross-field rule.
+    Exercises cel_expression on MessageRules.
+    """
+
+    minVal: int = _Field(default=0)
+    maxVal: int = _Field(default=0)
+
+    @_model_validator(mode="after")
+    def _validate_cel_this_min_val____this_max_val(self) -> "ValidatedCELExprMessage":
+        if not (self.min_val <= self.max_val):
+            raise ValueError("this.min_val <= this.max_val")
+        return self
+
+
+class ValidatedCELExprMessageMulti(_ProtoModel):
+    """
+    ValidatedCELExprMessageMulti — two message-level cel_expression entries;
+    verifies that both @model_validator branches are enforced.
+    """
+
+    a: int = _Field(default=0)
+    b: int = _Field(default=0)
+    c: int = _Field(default=0)
+
+    @_model_validator(mode="after")
+    def _validate_cel_this_a____this_b(self) -> "ValidatedCELExprMessageMulti":
+        if not (self.a <= self.b):
+            raise ValueError("this.a <= this.b")
+        return self
+
+    @_model_validator(mode="after")
+    def _validate_cel_this_b____this_c(self) -> "ValidatedCELExprMessageMulti":
+        if not (self.b <= self.c):
+            raise ValueError("this.b <= this.c")
+        return self
+
+
+class ValidatedCELExprFieldDropped(_ProtoModel):
+    """
+    ValidatedCELExprFieldDropped — cel_expression shorthand that cannot be
+    transpiled (lowerAscii is an ext.Strings function with no Python mapping).
+    Verifies the drop path emits a # buf.validate comment.
+    """
+
+    tag: str = _Field(
+        default="",
+        # buf.validate: cel id="this.lowerAscii() != \"\"" (not translated: unsupported member function "lowerAscii")
+    )
+
+
+class ValidatedCELExprMessageDropped(_ProtoModel):
+    """
+    ValidatedCELExprMessageDropped — message-level cel_expression that cannot
+    be transpiled. Verifies the drop path emits a # buf.validate comment.
+    """
+
+    name: str = _Field(default="")
+    # buf.validate: cel id="this.name.lowerAscii() != \"\"" (not translated: unsupported member function "lowerAscii")
+
+
+class ValidatedCELInsideItems(_ProtoModel):
+    """
+    ValidatedCELInsideItems — verifies that cel and cel_expression inside
+    repeated.items are both surfaced as # buf.validate drop comments rather
+    than silently ignored.
+    """
+
+    # cel inside repeated.items: dropped with a comment (was silently swallowed).
+    scores: list[int] = _Field(
+        default_factory=list,
+        # buf.validate: cel (not translated)
+    )
+    # cel_expression inside repeated.items: dropped with a comment (was silent).
+    ratings: list[int] = _Field(
+        default_factory=list,
+        # buf.validate: cel_expression (not translated)
+    )
+
+
+class ValidatedCELInsideMapValues(_ProtoModel):
+    """
+    ValidatedCELInsideMapValues — verifies that cel_expression inside map.values
+    is surfaced as a drop comment rather than silently ignored.
+    """
+
+    counters: dict[str, int] = _Field(
+        default_factory=dict,
+        # buf.validate: cel_expression (not translated)
+    )

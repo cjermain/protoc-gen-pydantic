@@ -466,18 +466,34 @@ func (e *generator) extractMessageCEL(opts *descriptorpb.MessageOptions, def *Me
 			return true
 		}
 		v.Message().Range(func(rfd protoreflect.FieldDescriptor, rv protoreflect.Value) bool {
-			if string(rfd.Name()) != "cel" {
-				return true
-			}
-			list := rv.List()
-			for i := 0; i < list.Len(); i++ {
-				rule := extractCelRule(list.Get(i).Message())
-				cv, cerr := transpileCELMessage(rule, fieldNameMap, e.celEnvCache)
-				if cerr != nil {
-					def.DroppedCelConstraints = append(def.DroppedCelConstraints,
-						fmt.Sprintf("cel id=%q (not translated: %v)", rule.ID, cerr))
-				} else {
-					def.CelValidators = append(def.CelValidators, cv)
+			switch string(rfd.Name()) {
+			case "cel":
+				list := rv.List()
+				for i := 0; i < list.Len(); i++ {
+					rule := extractCelRule(list.Get(i).Message())
+					cv, cerr := transpileCELMessage(rule, fieldNameMap, e.celEnvCache)
+					if cerr != nil {
+						def.DroppedCelConstraints = append(def.DroppedCelConstraints,
+							fmt.Sprintf("cel id=%q (not translated: %v)", rule.ID, cerr))
+					} else {
+						def.CelValidators = append(def.CelValidators, cv)
+					}
+				}
+			case "cel_expression":
+				// Shorthand form: each string entry is both the id and the expression.
+				// The message is also set to the expression so validation errors are
+				// self-describing (protovalidate: "message derived from expression").
+				list := rv.List()
+				for i := 0; i < list.Len(); i++ {
+					expr := list.Get(i).String()
+					rule := celRule{ID: expr, Expression: expr, Message: expr}
+					cv, cerr := transpileCELMessage(rule, fieldNameMap, e.celEnvCache)
+					if cerr != nil {
+						def.DroppedCelConstraints = append(def.DroppedCelConstraints,
+							fmt.Sprintf("cel id=%q (not translated: %v)", rule.ID, cerr))
+					} else {
+						def.CelValidators = append(def.CelValidators, cv)
+					}
 				}
 			}
 			return true

@@ -285,8 +285,9 @@ class _ProtoEnum({{ if $config.UseIntegersForEnums }}int{{ else }}str{{ end }}, 
 {{$bi}}    return self
 {{- end }}
 {{- if $m.CelValidators }}
-{{ end }}{{- range $cv := $m.CelValidators }}
-{{$bi}}@_model_validator(mode="after")
+{{ end }}{{- range $i, $cv := $m.CelValidators }}
+{{ if gt $i 0 }}
+{{ end }}{{$bi}}@_model_validator(mode="after")
 {{$bi}}def _validate_cel_{{ $cv.RuleID }}(self) -> "{{ $m.Name }}":
 {{- if $cv.ReturnsBool }}
 {{ pycelCondLine $bi $cv.Expression }}

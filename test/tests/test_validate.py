@@ -102,6 +102,15 @@ from api.v1.validate_pydantic import (
     ValidatedWellKnownRegex,
     ValidatedIgnore,
     ValidatedStringBytes,
+    ValidatedCELExprField,
+    ValidatedCELExprFieldString,
+    ValidatedCELExprFieldMulti,
+    ValidatedCELExprMessage,
+    ValidatedCELExprMessageMulti,
+    ValidatedCELExprFieldDropped,
+    ValidatedCELExprMessageDropped,
+    ValidatedCELInsideItems,
+    ValidatedCELInsideMapValues,
 )
 
 
@@ -1603,11 +1612,11 @@ def test_validated_cel_rejects_negative():
         ValidatedCEL(age=-1)
 
 
-def test_validated_cel_no_dropped_comment():
-    # After transpilation the simple "this > 0" should not appear as dropped.
+def test_validated_cel_transpiled_not_dropped():
+    # The simple "this > 0" on ValidatedCEL.age must be transpiled to a lambda,
+    # not dropped. (cel inside repeated.items is still dropped — separate case.)
     text = _GEN_VALIDATE.read_text()
-    # The old generic drop comment must not appear for the simple CEL case.
-    assert "# buf.validate: cel (not translated)" not in text
+    assert '_make_cel_validator(lambda v: v > 0, "age must be positive")' in text
 
 
 # ---------------------------------------------------------------------------
@@ -3387,3 +3396,237 @@ def test_cel_enum_default_valid():
 def test_cel_enum_set_valid():
     m = ValidatedCELEnum(priority=ValidatedCELEnum.Priority.HIGH)
     assert m.priority == ValidatedCELEnum.Priority.HIGH
+
+
+# ---------------------------------------------------------------------------
+# ValidatedCELExprField — field-level cel_expression shorthand (int32)
+# ---------------------------------------------------------------------------
+
+
+def test_cel_expr_field_valid():
+    m = ValidatedCELExprField(age=1)
+    assert m.age == 1
+
+
+def test_cel_expr_field_zero_default_not_validated():
+    # Proto3 zero default is not validated by Pydantic by default.
+    m = ValidatedCELExprField()
+    assert m.age == 0
+
+
+def test_cel_expr_field_negative_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedCELExprField(age=-1)
+
+
+def test_cel_expr_field_zero_explicit_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedCELExprField(age=0)
+
+
+def test_cel_expr_field_no_dropped_comment():
+    # cel_expression shorthand must be transpiled, not dropped.
+    text = _GEN_VALIDATE.read_text()
+    assert 'cel id="this > 0" (not translated' not in text
+
+
+def test_cel_expr_field_error_message_is_expression():
+    # The validation error message must contain the CEL expression itself.
+    with pytest.raises(ValidationError) as exc_info:
+        ValidatedCELExprField(age=-1)
+    assert "this > 0" in str(exc_info.value)
+
+
+# ---------------------------------------------------------------------------
+# ValidatedCELExprFieldString — cel_expression shorthand (string, size check)
+# ---------------------------------------------------------------------------
+
+
+def test_cel_expr_field_string_valid():
+    m = ValidatedCELExprFieldString(label="hello")
+    assert m.label == "hello"
+
+
+def test_cel_expr_field_string_too_short_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedCELExprFieldString(label="ab")
+
+
+def test_cel_expr_field_string_exact_boundary_invalid():
+    # size() > 3 means exactly 3 chars is still invalid.
+    with pytest.raises(ValidationError):
+        ValidatedCELExprFieldString(label="abc")
+
+
+def test_cel_expr_field_string_four_chars_valid():
+    m = ValidatedCELExprFieldString(label="abcd")
+    assert m.label == "abcd"
+
+
+# ---------------------------------------------------------------------------
+# ValidatedCELExprFieldMulti — two cel_expression entries on the same field
+# ---------------------------------------------------------------------------
+
+
+def test_cel_expr_field_multi_valid():
+    m = ValidatedCELExprFieldMulti(score=50)
+    assert m.score == 50
+
+
+def test_cel_expr_field_multi_lower_bound_invalid():
+    # this > 0 fails for score=0.
+    with pytest.raises(ValidationError):
+        ValidatedCELExprFieldMulti(score=0)
+
+
+def test_cel_expr_field_multi_negative_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedCELExprFieldMulti(score=-1)
+
+
+def test_cel_expr_field_multi_upper_bound_invalid():
+    # this <= 100 fails for score=101.
+    with pytest.raises(ValidationError):
+        ValidatedCELExprFieldMulti(score=101)
+
+
+def test_cel_expr_field_multi_boundary_valid():
+    m = ValidatedCELExprFieldMulti(score=100)
+    assert m.score == 100
+
+
+# ---------------------------------------------------------------------------
+# ValidatedCELExprMessage — message-level cel_expression cross-field rule
+# ---------------------------------------------------------------------------
+
+
+def test_cel_expr_message_valid():
+    m = ValidatedCELExprMessage(min_val=1, max_val=5)
+    assert m.min_val == 1
+    assert m.max_val == 5
+
+
+def test_cel_expr_message_equal_valid():
+    # min_val <= max_val also allows equality.
+    m = ValidatedCELExprMessage(min_val=3, max_val=3)
+    assert m.min_val == 3
+
+
+def test_cel_expr_message_inverted_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedCELExprMessage(min_val=5, max_val=1)
+
+
+def test_cel_expr_message_no_dropped_comment():
+    text = _GEN_VALIDATE.read_text()
+    assert 'cel id="this.min_val <= this.max_val" (not translated' not in text
+
+
+def test_cel_expr_message_error_message_is_expression():
+    # The validation error message must contain the CEL expression itself.
+    with pytest.raises(ValidationError) as exc_info:
+        ValidatedCELExprMessage(min_val=5, max_val=1)
+    assert "this.min_val <= this.max_val" in str(exc_info.value)
+
+
+# ---------------------------------------------------------------------------
+# ValidatedCELExprMessageMulti — two message-level cel_expression entries
+# ---------------------------------------------------------------------------
+
+
+def test_cel_expr_message_multi_valid():
+    m = ValidatedCELExprMessageMulti(a=1, b=2, c=3)
+    assert m.a == 1
+
+
+def test_cel_expr_message_multi_all_equal_valid():
+    m = ValidatedCELExprMessageMulti(a=2, b=2, c=2)
+    assert m.b == 2
+
+
+def test_cel_expr_message_multi_first_rule_invalid():
+    # a <= b fails: a=5, b=2.
+    with pytest.raises(ValidationError):
+        ValidatedCELExprMessageMulti(a=5, b=2, c=3)
+
+
+def test_cel_expr_message_multi_second_rule_invalid():
+    # b <= c fails: b=3, c=1.
+    with pytest.raises(ValidationError):
+        ValidatedCELExprMessageMulti(a=1, b=3, c=1)
+
+
+# ---------------------------------------------------------------------------
+# ValidatedCELExprFieldDropped — untranslatable field-level cel_expression
+# ---------------------------------------------------------------------------
+
+
+def test_cel_expr_field_dropped_accepts_any_value():
+    # The cel_expression cannot be transpiled; no validator is generated.
+    m = ValidatedCELExprFieldDropped(tag="hello")
+    assert m.tag == "hello"
+
+
+def test_cel_expr_field_dropped_comment_in_generated_file():
+    # The drop path must emit a # buf.validate comment with the expression id.
+    text = _GEN_VALIDATE.read_text()
+    assert 'cel id="this.lowerAscii() != \\"\\""' in text
+
+
+# ---------------------------------------------------------------------------
+# ValidatedCELExprMessageDropped — untranslatable message-level cel_expression
+# ---------------------------------------------------------------------------
+
+
+def test_cel_expr_message_dropped_accepts_any_value():
+    # The cel_expression cannot be transpiled; no @model_validator is generated.
+    m = ValidatedCELExprMessageDropped(name="hello")
+    assert m.name == "hello"
+
+
+def test_cel_expr_message_dropped_comment_in_generated_file():
+    # The drop path must emit a # buf.validate comment with the expression id.
+    text = _GEN_VALIDATE.read_text()
+    assert 'cel id="this.name.lowerAscii() != \\"\\""' in text
+
+
+# ---------------------------------------------------------------------------
+# ValidatedCELInsideItems — cel / cel_expression inside repeated.items
+# ---------------------------------------------------------------------------
+
+
+def test_cel_inside_items_accepts_values():
+    # No validators are generated — the constraints are dropped with comments.
+    m = ValidatedCELInsideItems(scores=[0, -1], ratings=[0, -1])
+    assert m.scores == [0, -1]
+    assert m.ratings == [0, -1]
+
+
+def test_cel_inside_items_cel_drop_comment():
+    # cel inside repeated.items must emit a # buf.validate: cel (not translated) comment.
+    text = _GEN_VALIDATE.read_text()
+    assert "# buf.validate: cel (not translated)" in text
+
+
+def test_cel_inside_items_cel_expression_drop_comment():
+    # cel_expression inside repeated.items must emit a drop comment, not be silently ignored.
+    text = _GEN_VALIDATE.read_text()
+    assert "# buf.validate: cel_expression (not translated)" in text
+
+
+# ---------------------------------------------------------------------------
+# ValidatedCELInsideMapValues — cel_expression inside map.values
+# ---------------------------------------------------------------------------
+
+
+def test_cel_inside_map_values_accepts_values():
+    # No validators generated — dropped with a comment.
+    m = ValidatedCELInsideMapValues(counters={"x": 0, "y": -1})
+    assert m.counters == {"x": 0, "y": -1}
+
+
+def test_cel_inside_map_values_drop_comment():
+    # cel_expression inside map.values must emit a drop comment on the outer field.
+    text = _GEN_VALIDATE.read_text()
+    # The comment appears once for items (scores field) and once here; check presence.
+    assert text.count("# buf.validate: cel_expression (not translated)") >= 2

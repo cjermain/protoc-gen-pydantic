@@ -169,9 +169,17 @@ Emitted as `# buf.validate: X (not translated)` comments: `required`, `bytes.con
 message-typed bounds (duration, timestamp). `enum.defined_only` is a no-op (Python enums
 enforce this natively).
 
-**CEL transpilation** (`cel_transpile.go`): `(buf.validate.field).cel` and
-`option (buf.validate.message).cel` are transpiled to Python at code-generation time using
-`cel-go`. No runtime CEL dependency is added to generated files.
+**CEL transpilation** (`cel_transpile.go`): `(buf.validate.field).cel` and its shorthand
+`(buf.validate.field).cel_expression` (field 29 of `FieldRules`), as well as
+`option (buf.validate.message).cel` and its shorthand `option (buf.validate.message).cel_expression`
+(field 5 of `MessageRules`), are all transpiled to Python at code-generation time using `cel-go`.
+No runtime CEL dependency is added to generated files.
+
+The `cel_expression` shorthand is handled in `extractFieldConstraints` (`constraints.go`) and
+`extractMessageCEL` (`generator.go`) by constructing `celRule{ID: expr, Expression: expr}` for
+each string entry and routing it through the identical transpilation path as full `cel` rules.
+Untranslatable `cel_expression` entries emit the same `# buf.validate: cel id="…" (not translated: reason)`
+comment as full `cel` rules.
 
 - **Field-level**: transpiled expression becomes `_AfterValidator(_make_cel_validator(lambda v: expr, "msg"))` (bool-returning) or `_AfterValidator(_make_cel_str_validator(lambda v: expr))` (string-returning).
 - **Message-level**: each rule becomes a `@model_validator(mode="after")` method. `has(this.field)` presence checks use `"field" in self.model_fields_set`.
@@ -252,7 +260,7 @@ Test coverage includes:
 - Proto field types: enums, scalars, optional/repeated/map, oneof, well-known types
 - Builtin alias handling (`bool_`, `float_`, `bytes_`)
 - Enum value options (built-in and custom), buf.validate predefined field constraints
-- CEL transpilation: field-level and message-level, comprehensions, temporal expressions, timestamp/duration member accessors, boolean format helpers, drop path
+- CEL transpilation: field-level and message-level `.cel` rules and `cel_expression` shorthand, comprehensions, temporal expressions, timestamp/duration member accessors, boolean format helpers, drop path (field and message level)
 - JSON/dict roundtrips
 - `test_ruff_format`: ruff format compliance of all generated files
 - `test_ty`: ty type checking of all generated files

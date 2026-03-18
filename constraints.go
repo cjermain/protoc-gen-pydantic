@@ -268,6 +268,12 @@ func (e *generator) applyConstraintTypeOverrides(f *Field) {
 		if annotatedInner != innerType {
 			f.Type = "list[" + annotatedInner + "]"
 		}
+		// Propagate item-level drops so they surface as # buf.validate: … comments
+		// inside the outer _Field(), where developers can see and act on them.
+		if len(fc.ItemConstraints.DroppedConstraints) > 0 {
+			fc.DroppedConstraints = append(fc.DroppedConstraints, fc.ItemConstraints.DroppedConstraints...)
+			sort.Strings(fc.DroppedConstraints)
+		}
 	}
 
 	// map.keys / map.values: wrap key/value types with per-entry constraints
@@ -275,11 +281,18 @@ func (e *generator) applyConstraintTypeOverrides(f *Field) {
 		if keyType, valType, ok := splitDictType(f.Type); ok {
 			if fc.KeyConstraints != nil {
 				keyType = e.buildItemAnnotation(keyType, fc.KeyConstraints)
+				if len(fc.KeyConstraints.DroppedConstraints) > 0 {
+					fc.DroppedConstraints = append(fc.DroppedConstraints, fc.KeyConstraints.DroppedConstraints...)
+				}
 			}
 			if fc.ValueConstraints != nil {
 				valType = e.buildItemAnnotation(valType, fc.ValueConstraints)
+				if len(fc.ValueConstraints.DroppedConstraints) > 0 {
+					fc.DroppedConstraints = append(fc.DroppedConstraints, fc.ValueConstraints.DroppedConstraints...)
+				}
 			}
 			f.Type = "dict[" + keyType + ", " + valType + "]"
+			sort.Strings(fc.DroppedConstraints)
 		}
 	}
 
@@ -443,6 +456,22 @@ func (e *generator) extractFieldConstraints(
 					result.CelValidators = append(result.CelValidators, cv)
 				}
 			}
+		case name == "cel_expression":
+			// Shorthand form: each string entry is both the id and the expression.
+			// The message is also set to the expression so validation errors are
+			// self-describing (protovalidate: "message derived from expression").
+			list := v.List()
+			for i := 0; i < list.Len(); i++ {
+				expr := list.Get(i).String()
+				rule := celRule{ID: expr, Expression: expr, Message: expr}
+				cv, err := transpileCELField(rule, field, e.celEnvCache)
+				if err != nil {
+					result.DroppedConstraints = append(result.DroppedConstraints,
+						fmt.Sprintf("cel id=%q (not translated: %v)", rule.ID, err))
+				} else {
+					result.CelValidators = append(result.CelValidators, cv)
+				}
+			}
 		case fd.Kind() == protoreflect.MessageKind && !fd.IsList():
 			// Type-specific rules sub-message (int32, string, repeated, map, etc.)
 			v.Message().Range(func(rfd protoreflect.FieldDescriptor, rv protoreflect.Value) bool {
@@ -504,6 +533,9 @@ func (e *generator) extractConstraintsFromMsg(
 		case name == "cel":
 			// CEL inside items/keys/values: drop with a comment (no field descriptor available).
 			result.DroppedConstraints = append(result.DroppedConstraints, "cel")
+		case name == "cel_expression":
+			// Shorthand CEL inside items/keys/values: same drop treatment as cel.
+			result.DroppedConstraints = append(result.DroppedConstraints, "cel_expression")
 		case fd.Kind() == protoreflect.MessageKind && !fd.IsList():
 			v.Message().Range(func(rfd protoreflect.FieldDescriptor, rv protoreflect.Value) bool {
 				extractRuleField(result, rfd, rv, isFloat, isBytesField)
