@@ -21,6 +21,8 @@ from api.v1.validate_pydantic import (
     ValidatedCELAll,
     ValidatedCELCrossField,
     ValidatedCELDurationRange,
+    ValidatedCELExprField,
+    ValidatedCELExprMessage,
     ValidatedCELField,
     ValidatedCELHas,
     ValidatedCELTimestamp,
@@ -73,7 +75,9 @@ import "buf/validate/validate.proto";
 | buf.validate rule | Generated Pydantic construct |
 |---|---|
 | `(buf.validate.field).cel` | `Annotated[T, AfterValidator(_make_cel_validator(lambda v: ..., "msg"))]` — see [CEL expressions](#cel-expressions) |
+| `(buf.validate.field).cel_expression` | same as `.cel` — shorthand where id = expression, message = `""` — see [cel_expression shorthand](#cel_expression-shorthand) |
 | `option (buf.validate.message).cel` | `@model_validator(mode="after")` method — see [CEL expressions](#cel-expressions) |
+| `option (buf.validate.message).cel_expression` | same as `.cel` — shorthand where id = expression, message = `""` — see [cel_expression shorthand](#cel_expression-shorthand) |
 | Numeric `gt` | `Field(gt=...)` |
 | Numeric `gte` | `Field(ge=...)` |
 | Numeric `lt` | `Field(lt=...)` |
@@ -822,6 +826,86 @@ try:
 except ValidationError:
     pass  # name must start with uppercase
 ```
+
+### `cel_expression` shorthand
+
+`cel_expression` is a simplified form of the `cel` rule that omits the `id` and `message`
+fields — the expression string itself is used as the rule id, and the error message is left
+empty. It works at both the field level and the message level.
+
+=== ":lucide-file-code: validate.proto"
+
+    ```proto
+    // Field-level: equivalent to cel = { id: "this > 0", expression: "this > 0" }.
+    message ValidatedCELExprField {
+      int32 age = 1 [(buf.validate.field).cel_expression = "this > 0"];
+    }
+
+    // Message-level: equivalent to option (buf.validate.message).cel = { ... }.
+    message ValidatedCELExprMessage {
+      int32 min_val = 1;
+      int32 max_val = 2;
+      option (buf.validate.message).cel_expression = "this.min_val <= this.max_val";
+    }
+    ```
+
+=== ":simple-python: validate_pydantic.py (field)"
+
+    ```python exec="on" session="validate"
+    print(f"```python\n{inspect.getsource(ValidatedCELExprField).rstrip()}\n```")
+    ```
+
+=== ":simple-python: validate_pydantic.py (message)"
+
+    ```python exec="on" session="validate"
+    print(f"```python\n{inspect.getsource(ValidatedCELExprMessage).rstrip()}\n```")
+    ```
+
+```python exec="on" session="validate"
+from pydantic import ValidationError
+
+vcef = ValidatedCELExprField(age=1)
+assert vcef.age == 1
+
+try:
+    ValidatedCELExprField(age=-1)
+except ValidationError:
+    pass  # this > 0 fails
+
+vcem = ValidatedCELExprMessage(min_val=1, max_val=5)
+assert vcem.min_val == 1
+
+try:
+    ValidatedCELExprMessage(min_val=5, max_val=1)
+except ValidationError:
+    pass  # min_val <= max_val fails
+```
+
+Multiple `cel_expression` entries on the same field or message are each transpiled to a
+separate validator — they are checked independently:
+
+```proto
+// Two independent bounds on one field.
+message ValidatedCELExprFieldMulti {
+  int32 score = 1 [
+    (buf.validate.field).cel_expression = "this > 0",
+    (buf.validate.field).cel_expression = "this <= 100"
+  ];
+}
+
+// Two independent message-level rules.
+message ValidatedCELExprMessageMulti {
+  int32 a = 1;
+  int32 b = 2;
+  int32 c = 3;
+  option (buf.validate.message).cel_expression = "this.a <= this.b";
+  option (buf.validate.message).cel_expression = "this.b <= this.c";
+}
+```
+
+Untranslatable `cel_expression` entries follow the same drop path as `.cel` rules — a
+`# buf.validate: cel id="…" (not translated: reason)` comment is emitted and no validator
+is generated for that entry.
 
 ### Message-level CEL
 
