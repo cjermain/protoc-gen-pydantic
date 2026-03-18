@@ -107,6 +107,8 @@ from api.v1.validate_pydantic import (
     ValidatedCELExprFieldMulti,
     ValidatedCELExprMessage,
     ValidatedCELExprMessageMulti,
+    ValidatedCELExprFieldDropped,
+    ValidatedCELExprMessageDropped,
 )
 
 
@@ -3536,3 +3538,37 @@ def test_cel_expr_message_multi_second_rule_invalid():
     # b <= c fails: b=3, c=1.
     with pytest.raises(ValidationError):
         ValidatedCELExprMessageMulti(a=1, b=3, c=1)
+
+
+# ---------------------------------------------------------------------------
+# ValidatedCELExprFieldDropped — untranslatable field-level cel_expression
+# ---------------------------------------------------------------------------
+
+
+def test_cel_expr_field_dropped_accepts_any_value():
+    # The cel_expression cannot be transpiled; no validator is generated.
+    m = ValidatedCELExprFieldDropped(tag="hello")
+    assert m.tag == "hello"
+
+
+def test_cel_expr_field_dropped_comment_in_generated_file():
+    # The drop path must emit a # buf.validate comment with the expression id.
+    text = _GEN_VALIDATE.read_text()
+    assert 'cel id="this.lowerAscii() != \\"\\""' in text
+
+
+# ---------------------------------------------------------------------------
+# ValidatedCELExprMessageDropped — untranslatable message-level cel_expression
+# ---------------------------------------------------------------------------
+
+
+def test_cel_expr_message_dropped_accepts_any_value():
+    # The cel_expression cannot be transpiled; no @model_validator is generated.
+    m = ValidatedCELExprMessageDropped(name="hello")
+    assert m.name == "hello"
+
+
+def test_cel_expr_message_dropped_comment_in_generated_file():
+    # The drop path must emit a # buf.validate comment with the expression id.
+    text = _GEN_VALIDATE.read_text()
+    assert 'cel id="this.name.lowerAscii() != \\"\\""' in text

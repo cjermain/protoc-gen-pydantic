@@ -2075,3 +2075,26 @@ class ValidatedCELExprMessageMulti(_ProtoModel):
         if not (self.b <= self.c):
             raise ValueError("")
         return self
+
+
+class ValidatedCELExprFieldDropped(_ProtoModel):
+    """
+    ValidatedCELExprFieldDropped — cel_expression shorthand that cannot be
+    transpiled (lowerAscii is an ext.Strings function with no Python mapping).
+    Verifies the drop path emits a # buf.validate comment.
+    """
+
+    tag: str = _Field(
+        default="",
+        # buf.validate: cel id="this.lowerAscii() != \"\"" (not translated: unsupported member function "lowerAscii")
+    )
+
+
+class ValidatedCELExprMessageDropped(_ProtoModel):
+    """
+    ValidatedCELExprMessageDropped — message-level cel_expression that cannot
+    be transpiled. Verifies the drop path emits a # buf.validate comment.
+    """
+
+    name: str = _Field(default="")
+    # buf.validate: cel id="this.name.lowerAscii() != \"\"" (not translated: unsupported member function "lowerAscii")

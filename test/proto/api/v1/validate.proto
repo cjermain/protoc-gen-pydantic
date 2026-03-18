@@ -1149,3 +1149,17 @@ message ValidatedCELExprMessageMulti {
   option (buf.validate.message).cel_expression = "this.a <= this.b";
   option (buf.validate.message).cel_expression = "this.b <= this.c";
 }
+
+// ValidatedCELExprFieldDropped — cel_expression shorthand that cannot be
+// transpiled (lowerAscii is an ext.Strings function with no Python mapping).
+// Verifies the drop path emits a # buf.validate comment.
+message ValidatedCELExprFieldDropped {
+  string tag = 1 [(buf.validate.field).cel_expression = "this.lowerAscii() != \"\""];
+}
+
+// ValidatedCELExprMessageDropped — message-level cel_expression that cannot
+// be transpiled. Verifies the drop path emits a # buf.validate comment.
+message ValidatedCELExprMessageDropped {
+  string name = 1;
+  option (buf.validate.message).cel_expression = "this.name.lowerAscii() != \"\"";
+}
