@@ -1163,3 +1163,30 @@ message ValidatedCELExprMessageDropped {
   string name = 1;
   option (buf.validate.message).cel_expression = "this.name.lowerAscii() != \"\"";
 }
+
+// ValidatedCELInsideItems — verifies that cel and cel_expression inside
+// repeated.items are both surfaced as # buf.validate drop comments rather
+// than silently ignored.
+message ValidatedCELInsideItems {
+  // cel inside repeated.items: dropped with a comment (was silently swallowed).
+  repeated int32 scores = 1 [(buf.validate.field).repeated.items = {
+    cel: [{
+      id: "positive",
+      expression: "this > 0",
+      message: "must be positive"
+    }]
+  }];
+  // cel_expression inside repeated.items: dropped with a comment (was silent).
+  repeated int32 ratings = 2 [(buf.validate.field).repeated.items = {
+    cel_expression: ["this >= 1"]
+  }];
+}
+
+// ValidatedCELInsideMapValues — verifies that cel_expression inside map.values
+// is surfaced as a drop comment rather than silently ignored.
+message ValidatedCELInsideMapValues {
+  map<string, int32> counters = 1 [(buf.validate.field).map.values = {
+    cel_expression: ["this > 0"]
+  }];
+}
+

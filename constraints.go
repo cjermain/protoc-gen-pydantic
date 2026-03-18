@@ -268,6 +268,12 @@ func (e *generator) applyConstraintTypeOverrides(f *Field) {
 		if annotatedInner != innerType {
 			f.Type = "list[" + annotatedInner + "]"
 		}
+		// Propagate item-level drops so they surface as # buf.validate: … comments
+		// inside the outer _Field(), where developers can see and act on them.
+		if len(fc.ItemConstraints.DroppedConstraints) > 0 {
+			fc.DroppedConstraints = append(fc.DroppedConstraints, fc.ItemConstraints.DroppedConstraints...)
+			sort.Strings(fc.DroppedConstraints)
+		}
 	}
 
 	// map.keys / map.values: wrap key/value types with per-entry constraints
@@ -275,11 +281,18 @@ func (e *generator) applyConstraintTypeOverrides(f *Field) {
 		if keyType, valType, ok := splitDictType(f.Type); ok {
 			if fc.KeyConstraints != nil {
 				keyType = e.buildItemAnnotation(keyType, fc.KeyConstraints)
+				if len(fc.KeyConstraints.DroppedConstraints) > 0 {
+					fc.DroppedConstraints = append(fc.DroppedConstraints, fc.KeyConstraints.DroppedConstraints...)
+				}
 			}
 			if fc.ValueConstraints != nil {
 				valType = e.buildItemAnnotation(valType, fc.ValueConstraints)
+				if len(fc.ValueConstraints.DroppedConstraints) > 0 {
+					fc.DroppedConstraints = append(fc.DroppedConstraints, fc.ValueConstraints.DroppedConstraints...)
+				}
 			}
 			f.Type = "dict[" + keyType + ", " + valType + "]"
+			sort.Strings(fc.DroppedConstraints)
 		}
 	}
 
@@ -520,6 +533,9 @@ func (e *generator) extractConstraintsFromMsg(
 		case name == "cel":
 			// CEL inside items/keys/values: drop with a comment (no field descriptor available).
 			result.DroppedConstraints = append(result.DroppedConstraints, "cel")
+		case name == "cel_expression":
+			// Shorthand CEL inside items/keys/values: same drop treatment as cel.
+			result.DroppedConstraints = append(result.DroppedConstraints, "cel_expression")
 		case fd.Kind() == protoreflect.MessageKind && !fd.IsList():
 			v.Message().Range(func(rfd protoreflect.FieldDescriptor, rv protoreflect.Value) bool {
 				extractRuleField(result, rfd, rv, isFloat, isBytesField)

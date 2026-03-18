@@ -2271,3 +2271,36 @@ class ValidatedCELExprMessageDropped(_ProtoModel):
 
     name: str = _Field(default="")
     # buf.validate: cel id="this.name.lowerAscii() != \"\"" (not translated: unsupported member function "lowerAscii")
+
+
+class ValidatedCELInsideItems(_ProtoModel):
+    """
+    ValidatedCELInsideItems — verifies that cel and cel_expression inside
+    repeated.items are both surfaced as # buf.validate drop comments rather
+    than silently ignored.
+    """
+
+    # cel inside repeated.items: dropped with a comment (was silently swallowed).
+    scores: list[int] = _Field(
+        default_factory=list,
+        description="cel inside repeated.items: dropped with a comment (was silently swallowed).",
+        # buf.validate: cel (not translated)
+    )
+    # cel_expression inside repeated.items: dropped with a comment (was silent).
+    ratings: list[int] = _Field(
+        default_factory=list,
+        description="cel_expression inside repeated.items: dropped with a comment (was silent).",
+        # buf.validate: cel_expression (not translated)
+    )
+
+
+class ValidatedCELInsideMapValues(_ProtoModel):
+    """
+    ValidatedCELInsideMapValues — verifies that cel_expression inside map.values
+    is surfaced as a drop comment rather than silently ignored.
+    """
+
+    counters: dict[str, int] = _Field(
+        default_factory=dict,
+        # buf.validate: cel_expression (not translated)
+    )

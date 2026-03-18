@@ -109,6 +109,8 @@ from api.v1.validate_pydantic import (
     ValidatedCELExprMessageMulti,
     ValidatedCELExprFieldDropped,
     ValidatedCELExprMessageDropped,
+    ValidatedCELInsideItems,
+    ValidatedCELInsideMapValues,
 )
 
 
@@ -1610,11 +1612,11 @@ def test_validated_cel_rejects_negative():
         ValidatedCEL(age=-1)
 
 
-def test_validated_cel_no_dropped_comment():
-    # After transpilation the simple "this > 0" should not appear as dropped.
+def test_validated_cel_transpiled_not_dropped():
+    # The simple "this > 0" on ValidatedCEL.age must be transpiled to a lambda,
+    # not dropped. (cel inside repeated.items is still dropped — separate case.)
     text = _GEN_VALIDATE.read_text()
-    # The old generic drop comment must not appear for the simple CEL case.
-    assert "# buf.validate: cel (not translated)" not in text
+    assert '_make_cel_validator(lambda v: v > 0, "age must be positive")' in text
 
 
 # ---------------------------------------------------------------------------
@@ -3586,3 +3588,45 @@ def test_cel_expr_message_dropped_comment_in_generated_file():
     # The drop path must emit a # buf.validate comment with the expression id.
     text = _GEN_VALIDATE.read_text()
     assert 'cel id="this.name.lowerAscii() != \\"\\""' in text
+
+
+# ---------------------------------------------------------------------------
+# ValidatedCELInsideItems — cel / cel_expression inside repeated.items
+# ---------------------------------------------------------------------------
+
+
+def test_cel_inside_items_accepts_values():
+    # No validators are generated — the constraints are dropped with comments.
+    m = ValidatedCELInsideItems(scores=[0, -1], ratings=[0, -1])
+    assert m.scores == [0, -1]
+    assert m.ratings == [0, -1]
+
+
+def test_cel_inside_items_cel_drop_comment():
+    # cel inside repeated.items must emit a # buf.validate: cel (not translated) comment.
+    text = _GEN_VALIDATE.read_text()
+    assert "# buf.validate: cel (not translated)" in text
+
+
+def test_cel_inside_items_cel_expression_drop_comment():
+    # cel_expression inside repeated.items must emit a drop comment, not be silently ignored.
+    text = _GEN_VALIDATE.read_text()
+    assert "# buf.validate: cel_expression (not translated)" in text
+
+
+# ---------------------------------------------------------------------------
+# ValidatedCELInsideMapValues — cel_expression inside map.values
+# ---------------------------------------------------------------------------
+
+
+def test_cel_inside_map_values_accepts_values():
+    # No validators generated — dropped with a comment.
+    m = ValidatedCELInsideMapValues(counters={"x": 0, "y": -1})
+    assert m.counters == {"x": 0, "y": -1}
+
+
+def test_cel_inside_map_values_drop_comment():
+    # cel_expression inside map.values must emit a drop comment on the outer field.
+    text = _GEN_VALIDATE.read_text()
+    # The comment appears once for items (scores field) and once here; check presence.
+    assert text.count("# buf.validate: cel_expression (not translated)") >= 2
