@@ -2003,10 +2003,10 @@ class ValidatedCELExprField(_ProtoModel):
     ValidatedCELExprField — field-level cel_expression shorthand on an int32 field.
     """
 
-    age: _Annotated[int, _AfterValidator(_make_cel_validator(lambda v: v > 0, ""))] = (
-        _Field(
-            default=0,
-        )
+    age: _Annotated[
+        int, _AfterValidator(_make_cel_validator(lambda v: v > 0, "this > 0"))
+    ] = _Field(
+        default=0,
     )
 
 
@@ -2017,7 +2017,8 @@ class ValidatedCELExprFieldString(_ProtoModel):
     """
 
     label: _Annotated[
-        str, _AfterValidator(_make_cel_validator(lambda v: len(v) > 3, ""))
+        str,
+        _AfterValidator(_make_cel_validator(lambda v: len(v) > 3, "this.size() > 3")),
     ] = _Field(
         default="",
     )
@@ -2031,8 +2032,8 @@ class ValidatedCELExprFieldMulti(_ProtoModel):
 
     score: _Annotated[
         int,
-        _AfterValidator(_make_cel_validator(lambda v: v > 0, "")),
-        _AfterValidator(_make_cel_validator(lambda v: v <= 100, "")),
+        _AfterValidator(_make_cel_validator(lambda v: v > 0, "this > 0")),
+        _AfterValidator(_make_cel_validator(lambda v: v <= 100, "this <= 100")),
     ] = _Field(
         default=0,
     )
@@ -2050,7 +2051,7 @@ class ValidatedCELExprMessage(_ProtoModel):
     @_model_validator(mode="after")
     def _validate_cel_this_min_val____this_max_val(self) -> "ValidatedCELExprMessage":
         if not (self.min_val <= self.max_val):
-            raise ValueError("")
+            raise ValueError("this.min_val <= this.max_val")
         return self
 
 
@@ -2067,13 +2068,13 @@ class ValidatedCELExprMessageMulti(_ProtoModel):
     @_model_validator(mode="after")
     def _validate_cel_this_a____this_b(self) -> "ValidatedCELExprMessageMulti":
         if not (self.a <= self.b):
-            raise ValueError("")
+            raise ValueError("this.a <= this.b")
         return self
 
     @_model_validator(mode="after")
     def _validate_cel_this_b____this_c(self) -> "ValidatedCELExprMessageMulti":
         if not (self.b <= self.c):
-            raise ValueError("")
+            raise ValueError("this.b <= this.c")
         return self
 
 

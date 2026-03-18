@@ -3428,6 +3428,13 @@ def test_cel_expr_field_no_dropped_comment():
     assert 'cel id="this > 0" (not translated' not in text
 
 
+def test_cel_expr_field_error_message_is_expression():
+    # The validation error message must contain the CEL expression itself.
+    with pytest.raises(ValidationError) as exc_info:
+        ValidatedCELExprField(age=-1)
+    assert "this > 0" in str(exc_info.value)
+
+
 # ---------------------------------------------------------------------------
 # ValidatedCELExprFieldString — cel_expression shorthand (string, size check)
 # ---------------------------------------------------------------------------
@@ -3511,6 +3518,13 @@ def test_cel_expr_message_inverted_invalid():
 def test_cel_expr_message_no_dropped_comment():
     text = _GEN_VALIDATE.read_text()
     assert 'cel id="this.min_val <= this.max_val" (not translated' not in text
+
+
+def test_cel_expr_message_error_message_is_expression():
+    # The validation error message must contain the CEL expression itself.
+    with pytest.raises(ValidationError) as exc_info:
+        ValidatedCELExprMessage(min_val=5, max_val=1)
+    assert "this.min_val <= this.max_val" in str(exc_info.value)
 
 
 # ---------------------------------------------------------------------------

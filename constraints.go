@@ -445,10 +445,12 @@ func (e *generator) extractFieldConstraints(
 			}
 		case name == "cel_expression":
 			// Shorthand form: each string entry is both the id and the expression.
+			// The message is also set to the expression so validation errors are
+			// self-describing (protovalidate: "message derived from expression").
 			list := v.List()
 			for i := 0; i < list.Len(); i++ {
 				expr := list.Get(i).String()
-				rule := celRule{ID: expr, Expression: expr}
+				rule := celRule{ID: expr, Expression: expr, Message: expr}
 				cv, err := transpileCELField(rule, field, e.celEnvCache)
 				if err != nil {
 					result.DroppedConstraints = append(result.DroppedConstraints,
