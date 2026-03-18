@@ -1996,3 +1996,82 @@ class ValidatedCELEnum(_ProtoModel):
     ] = _Field(
         default=None,
     )
+
+
+class ValidatedCELExprField(_ProtoModel):
+    """
+    ValidatedCELExprField — field-level cel_expression shorthand on an int32 field.
+    """
+
+    age: _Annotated[int, _AfterValidator(_make_cel_validator(lambda v: v > 0, ""))] = (
+        _Field(
+            default=0,
+        )
+    )
+
+
+class ValidatedCELExprFieldString(_ProtoModel):
+    """
+    ValidatedCELExprFieldString — cel_expression shorthand on a string field.
+    size() must be > 3 to exercise the string CEL dispatch path.
+    """
+
+    label: _Annotated[
+        str, _AfterValidator(_make_cel_validator(lambda v: len(v) > 3, ""))
+    ] = _Field(
+        default="",
+    )
+
+
+class ValidatedCELExprFieldMulti(_ProtoModel):
+    """
+    ValidatedCELExprFieldMulti — two cel_expression entries on one field;
+    verifies that all validators are emitted and enforced independently.
+    """
+
+    score: _Annotated[
+        int,
+        _AfterValidator(_make_cel_validator(lambda v: v > 0, "")),
+        _AfterValidator(_make_cel_validator(lambda v: v <= 100, "")),
+    ] = _Field(
+        default=0,
+    )
+
+
+class ValidatedCELExprMessage(_ProtoModel):
+    """
+    ValidatedCELExprMessage — message-level cel_expression cross-field rule.
+    Exercises cel_expression on MessageRules.
+    """
+
+    minVal: int = _Field(default=0)
+    maxVal: int = _Field(default=0)
+
+    @_model_validator(mode="after")
+    def _validate_cel_this_min_val____this_max_val(self) -> "ValidatedCELExprMessage":
+        if not (self.min_val <= self.max_val):
+            raise ValueError("")
+        return self
+
+
+class ValidatedCELExprMessageMulti(_ProtoModel):
+    """
+    ValidatedCELExprMessageMulti — two message-level cel_expression entries;
+    verifies that both @model_validator branches are enforced.
+    """
+
+    a: int = _Field(default=0)
+    b: int = _Field(default=0)
+    c: int = _Field(default=0)
+
+    @_model_validator(mode="after")
+    def _validate_cel_this_a____this_b(self) -> "ValidatedCELExprMessageMulti":
+        if not (self.a <= self.b):
+            raise ValueError("")
+        return self
+
+    @_model_validator(mode="after")
+    def _validate_cel_this_b____this_c(self) -> "ValidatedCELExprMessageMulti":
+        if not (self.b <= self.c):
+            raise ValueError("")
+        return self

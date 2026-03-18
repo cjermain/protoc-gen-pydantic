@@ -443,6 +443,20 @@ func (e *generator) extractFieldConstraints(
 					result.CelValidators = append(result.CelValidators, cv)
 				}
 			}
+		case name == "cel_expression":
+			// Shorthand form: each string entry is both the id and the expression.
+			list := v.List()
+			for i := 0; i < list.Len(); i++ {
+				expr := list.Get(i).String()
+				rule := celRule{ID: expr, Expression: expr}
+				cv, err := transpileCELField(rule, field, e.celEnvCache)
+				if err != nil {
+					result.DroppedConstraints = append(result.DroppedConstraints,
+						fmt.Sprintf("cel id=%q (not translated: %v)", rule.ID, err))
+				} else {
+					result.CelValidators = append(result.CelValidators, cv)
+				}
+			}
 		case fd.Kind() == protoreflect.MessageKind && !fd.IsList():
 			// Type-specific rules sub-message (int32, string, repeated, map, etc.)
 			v.Message().Range(func(rfd protoreflect.FieldDescriptor, rv protoreflect.Value) bool {
