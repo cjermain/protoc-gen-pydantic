@@ -21,5 +21,13 @@ plugins:
       - disable_field_description=true
       - use_none_union_syntax_instead_of_optional=false
     out: test/gen_options
+  - local:
+      - go
+      - run
+      - .
+    opt:
+      - paths=source_relative
+      - disable_validate=true
+    out: test/gen_novalidate
 inputs:
   - directory: test/proto

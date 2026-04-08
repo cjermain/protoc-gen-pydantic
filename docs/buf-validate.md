@@ -70,6 +70,10 @@ Import the validate file in your proto:
 import "buf/validate/validate.proto";
 ```
 
+To omit all buf.validate constraints entirely, use the
+[`disable_validate`](options.md#disable-validate) plugin option. The generated output will be
+identical to models produced from proto files with no buf.validate annotations.
+
 ## Constraint translations
 
 | buf.validate rule | Generated Pydantic construct |

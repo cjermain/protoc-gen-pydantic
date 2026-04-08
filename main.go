@@ -102,6 +102,7 @@ func main() {
 	useIntegersForEnums := flags.Bool("use_integers_for_enums", false, "")
 	disableFieldDescription := flags.Bool("disable_field_description", false, "")
 	useNoneUnionSyntaxInsteadOfOptional := flags.Bool("use_none_union_syntax_instead_of_optional", true, "")
+	disableValidate := flags.Bool("disable_validate", false, "")
 
 	opts := protogen.Options{
 		ParamFunc: flags.Set,
@@ -115,6 +116,7 @@ func main() {
 			UseIntegersForEnums:                 *useIntegersForEnums,
 			DisableFieldDescription:             *disableFieldDescription,
 			UseNoneUnionSyntaxInsteadOfOptional: *useNoneUnionSyntaxInsteadOfOptional,
+			DisableValidate:                     *disableValidate,
 		})
 		e.resolver = buildEnumValueOptionsResolver(gen)
 		e.customOptionFields = buildCustomOptionFields(gen)

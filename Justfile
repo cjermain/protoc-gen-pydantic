@@ -31,7 +31,7 @@ build:
 
 # Generate Python models from test protos
 generate: build
-    rm -rf test/gen test/gen_options
+    rm -rf test/gen test/gen_options test/gen_novalidate
     buf generate
 
 # Run Python tests
@@ -92,7 +92,7 @@ docs-preview: docs-build
 
 # Verify generated files match committed versions
 check-generated: generate
-    git diff --exit-code test/gen/ test/gen_options/
+    git diff --exit-code test/gen/ test/gen_options/ test/gen_novalidate/
 
 # Build a coverage-instrumented binary
 build-cover:
@@ -113,5 +113,5 @@ coverage: generate-cover
 # Remove build artifacts and generated files
 clean:
     rm -f protoc-gen-pydantic protoc-gen-pydantic-cov coverage.out
-    rm -rf test/gen test/gen_options covdata
+    rm -rf test/gen test/gen_options test/gen_novalidate covdata
     rm -rf site

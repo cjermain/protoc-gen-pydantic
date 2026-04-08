@@ -383,21 +383,23 @@ func (e *generator) processMessage(
 			OneOf:      oneOf,
 		}
 		f.LeadingComments, f.TrailingComments = extractComments(sourceCodeInfo, fieldPath)
-		if fp := msgProto.GetField()[i]; fp.GetOptions() != nil {
-			f.Constraints = e.extractFieldConstraints(fp.GetOptions(), field)
-		}
-		e.applyConstraintTypeOverrides(&f)
-		isScalar := !field.IsList() && !field.IsMap() &&
-			field.Kind() != protoreflect.MessageKind &&
-			field.Kind() != protoreflect.EnumKind
-		isNotOptional := !field.HasOptionalKeyword() && field.ContainingOneof() == nil
-		hasConst := f.Constraints != nil &&
-			(f.Constraints.ConstLiteral != nil || f.Constraints.ConstFloatLiteral != nil)
-		ignoreZero := f.Constraints != nil && f.Constraints.HasIgnore
-		if isScalar && isNotOptional && !hasConst && !ignoreZero &&
-			f.Constraints.ZeroValueFails(field.Kind()) {
-			f.ConstrainedRequired = true
-			f.Default = ""
+		if !e.config.DisableValidate {
+			if fp := msgProto.GetField()[i]; fp.GetOptions() != nil {
+				f.Constraints = e.extractFieldConstraints(fp.GetOptions(), field)
+			}
+			e.applyConstraintTypeOverrides(&f)
+			isScalar := !field.IsList() && !field.IsMap() &&
+				field.Kind() != protoreflect.MessageKind &&
+				field.Kind() != protoreflect.EnumKind
+			isNotOptional := !field.HasOptionalKeyword() && field.ContainingOneof() == nil
+			hasConst := f.Constraints != nil &&
+				(f.Constraints.ConstLiteral != nil || f.Constraints.ConstFloatLiteral != nil)
+			ignoreZero := f.Constraints != nil && f.Constraints.HasIgnore
+			if isScalar && isNotOptional && !hasConst && !ignoreZero &&
+				f.Constraints.ZeroValueFails(field.Kind()) {
+				f.ConstrainedRequired = true
+				f.Default = ""
+			}
 		}
 		def.Fields = append(def.Fields, f)
 	}
@@ -415,14 +417,16 @@ func (e *generator) processMessage(
 	}
 
 	// Extract message-level CEL constraints.
-	if e.messageConstraintExt != nil && msgProto.GetOptions() != nil && e.celEnvCache != nil {
-		e.extractMessageCEL(msgProto.GetOptions(), &def)
-	}
-	if len(def.CelValidators) > 0 {
-		e.addStdImport("_ModelValidator")
-		for _, cv := range def.CelValidators {
-			for _, imp := range cv.Imports {
-				e.addRuntimeImport(imp)
+	if !e.config.DisableValidate {
+		if e.messageConstraintExt != nil && msgProto.GetOptions() != nil && e.celEnvCache != nil {
+			e.extractMessageCEL(msgProto.GetOptions(), &def)
+		}
+		if len(def.CelValidators) > 0 {
+			e.addStdImport("_ModelValidator")
+			for _, cv := range def.CelValidators {
+				for _, imp := range cv.Imports {
+					e.addRuntimeImport(imp)
+				}
 			}
 		}
 	}

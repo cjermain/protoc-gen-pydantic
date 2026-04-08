@@ -17,8 +17,10 @@ _PROTO_DIR = _TEST_ROOT / "proto"
 _GENERATED_FILES = sorted(
     list(Path("gen").rglob("*_pydantic.py"))
     + list(Path("gen_options").rglob("*_pydantic.py"))
+    + list(Path("gen_novalidate").rglob("*_pydantic.py"))
     + list(Path("gen").rglob("_proto_types.py"))
     + list(Path("gen_options").rglob("_proto_types.py"))
+    + list(Path("gen_novalidate").rglob("_proto_types.py"))
 )
 
 
