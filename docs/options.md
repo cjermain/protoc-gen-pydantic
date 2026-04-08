@@ -18,6 +18,7 @@ Options control how `protoc-gen-pydantic` generates Python output. They are pass
 | `use_integers_for_enums` | `false` | Use integer values instead of string names |
 | `disable_field_description` | `false` | Omit `description=` from field annotations |
 | `use_none_union_syntax_instead_of_optional` | `true` | Use `T \| None` instead of `Optional[T]` |
+| `disable_validate` | `false` | Omit all buf.validate constraints and CEL validators from generated models |
 
 ---
 
@@ -227,6 +228,55 @@ Controls how nullable types are expressed in annotations.
 ```yaml
 opt:
   - use_none_union_syntax_instead_of_optional=false
+```
+
+---
+
+## `disable_validate` {#disable-validate}
+
+When enabled, all `buf.validate` constraints and CEL validators are omitted from the generated
+output. The result is identical to what would be produced if the proto files had no
+`import "buf/validate/validate.proto"` and no `(buf.validate.field)` or
+`(buf.validate.message)` options.
+
+Fields that would otherwise be required due to constraints (e.g., a `string.email` field with
+no valid zero value) revert to their proto3 zero-value defaults (`""`, `0`, `false`, etc.).
+
+**Default:** `false` (include buf.validate constraints)
+
+=== ":lucide-file-code: user.proto"
+
+    ```proto
+    import "buf/validate/validate.proto";
+
+    message User {
+      string email = 1 [(buf.validate.field).string.email = true];
+    }
+    ```
+
+=== "false (default)"
+
+    ```python
+    class User(_ProtoModel):
+        email: _Annotated[str, _AfterValidator(_validate_email)]
+    ```
+
+=== "true"
+
+    ```python
+    class User(_ProtoModel):
+        email: str = _Field(default="")
+    ```
+
+**buf.gen.yaml:**
+```yaml
+opt:
+  - disable_validate=true
+```
+
+**protoc:**
+```sh
+--pydantic_opt=disable_validate=true
 ```
 
 ---

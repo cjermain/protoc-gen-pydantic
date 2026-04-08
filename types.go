@@ -683,4 +683,5 @@ type GeneratorConfig struct {
 	UseIntegersForEnums                 bool
 	DisableFieldDescription             bool
 	UseNoneUnionSyntaxInsteadOfOptional bool
+	DisableValidate                     bool
 }
