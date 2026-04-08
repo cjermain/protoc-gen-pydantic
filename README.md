@@ -197,14 +197,15 @@ Passed via `opt:` in buf.gen.yaml or `--pydantic_opt=` with protoc:
 | `use_integers_for_enums` | `false` | Use integer values for enums instead of string names |
 | `disable_field_description` | `false` | Omit `description=` from generated fields |
 | `use_none_union_syntax_instead_of_optional` | `true` | Use `T \| None` instead of `Optional[T]` |
+| `disable_validate` | `false` | Skip all buf.validate constraint translation |
 
 See [Plugin Options](https://cjermain.github.io/protoc-gen-pydantic/options/) for full details.
 
 ## buf.validate
 
 Field constraints from [buf.validate (protovalidate)](https://github.com/bufbuild/protovalidate)
-are translated to native Pydantic constructs automatically — no plugin option required. Add
-the dependency to `buf.yaml` and run `buf dep update`:
+are translated to native Pydantic constructs automatically. Add the dependency to `buf.yaml`
+and run `buf dep update` (use `disable_validate=true` to skip all constraint translation):
 
 ```yaml
 # buf.yaml

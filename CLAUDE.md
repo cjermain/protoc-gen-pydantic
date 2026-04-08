@@ -97,6 +97,10 @@ just docs-preview       # Build docs and preview locally
     │   ├── api/v1/*_pydantic.py
     │   ├── foo/bar/v1/*_pydantic.py
     │   └── partial/v1/*_pydantic.py
+    ├── gen_novalidate/               # Generated output, disable_validate=true (committed)
+    │   ├── api/v1/*_pydantic.py
+    │   ├── foo/bar/v1/*_pydantic.py
+    │   └── partial/v1/*_pydantic.py
     └── tests/                       # Pytest suite
 ```
 
@@ -111,11 +115,12 @@ Passed via `opt:` in buf.gen.yaml or `--pydantic_opt=` with protoc:
 | `use_integers_for_enums` | `false` | Use int values instead of string names |
 | `disable_field_description` | `false` | Skip field descriptions from comments |
 | `use_none_union_syntax_instead_of_optional` | `true` | Use `T \| None` instead of `Optional[T]` |
+| `disable_validate` | `false` | Skip all buf.validate constraint translation |
 
-buf.validate field constraints are **not** controlled by a plugin option. They
+buf.validate field constraints are **not** controlled by a plugin option by default. They
 are read automatically from the proto descriptor whenever
-`buf/validate/validate.proto` is imported. See the buf.validate section in Key
-Implementation Details below.
+`buf/validate/validate.proto` is imported. Use `disable_validate=true` to suppress all
+constraint translation. See the buf.validate section in Key Implementation Details below.
 
 ## Key Implementation Details
 
@@ -265,6 +270,7 @@ Test coverage includes:
 - `test_ruff_format`: ruff format compliance of all generated files
 - `test_ty`: ty type checking of all generated files
 - `test_proto_types`: structural and content tests for conditional `_proto_types.py` generation (presence/absence of format-validator imports per directory)
+- `test_disable_validate`: verifies `disable_validate=true` output — no `_AfterValidator`, no `_proto_types` import, no dropped-constraint comments, and ConstrainedRequired fields revert to zero-value defaults
 
 Format/type issues in generated files are caught by `just test`, not `just lint`. `just lint-types` covers `tests/` only. False-positive ty rules (Pydantic alias mechanics, `**kwargs` spreading, dynamic imports) are suppressed globally in `[tool.ty.rules]` in `test/pyproject.toml`.
 
