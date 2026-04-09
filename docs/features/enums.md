@@ -123,9 +123,9 @@ assert shape.color == "RED"
 assert shape.kind == "CIRCLE"
 ```
 
-> **Note:** `KIND_SQUARE` carries `[deprecated = true]`, so `Shape.Kind` is generated as
-> `_ProtoEnum` with value tuples instead of plain `str, _Enum`. See
-> [Enum value options](#enum-value-options) below.
+> **Note:** All generated enums use `_ProtoEnum` as their base class. Each member exposes a
+> `.number` attribute with the proto integer, and a `.options` property for enum value options.
+> See [Enum value options](#enum-value-options) below.
 
 ## Enum value options
 
@@ -149,11 +149,12 @@ enum Status {
     print(f"```python\n{inspect.getsource(Status).rstrip()}\n```")
     ```
 
-When any enum value in a file carries options, the generator switches from plain `str, _Enum`
-to `_ProtoEnum` (a thin subclass) and stores options as a second tuple element. Each member's
-options are accessible via the `.options` property.
+Every generated enum uses `_ProtoEnum` as its base class. Each member exposes a `.number`
+attribute with the proto integer value, and a `.options` property for enum value options.
+When an enum value carries options, they are passed as a tuple element alongside the value.
 
 ```python exec="on" session="enums"
+assert Status.ARCHIVED.number == 3
 assert Status.ARCHIVED.options.deprecated is True
 assert Status.ARCHIVED.options.debug_redact is True
 assert Status.ACTIVE.options.deprecated is False

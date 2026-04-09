@@ -68,28 +68,24 @@ func (e *generator) runtimeImportLine() string {
 	return formatImportBlock("from ._proto_types import ", names)
 }
 
-func (e *generator) hasEnumOptions() bool {
-	for _, enum := range e.enums {
-		if enum.HasOptions() {
-			return true
-		}
+func (e *generator) hasAnyEnums() bool {
+	if len(e.enums) > 0 {
+		return true
 	}
 	for _, msg := range e.messages {
-		if messageHasEnumOptions(msg) {
+		if messageHasAnyEnums(msg) {
 			return true
 		}
 	}
 	return false
 }
 
-func messageHasEnumOptions(msg Message) bool {
-	for _, enum := range msg.NestedEnums {
-		if enum.HasOptions() {
-			return true
-		}
+func messageHasAnyEnums(msg Message) bool {
+	if len(msg.NestedEnums) > 0 {
+		return true
 	}
 	for _, nested := range msg.NestedMessages {
-		if messageHasEnumOptions(nested) {
+		if messageHasAnyEnums(nested) {
 			return true
 		}
 	}
@@ -158,7 +154,10 @@ func (e *generator) pydanticImportLine() string {
 
 func (e *generator) Generate(w io.Writer) error {
 	var buf bytes.Buffer
-	hasEnumOptions := e.hasEnumOptions()
+	hasAnyEnums := e.hasAnyEnums()
+	if hasAnyEnums && !e.config.UseNoneUnionSyntaxInsteadOfOptional {
+		e.addStdImport("_Optional")
+	}
 	runtimeImportLine := e.runtimeImportLine()
 	typingImportLine := e.typingImportLine()
 	pydanticImportLine := e.pydanticImportLine()
@@ -170,7 +169,7 @@ func (e *generator) Generate(w io.Writer) error {
 		RelativeImports    []string
 		Config             GeneratorConfig
 		StdImports         map[string]bool
-		HasEnumOptions     bool
+		HasAnyEnums        bool
 		CustomOptionFields []CustomOptionField
 		RuntimeImportLine  string
 		TypingImportLine   string
@@ -183,7 +182,7 @@ func (e *generator) Generate(w io.Writer) error {
 		e.relativeImports,
 		e.config,
 		e.stdImports,
-		hasEnumOptions,
+		hasAnyEnums,
 		e.customOptionFields,
 		runtimeImportLine,
 		typingImportLine,
@@ -286,22 +285,21 @@ func (e *generator) processEnum(
 		})
 	}
 
-	// If the enum has any value options, mark all values so the template
-	// can emit tuple syntax for the entire enum.
-	hasCustom := false
+	// If the enum has any custom options with _Any type, import it.
 	if def.HasOptions() {
-		for i := range def.Values {
-			def.Values[i].EnumHasOptions = true
-			if len(def.Values[i].CustomOptions) > 0 {
+		hasCustom := false
+		for _, v := range def.Values {
+			if len(v.CustomOptions) > 0 {
 				hasCustom = true
+				break
 			}
 		}
-	}
-	if hasCustom {
-		for _, f := range e.customOptionFields {
-			if f.PythonType == "_Any" {
-				e.addStdImport("_Any")
-				break
+		if hasCustom {
+			for _, f := range e.customOptionFields {
+				if f.PythonType == "_Any" {
+					e.addStdImport("_Any")
+					break
+				}
 			}
 		}
 	}

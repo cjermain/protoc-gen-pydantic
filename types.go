@@ -104,9 +104,12 @@ type EnumValue struct {
 	Deprecated       bool
 	DebugRedact      bool
 	CustomOptions    map[string]interface{}
-	EnumHasOptions   bool // true if parent enum has any value options
 	LeadingComments  []string
 	TrailingComments []string
+}
+
+func (v EnumValue) HasValueOptions() bool {
+	return v.Deprecated || v.DebugRedact || len(v.CustomOptions) > 0
 }
 
 func (v EnumValue) SortedCustomOptions() []CustomOption {

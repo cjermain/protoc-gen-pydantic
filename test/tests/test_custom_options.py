@@ -59,7 +59,7 @@ def test_custom_options_default_none():
     ],
 )
 def test_number_options(member, expected):
-    assert member.options.number == expected
+    assert member.number == expected
 
 
 def test_deprecated_default():

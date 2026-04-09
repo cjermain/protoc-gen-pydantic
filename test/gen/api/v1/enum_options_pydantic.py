@@ -6,7 +6,6 @@ from dataclasses import dataclass as _dataclass
 
 @_dataclass(frozen=True)
 class _EnumValueOptions:
-    number: int
     deprecated: bool = False
     debug_redact: bool = False
     display_name: str | None = None
@@ -20,13 +19,19 @@ class _EnumValueOptions:
 
 
 class _ProtoEnum(str, _Enum):
+    number: int
     _options_: _EnumValueOptions
 
-    def __new__(cls, value: str, options: _EnumValueOptions | None = None):
+    def __new__(
+        cls,
+        value: str,
+        number: int = 0,
+        options: _EnumValueOptions | None = None,
+    ):
         obj = str.__new__(cls, value)
         obj._value_ = value
-        if options is not None:
-            obj._options_ = options
+        obj.number = number
+        obj._options_ = options if options is not None else _EnumValueOptions()
         return obj
 
     @property
@@ -39,19 +44,11 @@ class Status(_ProtoEnum):
     Status enum with value options.
     """
 
-    UNSPECIFIED = (
-        "UNSPECIFIED",
-        _EnumValueOptions(number=0),
-    )  # 0
-    ACTIVE = (
-        "ACTIVE",
-        _EnumValueOptions(number=1),
-    )  # 1
-    INACTIVE = (
-        "INACTIVE",
-        _EnumValueOptions(number=2),
-    )  # 2
+    UNSPECIFIED = ("UNSPECIFIED", 0)
+    ACTIVE = ("ACTIVE", 1)
+    INACTIVE = ("INACTIVE", 2)
     ARCHIVED = (
         "ARCHIVED",
-        _EnumValueOptions(number=3, deprecated=True, debug_redact=True),
-    )  # 3
+        3,
+        _EnumValueOptions(deprecated=True, debug_redact=True),
+    )

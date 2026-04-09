@@ -6,7 +6,6 @@ from dataclasses import dataclass as _dataclass
 
 @_dataclass(frozen=True)
 class _EnumValueOptions:
-    number: int
     deprecated: bool = False
     debug_redact: bool = False
     display_name: str | None = None
@@ -20,13 +19,19 @@ class _EnumValueOptions:
 
 
 class _ProtoEnum(str, _Enum):
+    number: int
     _options_: _EnumValueOptions
 
-    def __new__(cls, value: str, options: _EnumValueOptions | None = None):
+    def __new__(
+        cls,
+        value: str,
+        number: int = 0,
+        options: _EnumValueOptions | None = None,
+    ):
         obj = str.__new__(cls, value)
         obj._value_ = value
-        if options is not None:
-            obj._options_ = options
+        obj.number = number
+        obj._options_ = options if options is not None else _EnumValueOptions()
         return obj
 
     @property
@@ -39,14 +44,11 @@ class Currency(_ProtoEnum):
     Currency enum with custom options.
     """
 
-    UNSPECIFIED = (
-        "UNSPECIFIED",
-        _EnumValueOptions(number=0),
-    )  # 0
+    UNSPECIFIED = ("UNSPECIFIED", 0)
     USD = (
         "USD",
+        1,
         _EnumValueOptions(
-            number=1,
             display_name="US Dollar",
             is_default=True,
             priority=1,
@@ -56,31 +58,31 @@ class Currency(_ProtoEnum):
             version=1,
             weight=1,
         ),
-    )  # 1
+    )
     EUR = (
         "EUR",
+        2,
         _EnumValueOptions(
-            number=2,
             display_name="Euro",
             is_default=False,
             priority=2,
         ),
-    )  # 2
+    )
     GBP = (
         "GBP",
+        3,
         _EnumValueOptions(
-            number=3,
             display_name="British Pound",
         ),
-    )  # 3
+    )
 
 
-class Color(str, _Enum):
+class Color(_ProtoEnum):
     """
     Color enum without custom options (regression test).
     """
 
-    UNSPECIFIED = "UNSPECIFIED"  # 0
-    RED = "RED"  # 1
-    GREEN = "GREEN"  # 2
-    BLUE = "BLUE"  # 3
+    UNSPECIFIED = ("UNSPECIFIED", 0)
+    RED = ("RED", 1)
+    GREEN = ("GREEN", 2)
+    BLUE = ("BLUE", 3)

@@ -2,31 +2,32 @@
 
 from enum import Enum as _Enum
 from dataclasses import dataclass as _dataclass
+from typing import Optional as _Optional
 
 
 @_dataclass(frozen=True)
 class _EnumValueOptions:
-    number: int
     deprecated: bool = False
     debug_redact: bool = False
-    display_name: str | None = None
-    is_default: bool | None = None
-    priority: int | None = None
-    rank: int | None = None
-    rate: float | None = None
-    serial: int | None = None
-    version: int | None = None
-    weight: float | None = None
+    display_name: _Optional[str] = None
+    is_default: _Optional[bool] = None
+    priority: _Optional[int] = None
+    rank: _Optional[int] = None
+    rate: _Optional[float] = None
+    serial: _Optional[int] = None
+    version: _Optional[int] = None
+    weight: _Optional[float] = None
 
 
 class _ProtoEnum(int, _Enum):
+    number: int
     _options_: _EnumValueOptions
 
-    def __new__(cls, value: int, options: _EnumValueOptions | None = None):
+    def __new__(cls, value: int, options: _Optional[_EnumValueOptions] = None):
         obj = int.__new__(cls, value)
         obj._value_ = value
-        if options is not None:
-            obj._options_ = options
+        obj.number = int(value)
+        obj._options_ = options if options is not None else _EnumValueOptions()
         return obj
 
     @property
@@ -39,19 +40,10 @@ class Status(_ProtoEnum):
     Status enum with value options.
     """
 
-    STATUS_UNSPECIFIED = (
-        0,
-        _EnumValueOptions(number=0),
-    )  # STATUS_UNSPECIFIED
-    STATUS_ACTIVE = (
-        1,
-        _EnumValueOptions(number=1),
-    )  # STATUS_ACTIVE
-    STATUS_INACTIVE = (
-        2,
-        _EnumValueOptions(number=2),
-    )  # STATUS_INACTIVE
+    STATUS_UNSPECIFIED = 0
+    STATUS_ACTIVE = 1
+    STATUS_INACTIVE = 2
     STATUS_ARCHIVED = (
         3,
-        _EnumValueOptions(number=3, deprecated=True, debug_redact=True),
-    )  # STATUS_ARCHIVED
+        _EnumValueOptions(deprecated=True, debug_redact=True),
+    )

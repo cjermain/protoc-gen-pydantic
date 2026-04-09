@@ -41,7 +41,6 @@ class _ProtoModel(_BaseModel):
 
 @_dataclass(frozen=True)
 class _EnumValueOptions:
-    number: int
     deprecated: bool = False
     debug_redact: bool = False
     display_name: str | None = None
@@ -55,13 +54,19 @@ class _EnumValueOptions:
 
 
 class _ProtoEnum(str, _Enum):
+    number: int
     _options_: _EnumValueOptions
 
-    def __new__(cls, value: str, options: _EnumValueOptions | None = None):
+    def __new__(
+        cls,
+        value: str,
+        number: int = 0,
+        options: _EnumValueOptions | None = None,
+    ):
         obj = str.__new__(cls, value)
         obj._value_ = value
-        if options is not None:
-            obj._options_ = options
+        obj.number = number
+        obj._options_ = options if options is not None else _EnumValueOptions()
         return obj
 
     @property
@@ -69,36 +74,31 @@ class _ProtoEnum(str, _Enum):
         return self._options_
 
 
-class Enum(str, _Enum):
-    UNSPECIFIED = "UNSPECIFIED"  # 0
-    ACTIVE = "ACTIVE"  # 1
-    INACTIVE = "INACTIVE"  # 2
+class Enum(_ProtoEnum):
+    UNSPECIFIED = ("UNSPECIFIED", 0)
+    ACTIVE = ("ACTIVE", 1)
+    INACTIVE = ("INACTIVE", 2)
 
 
-class Hue(str, _Enum):
+class Hue(_ProtoEnum):
     """
     A primary hue.
     """
 
-    UNSPECIFIED = "UNSPECIFIED"  # 0
-    RED = "RED"  # 1
-    BLUE = "BLUE"  # 2
+    UNSPECIFIED = ("UNSPECIFIED", 0)
+    RED = ("RED", 1)
+    BLUE = ("BLUE", 2)
 
 
 class Shape(_ProtoModel):
     class Kind(_ProtoEnum):
-        UNSPECIFIED = (
-            "UNSPECIFIED",
-            _EnumValueOptions(number=0),
-        )  # 0
-        CIRCLE = (
-            "CIRCLE",
-            _EnumValueOptions(number=1),
-        )  # 1
+        UNSPECIFIED = ("UNSPECIFIED", 0)
+        CIRCLE = ("CIRCLE", 1)
         SQUARE = (
             "SQUARE",
-            _EnumValueOptions(number=2, deprecated=True),
-        )  # 2
+            2,
+            _EnumValueOptions(deprecated=True),
+        )
 
     color: "Hue | None" = _Field(default=None)
     kind: "Shape.Kind | None" = _Field(default=None)

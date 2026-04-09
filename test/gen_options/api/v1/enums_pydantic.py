@@ -42,27 +42,27 @@ class _ProtoModel(_BaseModel):
 
 @_dataclass(frozen=True)
 class _EnumValueOptions:
-    number: int
     deprecated: bool = False
     debug_redact: bool = False
-    display_name: str | None = None
-    is_default: bool | None = None
-    priority: int | None = None
-    rank: int | None = None
-    rate: float | None = None
-    serial: int | None = None
-    version: int | None = None
-    weight: float | None = None
+    display_name: _Optional[str] = None
+    is_default: _Optional[bool] = None
+    priority: _Optional[int] = None
+    rank: _Optional[int] = None
+    rate: _Optional[float] = None
+    serial: _Optional[int] = None
+    version: _Optional[int] = None
+    weight: _Optional[float] = None
 
 
 class _ProtoEnum(int, _Enum):
+    number: int
     _options_: _EnumValueOptions
 
-    def __new__(cls, value: int, options: _EnumValueOptions | None = None):
+    def __new__(cls, value: int, options: _Optional[_EnumValueOptions] = None):
         obj = int.__new__(cls, value)
         obj._value_ = value
-        if options is not None:
-            obj._options_ = options
+        obj.number = int(value)
+        obj._options_ = options if options is not None else _EnumValueOptions()
         return obj
 
     @property
@@ -70,36 +70,30 @@ class _ProtoEnum(int, _Enum):
         return self._options_
 
 
-class Enum(int, _Enum):
-    ENUM_UNSPECIFIED = 0  # ENUM_UNSPECIFIED
-    ENUM_ACTIVE = 1  # ENUM_ACTIVE
-    ENUM_INACTIVE = 2  # ENUM_INACTIVE
+class Enum(_ProtoEnum):
+    ENUM_UNSPECIFIED = 0
+    ENUM_ACTIVE = 1
+    ENUM_INACTIVE = 2
 
 
-class Hue(int, _Enum):
+class Hue(_ProtoEnum):
     """
     A primary hue.
     """
 
-    HUE_UNSPECIFIED = 0  # HUE_UNSPECIFIED
-    HUE_RED = 1  # HUE_RED
-    HUE_BLUE = 2  # HUE_BLUE
+    HUE_UNSPECIFIED = 0
+    HUE_RED = 1
+    HUE_BLUE = 2
 
 
 class Shape(_ProtoModel):
     class Kind(_ProtoEnum):
-        KIND_UNSPECIFIED = (
-            0,
-            _EnumValueOptions(number=0),
-        )  # KIND_UNSPECIFIED
-        KIND_CIRCLE = (
-            1,
-            _EnumValueOptions(number=1),
-        )  # KIND_CIRCLE
+        KIND_UNSPECIFIED = 0
+        KIND_CIRCLE = 1
         KIND_SQUARE = (
             2,
-            _EnumValueOptions(number=2, deprecated=True),
-        )  # KIND_SQUARE
+            _EnumValueOptions(deprecated=True),
+        )
 
     color: "_Optional[Hue]" = _Field(default=None)
     kind: "_Optional[Shape.Kind]" = _Field(default=None)

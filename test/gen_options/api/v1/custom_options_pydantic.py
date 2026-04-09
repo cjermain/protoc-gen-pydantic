@@ -2,31 +2,32 @@
 
 from enum import Enum as _Enum
 from dataclasses import dataclass as _dataclass
+from typing import Optional as _Optional
 
 
 @_dataclass(frozen=True)
 class _EnumValueOptions:
-    number: int
     deprecated: bool = False
     debug_redact: bool = False
-    display_name: str | None = None
-    is_default: bool | None = None
-    priority: int | None = None
-    rank: int | None = None
-    rate: float | None = None
-    serial: int | None = None
-    version: int | None = None
-    weight: float | None = None
+    display_name: _Optional[str] = None
+    is_default: _Optional[bool] = None
+    priority: _Optional[int] = None
+    rank: _Optional[int] = None
+    rate: _Optional[float] = None
+    serial: _Optional[int] = None
+    version: _Optional[int] = None
+    weight: _Optional[float] = None
 
 
 class _ProtoEnum(int, _Enum):
+    number: int
     _options_: _EnumValueOptions
 
-    def __new__(cls, value: int, options: _EnumValueOptions | None = None):
+    def __new__(cls, value: int, options: _Optional[_EnumValueOptions] = None):
         obj = int.__new__(cls, value)
         obj._value_ = value
-        if options is not None:
-            obj._options_ = options
+        obj.number = int(value)
+        obj._options_ = options if options is not None else _EnumValueOptions()
         return obj
 
     @property
@@ -39,14 +40,10 @@ class Currency(_ProtoEnum):
     Currency enum with custom options.
     """
 
-    CURRENCY_UNSPECIFIED = (
-        0,
-        _EnumValueOptions(number=0),
-    )  # CURRENCY_UNSPECIFIED
+    CURRENCY_UNSPECIFIED = 0
     CURRENCY_USD = (
         1,
         _EnumValueOptions(
-            number=1,
             display_name="US Dollar",
             is_default=True,
             priority=1,
@@ -56,31 +53,29 @@ class Currency(_ProtoEnum):
             version=1,
             weight=1,
         ),
-    )  # CURRENCY_USD
+    )
     CURRENCY_EUR = (
         2,
         _EnumValueOptions(
-            number=2,
             display_name="Euro",
             is_default=False,
             priority=2,
         ),
-    )  # CURRENCY_EUR
+    )
     CURRENCY_GBP = (
         3,
         _EnumValueOptions(
-            number=3,
             display_name="British Pound",
         ),
-    )  # CURRENCY_GBP
+    )
 
 
-class Color(int, _Enum):
+class Color(_ProtoEnum):
     """
     Color enum without custom options (regression test).
     """
 
-    COLOR_UNSPECIFIED = 0  # COLOR_UNSPECIFIED
-    COLOR_RED = 1  # COLOR_RED
-    COLOR_GREEN = 2  # COLOR_GREEN
-    COLOR_BLUE = 3  # COLOR_BLUE
+    COLOR_UNSPECIFIED = 0
+    COLOR_RED = 1
+    COLOR_GREEN = 2
+    COLOR_BLUE = 3
