@@ -92,6 +92,34 @@ func messageHasAnyEnums(msg Message) bool {
 	return false
 }
 
+func (e *generator) hasAnyEnumOptions() bool {
+	for _, enum := range e.enums {
+		if enum.HasOptions() {
+			return true
+		}
+	}
+	for _, msg := range e.messages {
+		if messageHasAnyEnumOptions(msg) {
+			return true
+		}
+	}
+	return false
+}
+
+func messageHasAnyEnumOptions(msg Message) bool {
+	for _, enum := range msg.NestedEnums {
+		if enum.HasOptions() {
+			return true
+		}
+	}
+	for _, nested := range msg.NestedMessages {
+		if messageHasAnyEnumOptions(nested) {
+			return true
+		}
+	}
+	return false
+}
+
 func (e *generator) addStdImport(name string) {
 	e.stdImports[name] = true
 }
@@ -154,9 +182,11 @@ func (e *generator) pydanticImportLine() string {
 
 func (e *generator) Generate(w io.Writer) error {
 	var buf bytes.Buffer
-	hasAnyEnums := e.hasAnyEnums()
-	if hasAnyEnums && !e.config.UseNoneUnionSyntaxInsteadOfOptional {
-		e.addStdImport("_Optional")
+	if e.hasAnyEnums() {
+		e.addRuntimeImport("_ProtoEnum")
+	}
+	if e.hasAnyEnumOptions() {
+		e.addRuntimeImport("_EnumValueOptions")
 	}
 	runtimeImportLine := e.runtimeImportLine()
 	typingImportLine := e.typingImportLine()
@@ -169,8 +199,6 @@ func (e *generator) Generate(w io.Writer) error {
 		RelativeImports    []string
 		Config             GeneratorConfig
 		StdImports         map[string]bool
-		HasAnyEnums        bool
-		CustomOptionFields []CustomOptionField
 		RuntimeImportLine  string
 		TypingImportLine   string
 		PydanticImportLine string
@@ -182,8 +210,6 @@ func (e *generator) Generate(w io.Writer) error {
 		e.relativeImports,
 		e.config,
 		e.stdImports,
-		hasAnyEnums,
-		e.customOptionFields,
 		runtimeImportLine,
 		typingImportLine,
 		pydanticImportLine,
@@ -285,22 +311,16 @@ func (e *generator) processEnum(
 		})
 	}
 
-	// If the enum has any custom options with _Any type, import it.
-	if def.HasOptions() {
-		hasCustom := false
-		for _, v := range def.Values {
-			if len(v.CustomOptions) > 0 {
-				hasCustom = true
-				break
-			}
-		}
-		if hasCustom {
+	// If any value has custom options with an _Any-typed field, import _Any.
+	for _, v := range def.Values {
+		if len(v.CustomOptions) > 0 {
 			for _, f := range e.customOptionFields {
 				if f.PythonType == "_Any" {
 					e.addStdImport("_Any")
 					break
 				}
 			}
+			break
 		}
 	}
 

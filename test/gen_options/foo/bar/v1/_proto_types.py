@@ -4,6 +4,7 @@ import re as _re
 from dataclasses import dataclass as _dataclass
 from enum import Enum as _Enum
 from typing import Annotated as _Annotated
+from typing import Optional as _Optional
 
 from pydantic import BeforeValidator as _BeforeValidator
 from pydantic import PlainSerializer as _PlainSerializer
@@ -131,29 +132,24 @@ def _cel_matches(pattern: str, s: str) -> bool:
 class _EnumValueOptions:
     deprecated: bool = False
     debug_redact: bool = False
-    display_name: str | None = None
-    is_default: bool | None = None
-    priority: int | None = None
-    rank: int | None = None
-    rate: float | None = None
-    serial: int | None = None
-    version: int | None = None
-    weight: float | None = None
+    display_name: _Optional[str] = None
+    is_default: _Optional[bool] = None
+    priority: _Optional[int] = None
+    rank: _Optional[int] = None
+    rate: _Optional[float] = None
+    serial: _Optional[int] = None
+    version: _Optional[int] = None
+    weight: _Optional[float] = None
 
 
-class _ProtoEnum(str, _Enum):
+class _ProtoEnum(int, _Enum):
     number: int
     _options_: _EnumValueOptions
 
-    def __new__(
-        cls,
-        value: str,
-        number: int = 0,
-        options: _EnumValueOptions | None = None,
-    ):
-        obj = str.__new__(cls, value)
+    def __new__(cls, value: int, options: _Optional[_EnumValueOptions] = None):
+        obj = int.__new__(cls, value)
         obj._value_ = value
-        obj.number = number
+        obj.number = int(value)
         obj._options_ = options if options is not None else _EnumValueOptions()
         return obj
 

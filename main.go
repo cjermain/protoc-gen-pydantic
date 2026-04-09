@@ -163,7 +163,7 @@ func main() {
 		for dir, needed := range protoTypeDirs {
 			path := filepath.Join(dir, "_proto_types.py")
 			g := gen.NewGeneratedFile(path, "")
-			g.P(strings.TrimRight(buildProtoTypesContent(needed), "\n"))
+			g.P(strings.TrimRight(buildProtoTypesContent(needed, e.config, e.customOptionFields), "\n"))
 		}
 
 		return nil
