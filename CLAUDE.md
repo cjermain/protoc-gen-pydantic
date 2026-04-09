@@ -187,7 +187,7 @@ Untranslatable `cel_expression` entries emit the same `# buf.validate: cel id="�
 comment as full `cel` rules.
 
 - **Field-level**: transpiled expression becomes `_AfterValidator(_make_cel_validator(lambda v: expr, "msg"))` (bool-returning) or `_AfterValidator(_make_cel_str_validator(lambda v: expr))` (string-returning).
-- **Message-level**: each rule becomes a `@model_validator(mode="after")` method. `has(this.field)` presence checks use `"field" in self.model_fields_set`.
+- **Message-level**: each rule becomes a `@model_validator(mode="after")` method. `has(this.field)` presence checks use `"field" in self.model_fields_set`. Enum fields accessed via `this.food` emit `_cel_enum_number(ClassName, self.food)` — because `use_enum_values=True` stores the plain string/int value (not the enum member), the helper reconstructs `.number`; `None` (unset) → 0 (proto3 zero value). E.g. `this.food < 4` → `_cel_enum_number(Msg.Food, self.food) < 4`.
 - **Comprehensions**: `all`, `exists`, `exists_one`, `filter`, `map` → Python `all()`, `any()`, `sum(…)==1`, list comprehensions. Nested comprehensions (e.g. `map().all()`) work via recursive dispatch.
 - **Temporal**: `now` → `_cel_now()`, `duration("1h30m")` → `_cel_duration(5400)`, `timestamp("2020-01-01T00:00:00Z")` → `_cel_timestamp("2020-01-01T00:00:00Z")`. Non-repeated WKT message fields (`Timestamp`, `Duration`) wrap lambdas as `lambda v: v is None or (...)` to match protovalidate's skip-if-absent semantics.
 - **Timestamp accessors**: `this.getFullYear()` → `v.year`, `this.getMonth()` → `(v.month - 1)` (0-indexed), `this.getDayOfWeek()` → `(v.isoweekday() % 7)` (Sun=0), `this.getHours()` → `v.hour`, etc. All accept an optional IANA timezone string arg; non-UTC tz → `_cel_ts_in_tz(v, "tz")`.
@@ -197,6 +197,7 @@ comment as full `cel` rules.
 
 The `celEnvCache` (keyed by field type signature including WKT full names) caches `cel.Env`
 instances. The `transpiler` struct carries `isMsg bool`, `fieldNames map[string]string`,
+`enumFieldClassMap map[string]string` (proto name → qualified Python enum class, for `.number` access),
 `imports map[string]bool`, and `compVars map[string]bool` (comprehension scope).
 `recvTypeName` (from `NavigableExpr.Type().TypeName()`) is passed to `memberFunc` to dispatch
 timestamp vs. duration overloads for `getHours()` etc.
@@ -230,18 +231,21 @@ bool` on `Field`, `HasConstraintKwargs() bool`, `ZeroValueFails(kind) bool`,
 `HasConstraints`) for the outer multi-line `_Field()` branch, and `NeedsMultilineDefault` to
 catch long `= _Field(Default)` lines that need multi-line form despite no constraint kwargs.
 
-Format and set validator helpers live in `_proto_types.py` (generated
-alongside model files). `buildProtoTypesContent(needed map[string]bool)`
-assembles the file conditionally — only imports and functions actually used by
-the directory's proto files are emitted. `protoTypeDirs` in `main()` is
-`map[string]map[string]bool` accumulating runtime import names per directory.
+Format and set validator helpers, plus `_EnumValueOptions` and `_ProtoEnum`, live in
+`_proto_types.py` (generated alongside model files). `buildProtoTypesContent(needed
+map[string]bool, config GeneratorConfig, dirCustomOptionFields []CustomOptionField)`
+assembles the file conditionally — only imports and definitions actually used by the
+directory's proto files are emitted. `_ProtoEnum` and (when any enum has options)
+`_EnumValueOptions` are imported from `._proto_types` by generated model files.
+`protoTypeDirs` in `main()` is `map[string]map[string]bool` accumulating runtime import
+names per directory.
 
 `test/proto/buf.yaml` declares the `buf.build/bufbuild/protovalidate` dep;
 `_has_bsr_imports()` in conftest.py excludes BSR protos from the standalone
 `protoc` compilation.
 
 ### Generated Python Conventions
-- Standard library imports are aliased with `_` prefix to avoid conflicts: `_BaseModel`, `_Field`, `_Enum`, `_Optional`, `_Any`
+- Standard library imports are aliased with `_` prefix to avoid conflicts: `_BaseModel`, `_Field`, `_Optional`, `_Any`
 - Nested types are true Python nested classes: `Foo.NestedMessage`, `Foo.NestedEnum` (accessible via dotted attribute access)
 - Cross-file imports name only the top-level class: `from .scalars_pydantic import Scalars`; dotted access (`Scalars.NestedEnum`) resolves at runtime
 - `resolveQualifiedName(d)` returns the dotted path from the file root (e.g. `Outer.Inner.Deepest`) used for type annotations; `string(d.Name())` is the leaf name used for the class definition itself

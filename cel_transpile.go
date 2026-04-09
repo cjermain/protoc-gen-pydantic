@@ -247,10 +247,11 @@ var operatorMap = map[string]string{
 
 // transpiler walks a CEL NavigableExpr and produces a Python expression string.
 type transpiler struct {
-	isMsg      bool              // false → "this" = "v"; true → "this" = "self"
-	fieldNames map[string]string // proto name → Python name (for message-level)
-	imports    map[string]bool   // _proto_types symbols needed
-	compVars   map[string]bool   // comprehension iteration variables currently in scope
+	isMsg             bool              // false → "this" = "v"; true → "this" = "self"
+	fieldNames        map[string]string // proto name → Python name (for message-level)
+	enumFieldClassMap map[string]string // proto name → qualified Python enum class name (for .number access)
+	imports           map[string]bool   // _proto_types symbols needed
+	compVars          map[string]bool   // comprehension iteration variables currently in scope
 }
 
 func (t *transpiler) node(e celast.NavigableExpr) (string, error) {
@@ -342,6 +343,12 @@ func (t *transpiler) selectExpr(e celast.NavigableExpr) (string, error) {
 
 	if t.isMsg && operand == "self" {
 		pyName := t.pyFieldName(fieldName)
+		if enumClass, ok := t.enumFieldClassMap[fieldName]; ok {
+			// use_enum_values=True stores the plain string/int value, not the enum member.
+			// Use _cel_enum_number to reconstruct .number (None → 0 for unset fields).
+			t.imports["_cel_enum_number"] = true
+			return fmt.Sprintf("_cel_enum_number(%s, self.%s)", enumClass, pyName), nil
+		}
 		return fmt.Sprintf("self.%s", pyName), nil
 	}
 	return fmt.Sprintf("(%s).%s", operand, fieldName), nil
@@ -1183,7 +1190,7 @@ func transpileCELField(rule celRule, field protoreflect.FieldDescriptor, cache *
 }
 
 // transpileCELMessage attempts to transpile a single message-level CEL rule.
-func transpileCELMessage(rule celRule, fieldNameMap map[string]string, cache *celEnvCache) (CelValidator, error) {
+func transpileCELMessage(rule celRule, fieldNameMap map[string]string, enumFieldClassMap map[string]string, cache *celEnvCache) (CelValidator, error) {
 	env, err := cache.forMessage()
 	if err != nil {
 		return CelValidator{}, fmt.Errorf("build env: %w", err)
@@ -1200,7 +1207,7 @@ func transpileCELMessage(rule celRule, fieldNameMap map[string]string, cache *ce
 	}
 
 	nav := celast.NavigateAST(ast.NativeRep())
-	t := &transpiler{isMsg: true, fieldNames: fieldNameMap, imports: map[string]bool{}}
+	t := &transpiler{isMsg: true, fieldNames: fieldNameMap, enumFieldClassMap: enumFieldClassMap, imports: map[string]bool{}}
 	pyExpr, err := t.node(nav)
 	if err != nil {
 		return CelValidator{}, err

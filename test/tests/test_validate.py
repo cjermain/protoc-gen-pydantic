@@ -111,6 +111,8 @@ from api.v1.validate_pydantic import (
     ValidatedCELExprMessageDropped,
     ValidatedCELInsideItems,
     ValidatedCELInsideMapValues,
+    ValidatedCELEnumField,
+    ValidatedCELEnumAliased,
 )
 
 
@@ -1702,6 +1704,57 @@ def test_cel_cross_field_valid():
 def test_cel_cross_field_invalid():
     with pytest.raises(ValidationError):
         ValidatedCELCrossField(min_val=10, max_val=1)
+
+
+# ---------------------------------------------------------------------------
+# ValidatedCELEnumField — message-level CEL comparing enum field by .number
+# ---------------------------------------------------------------------------
+
+
+def test_cel_enum_field_valid_bread():
+    m = ValidatedCELEnumField(food=ValidatedCELEnumField.Food.BREAD)
+    assert m.food == "BREAD"
+
+
+def test_cel_enum_field_valid_milk():
+    m = ValidatedCELEnumField(food=ValidatedCELEnumField.Food.MILK)
+    assert m.food == "MILK"
+
+
+def test_cel_enum_field_invalid_eggs():
+    with pytest.raises(ValidationError):
+        ValidatedCELEnumField(food=ValidatedCELEnumField.Food.EGGS)
+
+
+def test_cel_enum_field_unset_passes():
+    # Unset enum (None) has number 0 (UNSPECIFIED), which satisfies 0 < 3.
+    m = ValidatedCELEnumField()
+    assert m.food is None
+
+
+# ---------------------------------------------------------------------------
+# ValidatedCELEnumAliased — enum field aliased due to Python reserved name
+# ---------------------------------------------------------------------------
+
+
+def test_cel_enum_aliased_valid_a():
+    m = ValidatedCELEnumAliased(type=ValidatedCELEnumAliased.Kind.A)
+    assert m.type_ == "A"
+
+
+def test_cel_enum_aliased_valid_b():
+    m = ValidatedCELEnumAliased(type=ValidatedCELEnumAliased.Kind.B)
+    assert m.type_ == "B"
+
+
+def test_cel_enum_aliased_invalid_c():
+    with pytest.raises(ValidationError):
+        ValidatedCELEnumAliased(type=ValidatedCELEnumAliased.Kind.C)
+
+
+def test_cel_enum_aliased_unset_passes():
+    m = ValidatedCELEnumAliased()
+    assert m.type_ is None
 
 
 # ---------------------------------------------------------------------------

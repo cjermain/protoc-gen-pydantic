@@ -42,7 +42,7 @@ def test_debug_redact(member, expected):
     ],
 )
 def test_options_number(member, expected):
-    assert member.options.number == expected
+    assert member.number == expected
 
 
 # --- enum values unchanged ---

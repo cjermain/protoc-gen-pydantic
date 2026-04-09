@@ -68,28 +68,52 @@ func (e *generator) runtimeImportLine() string {
 	return formatImportBlock("from ._proto_types import ", names)
 }
 
-func (e *generator) hasEnumOptions() bool {
-	for _, enum := range e.enums {
-		if enum.HasOptions() {
-			return true
-		}
+func (e *generator) hasAnyEnums() bool {
+	if len(e.enums) > 0 {
+		return true
 	}
 	for _, msg := range e.messages {
-		if messageHasEnumOptions(msg) {
+		if messageHasAnyEnums(msg) {
 			return true
 		}
 	}
 	return false
 }
 
-func messageHasEnumOptions(msg Message) bool {
+func messageHasAnyEnums(msg Message) bool {
+	if len(msg.NestedEnums) > 0 {
+		return true
+	}
+	for _, nested := range msg.NestedMessages {
+		if messageHasAnyEnums(nested) {
+			return true
+		}
+	}
+	return false
+}
+
+func (e *generator) hasAnyEnumOptions() bool {
+	for _, enum := range e.enums {
+		if enum.HasOptions() {
+			return true
+		}
+	}
+	for _, msg := range e.messages {
+		if messageHasAnyEnumOptions(msg) {
+			return true
+		}
+	}
+	return false
+}
+
+func messageHasAnyEnumOptions(msg Message) bool {
 	for _, enum := range msg.NestedEnums {
 		if enum.HasOptions() {
 			return true
 		}
 	}
 	for _, nested := range msg.NestedMessages {
-		if messageHasEnumOptions(nested) {
+		if messageHasAnyEnumOptions(nested) {
 			return true
 		}
 	}
@@ -158,7 +182,12 @@ func (e *generator) pydanticImportLine() string {
 
 func (e *generator) Generate(w io.Writer) error {
 	var buf bytes.Buffer
-	hasEnumOptions := e.hasEnumOptions()
+	if e.hasAnyEnums() {
+		e.addRuntimeImport("_ProtoEnum")
+	}
+	if e.hasAnyEnumOptions() {
+		e.addRuntimeImport("_EnumValueOptions")
+	}
 	runtimeImportLine := e.runtimeImportLine()
 	typingImportLine := e.typingImportLine()
 	pydanticImportLine := e.pydanticImportLine()
@@ -170,8 +199,6 @@ func (e *generator) Generate(w io.Writer) error {
 		RelativeImports    []string
 		Config             GeneratorConfig
 		StdImports         map[string]bool
-		HasEnumOptions     bool
-		CustomOptionFields []CustomOptionField
 		RuntimeImportLine  string
 		TypingImportLine   string
 		PydanticImportLine string
@@ -183,8 +210,6 @@ func (e *generator) Generate(w io.Writer) error {
 		e.relativeImports,
 		e.config,
 		e.stdImports,
-		hasEnumOptions,
-		e.customOptionFields,
 		runtimeImportLine,
 		typingImportLine,
 		pydanticImportLine,
@@ -286,27 +311,19 @@ func (e *generator) processEnum(
 		})
 	}
 
-	// If the enum has any value options, mark all values so the template
-	// can emit tuple syntax for the entire enum.
-	hasCustom := false
-	if def.HasOptions() {
-		for i := range def.Values {
-			def.Values[i].EnumHasOptions = true
-			if len(def.Values[i].CustomOptions) > 0 {
-				hasCustom = true
+	// If any value has custom options with an _Any-typed field, import _Any.
+	for _, v := range def.Values {
+		if len(v.CustomOptions) > 0 {
+			for _, f := range e.customOptionFields {
+				if f.PythonType == "_Any" {
+					e.addStdImport("_Any")
+					break
+				}
 			}
-		}
-	}
-	if hasCustom {
-		for _, f := range e.customOptionFields {
-			if f.PythonType == "_Any" {
-				e.addStdImport("_Any")
-				break
-			}
+			break
 		}
 	}
 
-	e.addStdImport("_Enum")
 	return def, nil
 }
 
@@ -373,11 +390,18 @@ func (e *generator) processMessage(
 			alias = name
 			name = name + "_"
 		}
+		isEnum := field.Kind() == protoreflect.EnumKind
+		var enumClass string
+		if isEnum {
+			enumClass = resolveQualifiedName(field.Enum())
+		}
 		f := Field{
 			Name:       name,
 			Alias:      alias,
 			Type:       typ,
 			NeedsQuote: fieldNeedsQuote(field),
+			IsEnum:     isEnum,
+			EnumClass:  enumClass,
 			Optional:   field.HasOptionalKeyword(),
 			Default:    e.resolveDefault(field),
 			OneOf:      oneOf,
@@ -457,11 +481,17 @@ func (e *generator) extractMessageCEL(opts *descriptorpb.MessageOptions, def *Me
 
 	// Build proto→Python field name map for has() and this.field resolution.
 	fieldNameMap := make(map[string]string, len(def.Fields))
+	enumFieldClassMap := make(map[string]string) // proto name → qualified enum class name
 	for _, f := range def.Fields {
+		protoName := f.Name
 		if f.Alias != "" {
-			fieldNameMap[f.Alias] = f.Name // proto name → Python name (e.g. "float" → "float_")
+			protoName = f.Alias // proto name → Python name (e.g. "float" → "float_")
+			fieldNameMap[f.Alias] = f.Name
 		} else {
 			fieldNameMap[f.Name] = f.Name
+		}
+		if f.IsEnum {
+			enumFieldClassMap[protoName] = f.EnumClass
 		}
 	}
 
@@ -475,7 +505,7 @@ func (e *generator) extractMessageCEL(opts *descriptorpb.MessageOptions, def *Me
 				list := rv.List()
 				for i := 0; i < list.Len(); i++ {
 					rule := extractCelRule(list.Get(i).Message())
-					cv, cerr := transpileCELMessage(rule, fieldNameMap, e.celEnvCache)
+					cv, cerr := transpileCELMessage(rule, fieldNameMap, enumFieldClassMap, e.celEnvCache)
 					if cerr != nil {
 						def.DroppedCelConstraints = append(def.DroppedCelConstraints,
 							fmt.Sprintf("cel id=%q (not translated: %v)", rule.ID, cerr))
@@ -491,7 +521,7 @@ func (e *generator) extractMessageCEL(opts *descriptorpb.MessageOptions, def *Me
 				for i := 0; i < list.Len(); i++ {
 					expr := list.Get(i).String()
 					rule := celRule{ID: expr, Expression: expr, Message: expr}
-					cv, cerr := transpileCELMessage(rule, fieldNameMap, e.celEnvCache)
+					cv, cerr := transpileCELMessage(rule, fieldNameMap, enumFieldClassMap, e.celEnvCache)
 					if cerr != nil {
 						def.DroppedCelConstraints = append(def.DroppedCelConstraints,
 							fmt.Sprintf("cel id=%q (not translated: %v)", rule.ID, cerr))

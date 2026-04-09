@@ -24,9 +24,11 @@ def test_partial_proto_types_exists():
     assert (GEN / "partial/v1/_proto_types.py").exists()
 
 
-def test_foo_bar_v1_no_proto_types():
-    """foo/bar/v1 has no runtime imports at all; _proto_types.py must not be generated."""
-    assert not (GEN / "foo/bar/v1/_proto_types.py").exists()
+def test_foo_bar_v1_proto_types_has_proto_enum():
+    """foo/bar/v1 has enums so _proto_types.py is generated with _ProtoEnum."""
+    text = (GEN / "foo/bar/v1/_proto_types.py").read_text()
+    assert "_ProtoEnum" in text
+    assert "_validate_email" not in text
 
 
 # ---------------------------------------------------------------------------
