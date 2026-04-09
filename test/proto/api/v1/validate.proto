@@ -1211,3 +1211,22 @@ message ValidatedCELEnumField {
   };
 }
 
+// ValidatedCELEnumAliased exercises message-level CEL on an enum field whose
+// proto name is a Python reserved word ("type"), which gets renamed to "type_".
+// The enumFieldClassMap must key on the proto name so the CEL lookup works.
+message ValidatedCELEnumAliased {
+  enum Kind {
+    KIND_UNSPECIFIED = 0;
+    KIND_A = 1;
+    KIND_B = 2;
+    KIND_C = 3;
+  }
+
+  Kind type = 1;
+
+  option (buf.validate.message).cel = {
+    id: "kind_not_c",
+    expression: "this.type < 3",
+    message: "type must be A or B"
+  };
+}

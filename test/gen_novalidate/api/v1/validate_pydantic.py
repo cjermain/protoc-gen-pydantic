@@ -1523,3 +1523,24 @@ class ValidatedCELEnumField(_ProtoModel):
         EGGS = ("EGGS", 3)
 
     food: "ValidatedCELEnumField.Food | None" = _Field(default=None)
+
+
+class ValidatedCELEnumAliased(_ProtoModel):
+    """
+    ValidatedCELEnumAliased exercises message-level CEL on an enum field whose
+    proto name is a Python reserved word ("type"), which gets renamed to "type_".
+    The enumFieldClassMap must key on the proto name so the CEL lookup works.
+    """
+
+    model_config = _ConfigDict(populate_by_name=True, protected_namespaces=())
+
+    class Kind(_ProtoEnum):
+        UNSPECIFIED = ("UNSPECIFIED", 0)
+        A = ("A", 1)
+        B = ("B", 2)
+        C = ("C", 3)
+
+    type_: "ValidatedCELEnumAliased.Kind | None" = _Field(
+        default=None,
+        alias="type",
+    )

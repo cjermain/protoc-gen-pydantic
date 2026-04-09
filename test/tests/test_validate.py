@@ -112,6 +112,7 @@ from api.v1.validate_pydantic import (
     ValidatedCELInsideItems,
     ValidatedCELInsideMapValues,
     ValidatedCELEnumField,
+    ValidatedCELEnumAliased,
 )
 
 
@@ -1729,6 +1730,31 @@ def test_cel_enum_field_unset_passes():
     # Unset enum (None) has number 0 (UNSPECIFIED), which satisfies 0 < 3.
     m = ValidatedCELEnumField()
     assert m.food is None
+
+
+# ---------------------------------------------------------------------------
+# ValidatedCELEnumAliased — enum field aliased due to Python reserved name
+# ---------------------------------------------------------------------------
+
+
+def test_cel_enum_aliased_valid_a():
+    m = ValidatedCELEnumAliased(type=ValidatedCELEnumAliased.Kind.A)
+    assert m.type_ == "A"
+
+
+def test_cel_enum_aliased_valid_b():
+    m = ValidatedCELEnumAliased(type=ValidatedCELEnumAliased.Kind.B)
+    assert m.type_ == "B"
+
+
+def test_cel_enum_aliased_invalid_c():
+    with pytest.raises(ValidationError):
+        ValidatedCELEnumAliased(type=ValidatedCELEnumAliased.Kind.C)
+
+
+def test_cel_enum_aliased_unset_passes():
+    m = ValidatedCELEnumAliased()
+    assert m.type_ is None
 
 
 # ---------------------------------------------------------------------------
