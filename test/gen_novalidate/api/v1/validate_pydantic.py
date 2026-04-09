@@ -1506,3 +1506,20 @@ class ValidatedCELInsideMapValues(_ProtoModel):
     counters: dict[str, int] = _Field(
         default_factory=dict,
     )
+
+
+class ValidatedCELEnumField(_ProtoModel):
+    """
+    ValidatedCELEnumField exercises message-level CEL comparisons against
+    enum fields using the proto integer number (this.food < 3).
+    String-based enums cannot be compared with < directly in Python, so
+    the transpiler must emit self.food.number for enum fields.
+    """
+
+    class Food(_ProtoEnum):
+        UNSPECIFIED = ("UNSPECIFIED", 0)
+        BREAD = ("BREAD", 1)
+        MILK = ("MILK", 2)
+        EGGS = ("EGGS", 3)
+
+    food: "ValidatedCELEnumField.Food | None" = _Field(default=None)

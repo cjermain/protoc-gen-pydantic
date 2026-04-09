@@ -586,3 +586,10 @@ def _cel_dur_get_seconds(v: _datetime.timedelta) -> int:
 
 def _cel_dur_get_milliseconds(v: _datetime.timedelta) -> int:
     return v.days * 86400000 + v.seconds * 1000 + v.microseconds // 1000
+
+
+def _cel_enum_number(cls, val):
+    """Return the proto integer number for an enum field value (None → 0)."""
+    if val is None:
+        return 0
+    return cls(val).number

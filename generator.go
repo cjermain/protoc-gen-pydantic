@@ -390,11 +390,18 @@ func (e *generator) processMessage(
 			alias = name
 			name = name + "_"
 		}
+		isEnum := field.Kind() == protoreflect.EnumKind
+		var enumClass string
+		if isEnum {
+			enumClass = resolveQualifiedName(field.Enum())
+		}
 		f := Field{
 			Name:       name,
 			Alias:      alias,
 			Type:       typ,
 			NeedsQuote: fieldNeedsQuote(field),
+			IsEnum:     isEnum,
+			EnumClass:  enumClass,
 			Optional:   field.HasOptionalKeyword(),
 			Default:    e.resolveDefault(field),
 			OneOf:      oneOf,
@@ -474,11 +481,17 @@ func (e *generator) extractMessageCEL(opts *descriptorpb.MessageOptions, def *Me
 
 	// Build proto→Python field name map for has() and this.field resolution.
 	fieldNameMap := make(map[string]string, len(def.Fields))
+	enumFieldClassMap := make(map[string]string) // proto name → qualified enum class name
 	for _, f := range def.Fields {
+		protoName := f.Name
 		if f.Alias != "" {
-			fieldNameMap[f.Alias] = f.Name // proto name → Python name (e.g. "float" → "float_")
+			protoName = f.Alias // proto name → Python name (e.g. "float" → "float_")
+			fieldNameMap[f.Alias] = f.Name
 		} else {
 			fieldNameMap[f.Name] = f.Name
+		}
+		if f.IsEnum {
+			enumFieldClassMap[protoName] = f.EnumClass
 		}
 	}
 
@@ -492,7 +505,7 @@ func (e *generator) extractMessageCEL(opts *descriptorpb.MessageOptions, def *Me
 				list := rv.List()
 				for i := 0; i < list.Len(); i++ {
 					rule := extractCelRule(list.Get(i).Message())
-					cv, cerr := transpileCELMessage(rule, fieldNameMap, e.celEnvCache)
+					cv, cerr := transpileCELMessage(rule, fieldNameMap, enumFieldClassMap, e.celEnvCache)
 					if cerr != nil {
 						def.DroppedCelConstraints = append(def.DroppedCelConstraints,
 							fmt.Sprintf("cel id=%q (not translated: %v)", rule.ID, cerr))
@@ -508,7 +521,7 @@ func (e *generator) extractMessageCEL(opts *descriptorpb.MessageOptions, def *Me
 				for i := 0; i < list.Len(); i++ {
 					expr := list.Get(i).String()
 					rule := celRule{ID: expr, Expression: expr, Message: expr}
-					cv, cerr := transpileCELMessage(rule, fieldNameMap, e.celEnvCache)
+					cv, cerr := transpileCELMessage(rule, fieldNameMap, enumFieldClassMap, e.celEnvCache)
 					if cerr != nil {
 						def.DroppedCelConstraints = append(def.DroppedCelConstraints,
 							fmt.Sprintf("cel id=%q (not translated: %v)", rule.ID, cerr))

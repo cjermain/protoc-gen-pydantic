@@ -1190,3 +1190,24 @@ message ValidatedCELInsideMapValues {
   }];
 }
 
+// ValidatedCELEnumField exercises message-level CEL comparisons against
+// enum fields using the proto integer number (this.food < 3).
+// String-based enums cannot be compared with < directly in Python, so
+// the transpiler must emit self.food.number for enum fields.
+message ValidatedCELEnumField {
+  enum Food {
+    FOOD_UNSPECIFIED = 0;
+    FOOD_BREAD = 1;
+    FOOD_MILK = 2;
+    FOOD_EGGS = 3;
+  }
+
+  Food food = 1;
+
+  option (buf.validate.message).cel = {
+    id: "food_not_eggs",
+    expression: "this.food < 3",
+    message: "food must be bread or milk"
+  };
+}
+

@@ -158,7 +158,9 @@ type Field struct {
 	Name                string
 	Alias               string // non-empty when Name was renamed to avoid shadowing Python builtins
 	Type                string
-	NeedsQuote          bool // true when Type contains a user-defined class (message/enum) requiring a forward-reference string annotation
+	NeedsQuote          bool   // true when Type contains a user-defined class (message/enum) requiring a forward-reference string annotation
+	IsEnum              bool   // true when the field is an enum type (for CEL .number access)
+	EnumClass           string // qualified Python class name of enum type (e.g. "Msg.Food"), set when IsEnum
 	Optional            bool
 	Default             string // proto3 zero-value default (e.g. "0", "False", "None", "default_factory=list")
 	OneOf               *OneOf

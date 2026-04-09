@@ -1129,9 +1129,21 @@ func buildProtoTypesContent(needed map[string]bool, config GeneratorConfig, dirC
 	if needed["_cel_dur_get_milliseconds"] {
 		b.WriteString(protoTypesCELDurGetMillisFunc)
 	}
+	if needed["_cel_enum_number"] {
+		b.WriteString(protoTypesCELEnumNumberFunc)
+	}
 
 	return b.String()
 }
+
+const protoTypesCELEnumNumberFunc = `
+
+def _cel_enum_number(cls, val):
+    """Return the proto integer number for an enum field value (None → 0)."""
+    if val is None:
+        return 0
+    return cls(val).number
+`
 
 // buildProtoEnumContent generates the _EnumValueOptions dataclass and _ProtoEnum
 // class for _proto_types.py, respecting config options and per-directory custom fields.

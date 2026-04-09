@@ -20,6 +20,7 @@ from ._proto_types import (
     _cel_dur_get_minutes,
     _cel_dur_get_seconds,
     _cel_duration,
+    _cel_enum_number,
     _cel_matches,
     _cel_now,
     _cel_timestamp,
@@ -2303,3 +2304,26 @@ class ValidatedCELInsideMapValues(_ProtoModel):
         default_factory=dict,
         # buf.validate: cel_expression (not translated)
     )
+
+
+class ValidatedCELEnumField(_ProtoModel):
+    """
+    ValidatedCELEnumField exercises message-level CEL comparisons against
+    enum fields using the proto integer number (this.food < 3).
+    String-based enums cannot be compared with < directly in Python, so
+    the transpiler must emit self.food.number for enum fields.
+    """
+
+    class Food(_ProtoEnum):
+        UNSPECIFIED = ("UNSPECIFIED", 0)
+        BREAD = ("BREAD", 1)
+        MILK = ("MILK", 2)
+        EGGS = ("EGGS", 3)
+
+    food: "ValidatedCELEnumField.Food | None" = _Field(default=None)
+
+    @_model_validator(mode="after")
+    def _validate_cel_food_not_eggs(self) -> "ValidatedCELEnumField":
+        if not (_cel_enum_number(ValidatedCELEnumField.Food, self.food) < 3):
+            raise ValueError("food must be bread or milk")
+        return self

@@ -187,7 +187,7 @@ Untranslatable `cel_expression` entries emit the same `# buf.validate: cel id="�
 comment as full `cel` rules.
 
 - **Field-level**: transpiled expression becomes `_AfterValidator(_make_cel_validator(lambda v: expr, "msg"))` (bool-returning) or `_AfterValidator(_make_cel_str_validator(lambda v: expr))` (string-returning).
-- **Message-level**: each rule becomes a `@model_validator(mode="after")` method. `has(this.field)` presence checks use `"field" in self.model_fields_set`.
+- **Message-level**: each rule becomes a `@model_validator(mode="after")` method. `has(this.field)` presence checks use `"field" in self.model_fields_set`. Enum fields accessed via `this.food` emit `_cel_enum_number(ClassName, self.food)` — because `use_enum_values=True` stores the plain string/int value (not the enum member), the helper reconstructs `.number`; `None` (unset) → 0 (proto3 zero value). E.g. `this.food < 4` → `_cel_enum_number(Msg.Food, self.food) < 4`.
 - **Comprehensions**: `all`, `exists`, `exists_one`, `filter`, `map` → Python `all()`, `any()`, `sum(…)==1`, list comprehensions. Nested comprehensions (e.g. `map().all()`) work via recursive dispatch.
 - **Temporal**: `now` → `_cel_now()`, `duration("1h30m")` → `_cel_duration(5400)`, `timestamp("2020-01-01T00:00:00Z")` → `_cel_timestamp("2020-01-01T00:00:00Z")`. Non-repeated WKT message fields (`Timestamp`, `Duration`) wrap lambdas as `lambda v: v is None or (...)` to match protovalidate's skip-if-absent semantics.
 - **Timestamp accessors**: `this.getFullYear()` → `v.year`, `this.getMonth()` → `(v.month - 1)` (0-indexed), `this.getDayOfWeek()` → `(v.isoweekday() % 7)` (Sun=0), `this.getHours()` → `v.hour`, etc. All accept an optional IANA timezone string arg; non-UTC tz → `_cel_ts_in_tz(v, "tz")`.
@@ -197,6 +197,7 @@ comment as full `cel` rules.
 
 The `celEnvCache` (keyed by field type signature including WKT full names) caches `cel.Env`
 instances. The `transpiler` struct carries `isMsg bool`, `fieldNames map[string]string`,
+`enumFieldClassMap map[string]string` (proto name → qualified Python enum class, for `.number` access),
 `imports map[string]bool`, and `compVars map[string]bool` (comprehension scope).
 `recvTypeName` (from `NavigableExpr.Type().TypeName()`) is passed to `memberFunc` to dispatch
 timestamp vs. duration overloads for `getHours()` etc.

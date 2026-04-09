@@ -111,6 +111,7 @@ from api.v1.validate_pydantic import (
     ValidatedCELExprMessageDropped,
     ValidatedCELInsideItems,
     ValidatedCELInsideMapValues,
+    ValidatedCELEnumField,
 )
 
 
@@ -1702,6 +1703,32 @@ def test_cel_cross_field_valid():
 def test_cel_cross_field_invalid():
     with pytest.raises(ValidationError):
         ValidatedCELCrossField(min_val=10, max_val=1)
+
+
+# ---------------------------------------------------------------------------
+# ValidatedCELEnumField — message-level CEL comparing enum field by .number
+# ---------------------------------------------------------------------------
+
+
+def test_cel_enum_field_valid_bread():
+    m = ValidatedCELEnumField(food=ValidatedCELEnumField.Food.BREAD)
+    assert m.food == "BREAD"
+
+
+def test_cel_enum_field_valid_milk():
+    m = ValidatedCELEnumField(food=ValidatedCELEnumField.Food.MILK)
+    assert m.food == "MILK"
+
+
+def test_cel_enum_field_invalid_eggs():
+    with pytest.raises(ValidationError):
+        ValidatedCELEnumField(food=ValidatedCELEnumField.Food.EGGS)
+
+
+def test_cel_enum_field_unset_passes():
+    # Unset enum (None) has number 0 (UNSPECIFIED), which satisfies 0 < 3.
+    m = ValidatedCELEnumField()
+    assert m.food is None
 
 
 # ---------------------------------------------------------------------------
