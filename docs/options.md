@@ -85,19 +85,19 @@ Removes the enum type name prefix (case-insensitive, with trailing `_`) from val
 === "true (default)"
 
     ```python
-    class Status(str, _Enum):
-        UNSPECIFIED = "UNSPECIFIED"
-        OK = "OK"
-        ERROR = "ERROR"
+    class Status(_ProtoEnum):
+        UNSPECIFIED = ("UNSPECIFIED", 0)
+        OK = ("OK", 1)
+        ERROR = ("ERROR", 2)
     ```
 
 === "false"
 
     ```python
-    class Status(str, _Enum):
-        STATUS_UNSPECIFIED = "STATUS_UNSPECIFIED"
-        STATUS_OK = "STATUS_OK"
-        STATUS_ERROR = "STATUS_ERROR"
+    class Status(_ProtoEnum):
+        STATUS_UNSPECIFIED = ("STATUS_UNSPECIFIED", 0)
+        STATUS_OK = ("STATUS_OK", 1)
+        STATUS_ERROR = ("STATUS_ERROR", 2)
     ```
 
 **buf.gen.yaml:**
@@ -127,16 +127,16 @@ When enabled, enums use `int` as the mixin type and integer values instead of st
 === "false (default)"
 
     ```python
-    class Status(str, _Enum):
-        UNSPECIFIED = "UNSPECIFIED"
-        OK = "OK"
-        ERROR = "ERROR"
+    class Status(_ProtoEnum):
+        UNSPECIFIED = ("UNSPECIFIED", 0)
+        OK = ("OK", 1)
+        ERROR = ("ERROR", 2)
     ```
 
 === "true"
 
     ```python
-    class Status(int, _Enum):
+    class Status(_ProtoEnum):
         UNSPECIFIED = 0
         OK = 1
         ERROR = 2

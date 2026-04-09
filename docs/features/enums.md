@@ -59,10 +59,10 @@ HUE_RED         → RED
 With `auto_trim_enum_prefix=false` the full name is kept:
 
 ```python
-class Hue(str, _Enum):
-    HUE_UNSPECIFIED = "HUE_UNSPECIFIED"
-    HUE_RED = "HUE_RED"
-    HUE_BLUE = "HUE_BLUE"
+class Hue(_ProtoEnum):
+    HUE_UNSPECIFIED = ("HUE_UNSPECIFIED", 0)
+    HUE_RED = ("HUE_RED", 1)
+    HUE_BLUE = ("HUE_BLUE", 2)
 ```
 
 See [Plugin Options](../options.md#auto-trim-enum-prefix) for details.
@@ -72,7 +72,7 @@ See [Plugin Options](../options.md#auto-trim-enum-prefix) for details.
 With `use_integers_for_enums=true`, the mixin type becomes `int` and values are integers:
 
 ```python
-class Hue(int, _Enum):
+class Hue(_ProtoEnum):
     UNSPECIFIED = 0
     RED = 1
     BLUE = 2

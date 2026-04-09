@@ -324,7 +324,6 @@ func (e *generator) processEnum(
 		}
 	}
 
-	e.addStdImport("_Enum")
 	return def, nil
 }
 

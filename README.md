@@ -144,11 +144,11 @@ class ValidatedUser(_ProtoModel):
     A user account.
     """
 
-    class Role(str, _Enum):
-        UNSPECIFIED = "UNSPECIFIED"  # 0
-        VIEWER = "VIEWER"  # 1
-        EDITOR = "EDITOR"  # 2
-        ADMIN = "ADMIN"  # 3
+    class Role(_ProtoEnum):
+        UNSPECIFIED = ("UNSPECIFIED", 0)
+        VIEWER = ("VIEWER", 1)
+        EDITOR = ("EDITOR", 2)
+        ADMIN = ("ADMIN", 3)
 
     # Display name (1–50 characters).
     name: str = _Field(
