@@ -929,6 +929,13 @@ func buildProtoTypesContent(needed map[string]bool, config GeneratorConfig, dirC
 	// hostname is a dependency for address, host_and_port, and their bool variants.
 	needHostnameAsDep := needed["_validate_address"] || needed["_validate_host_and_port"] ||
 		needed["_is_hostname"] || needed["_is_host_and_port"]
+	needAny := false
+	for _, f := range dirCustomOptionFields {
+		if f.PythonType == "_Any" {
+			needAny = true
+			break
+		}
+	}
 
 	var b strings.Builder
 
@@ -949,6 +956,9 @@ func buildProtoTypesContent(needed map[string]bool, config GeneratorConfig, dirC
 	if needed["_ProtoEnum"] {
 		b.WriteString("from dataclasses import dataclass as _dataclass\n")
 		b.WriteString("from enum import Enum as _Enum\n")
+	}
+	if needAny {
+		b.WriteString("from typing import Any as _Any\n")
 	}
 	b.WriteString("from typing import Annotated as _Annotated\n")
 	if needed["_ProtoEnum"] && !config.UseNoneUnionSyntaxInsteadOfOptional {

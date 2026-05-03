@@ -94,6 +94,18 @@ def test_api_v1_proto_types_has_all_format_validators(symbol):
 
 
 # ---------------------------------------------------------------------------
+# Content: _Any import in _proto_types.py when EnumValueOptions uses Any type
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("gen_dir", ["gen", "gen_options"])
+def test_proto_types_imports_any_for_any_enum_option(gen_dir):
+    """_proto_types.py must import _Any when a google.protobuf.Any custom option field exists."""
+    text = (Path(gen_dir) / "api/v1/_proto_types.py").read_text()
+    assert "from typing import Any as _Any" in text
+
+
+# ---------------------------------------------------------------------------
 # Functional: partial/v1 models enforce their constraints
 # ---------------------------------------------------------------------------
 

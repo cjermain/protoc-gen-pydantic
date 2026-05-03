@@ -311,19 +311,6 @@ func (e *generator) processEnum(
 		})
 	}
 
-	// If any value has custom options with an _Any-typed field, import _Any.
-	for _, v := range def.Values {
-		if len(v.CustomOptions) > 0 {
-			for _, f := range e.customOptionFields {
-				if f.PythonType == "_Any" {
-					e.addStdImport("_Any")
-					break
-				}
-			}
-			break
-		}
-	}
-
 	return def, nil
 }
 
