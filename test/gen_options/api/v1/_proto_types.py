@@ -6,6 +6,7 @@ import re as _re
 import uuid as _uuid_lib
 from dataclasses import dataclass as _dataclass
 from enum import Enum as _Enum
+from typing import Any as _Any
 from typing import Annotated as _Annotated
 from typing import Optional as _Optional
 
@@ -141,6 +142,7 @@ class _EnumValueOptions:
     debug_redact: bool = False
     display_name: _Optional[str] = None
     is_default: _Optional[bool] = None
+    metadata: _Optional[_Any] = None
     priority: _Optional[int] = None
     rank: _Optional[int] = None
     rate: _Optional[float] = None

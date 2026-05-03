@@ -3,6 +3,7 @@ import datetime as _datetime
 import re as _re
 from dataclasses import dataclass as _dataclass
 from enum import Enum as _Enum
+from typing import Any as _Any
 from typing import Annotated as _Annotated
 
 from pydantic import BeforeValidator as _BeforeValidator
@@ -133,6 +134,7 @@ class _EnumValueOptions:
     debug_redact: bool = False
     display_name: str | None = None
     is_default: bool | None = None
+    metadata: _Any | None = None
     priority: int | None = None
     rank: int | None = None
     rate: float | None = None

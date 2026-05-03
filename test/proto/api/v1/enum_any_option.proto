@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package test.api.v1;
+
+import "google/protobuf/any.proto";
+import "google/protobuf/descriptor.proto";
+
+option go_package = "github.com/cjermain/protoc-gen-pydantic/test/api";
+
+extend google.protobuf.EnumValueOptions {
+  optional google.protobuf.Any metadata = 51242;
+}
+
+// Tag enum with an Any-typed custom option.
+enum Tag {
+  TAG_UNSPECIFIED = 0;
+  TAG_ALPHA = 1 [(metadata) = {}];
+  TAG_BETA = 2;
+}
