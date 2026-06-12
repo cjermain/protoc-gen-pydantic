@@ -929,6 +929,36 @@ class ValidatedCELCrossField(_ProtoModel):
         return self
 
 
+class ValidatedCELReservedName(_ProtoModel):
+    """
+    ValidatedCELReservedName exercises message-level CEL referencing fields
+    whose names are Python builtins/keywords (renamed with trailing underscore).
+    """
+
+    model_config = _ConfigDict(populate_by_name=True, protected_namespaces=())
+
+    bool_: bool | None = _Field(
+        default=None,
+        alias="bool",
+    )
+    float_: float | None = _Field(
+        default=None,
+        alias="float",
+    )
+
+    @_model_validator(mode="after")
+    def _validate_cel_reserved_check(self) -> "ValidatedCELReservedName":
+        if not (not ("bool_" in self.model_fields_set) or (self.bool_ == True)):
+            raise ValueError("bool field must be true when set")
+        return self
+
+    @_model_validator(mode="after")
+    def _validate_cel_float_check(self) -> "ValidatedCELReservedName":
+        if not (not ("float_" in self.model_fields_set) or (self.float_ > 0.0)):
+            raise ValueError("float field must be positive when set")
+        return self
+
+
 class ValidatedCELDropped(_ProtoModel):
     """
     ValidatedCELDropped exercises the drop path for unsupported CEL

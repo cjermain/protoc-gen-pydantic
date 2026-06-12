@@ -64,7 +64,7 @@ class SingleOneof(_ProtoModel):
 
     @_model_validator(mode="after")
     def _validate_oneof_choice(self) -> "SingleOneof":
-        _set = [f for f in ("the_value",) if getattr(self, f) is not None]
+        _set = [f for f in ("theValue",) if getattr(self, f) is not None]
         if len(_set) > 1:
             raise ValueError(f"oneof 'choice': only one field may be set, got {_set!r}")
         return self

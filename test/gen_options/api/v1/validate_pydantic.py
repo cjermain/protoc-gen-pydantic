@@ -562,9 +562,7 @@ class ValidatedOneofFormat(_ProtoModel):
     @_model_validator(mode="after")
     def _validate_oneof_contact(self) -> "ValidatedOneofFormat":
         _set = [
-            f
-            for f in ("email_contact", "phone_contact")
-            if getattr(self, f) is not None
+            f for f in ("emailContact", "phoneContact") if getattr(self, f) is not None
         ]
         if len(_set) > 1:
             raise ValueError(
@@ -586,9 +584,7 @@ class ValidatedConstOptional(_ProtoModel):
 
     @_model_validator(mode="after")
     def _validate_oneof_token_type(self) -> "ValidatedConstOptional":
-        _set = [
-            f for f in ("fixed_token", "other_token") if getattr(self, f) is not None
-        ]
+        _set = [f for f in ("fixedToken", "otherToken") if getattr(self, f) is not None]
         if len(_set) > 1:
             raise ValueError(
                 f"oneof 'token_type': only one field may be set, got {_set!r}"
@@ -802,6 +798,36 @@ class ValidatedCELCrossField(_ProtoModel):
     def _validate_cel_min_less_than_max(self) -> "ValidatedCELCrossField":
         if not (self.min_val < self.max_val):
             raise ValueError("min_val must be less than max_val")
+        return self
+
+
+class ValidatedCELReservedName(_ProtoModel):
+    """
+    ValidatedCELReservedName exercises message-level CEL referencing fields
+    whose names are Python builtins/keywords (renamed with trailing underscore).
+    """
+
+    model_config = _ConfigDict(populate_by_name=True, protected_namespaces=())
+
+    bool_: _Optional[bool] = _Field(
+        default=None,
+        alias="bool",
+    )
+    float_: _Optional[float] = _Field(
+        default=None,
+        alias="float",
+    )
+
+    @_model_validator(mode="after")
+    def _validate_cel_reserved_check(self) -> "ValidatedCELReservedName":
+        if not (not ("bool_" in self.model_fields_set) or (self.bool_ == True)):
+            raise ValueError("bool field must be true when set")
+        return self
+
+    @_model_validator(mode="after")
+    def _validate_cel_float_check(self) -> "ValidatedCELReservedName":
+        if not (not ("float_" in self.model_fields_set) or (self.float_ > 0.0)):
+            raise ValueError("float field must be positive when set")
         return self
 
 

@@ -360,8 +360,15 @@ func (e *generator) processMessage(
 		var oneOf *OneOf
 		if oo := field.ContainingOneof(); !field.HasOptionalKeyword() && oo != nil {
 			var fieldNames []string
-			for _, f := range iter(oo.Fields()) {
-				fieldNames = append(fieldNames, string(f.Name()))
+			for _, mf := range iter(oo.Fields()) {
+				n := mf.JSONName()
+				if e.config.PreservingProtoFieldName {
+					n = string(mf.Name())
+				}
+				if reservedNames[n] {
+					n += "_"
+				}
+				fieldNames = append(fieldNames, n)
 			}
 			oneOf = &OneOf{
 				Name:       string(oo.Name()),

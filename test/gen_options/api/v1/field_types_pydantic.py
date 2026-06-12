@@ -92,7 +92,7 @@ class Payment(_ProtoModel):
     def _validate_oneof_method(self) -> "Payment":
         _set = [
             f
-            for f in ("credit_card", "paypal", "bank_iban")
+            for f in ("creditCard", "paypal", "bankIban")
             if getattr(self, f) is not None
         ]
         if len(_set) > 1:

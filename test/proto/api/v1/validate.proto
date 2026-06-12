@@ -443,6 +443,24 @@ message ValidatedCELCrossField {
   };
 }
 
+// ValidatedCELReservedName exercises message-level CEL referencing fields
+// whose names are Python builtins/keywords (renamed with trailing underscore).
+message ValidatedCELReservedName {
+  optional bool bool = 1;
+  optional float float = 2;
+
+  option (buf.validate.message).cel = {
+    id: "reserved_check",
+    expression: "!has(this.bool) || this.bool == true",
+    message: "bool field must be true when set"
+  };
+  option (buf.validate.message).cel = {
+    id: "float_check",
+    expression: "!has(this.float) || this.float > 0.0",
+    message: "float field must be positive when set"
+  };
+}
+
 // ValidatedCELDropped exercises the drop path for unsupported CEL
 // (comprehension). The dropped comment must appear in the generated file.
 message ValidatedCELDropped {

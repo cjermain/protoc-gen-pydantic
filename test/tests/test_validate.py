@@ -113,6 +113,7 @@ from api.v1.validate_pydantic import (
     ValidatedCELInsideMapValues,
     ValidatedCELEnumField,
     ValidatedCELEnumAliased,
+    ValidatedCELReservedName,
 )
 
 
@@ -1755,6 +1756,38 @@ def test_cel_enum_aliased_invalid_c():
 def test_cel_enum_aliased_unset_passes():
     m = ValidatedCELEnumAliased()
     assert m.type_ is None
+
+
+# ---------------------------------------------------------------------------
+# ValidatedCELReservedName — message-level CEL referencing reserved-name fields
+# ---------------------------------------------------------------------------
+
+
+def test_cel_reserved_name_unset_passes():
+    # Both fields unset — has() guards skip the body, no error.
+    m = ValidatedCELReservedName()
+    assert m.bool_ is None
+    assert m.float_ is None
+
+
+def test_cel_reserved_name_bool_true_valid():
+    m = ValidatedCELReservedName(**{"bool": True})
+    assert m.bool_ is True
+
+
+def test_cel_reserved_name_bool_false_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedCELReservedName(**{"bool": False})
+
+
+def test_cel_reserved_name_float_positive_valid():
+    m = ValidatedCELReservedName(**{"float": 1.5})
+    assert m.float_ == 1.5
+
+
+def test_cel_reserved_name_float_negative_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedCELReservedName(**{"float": -0.5})
 
 
 # ---------------------------------------------------------------------------

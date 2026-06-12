@@ -16,3 +16,14 @@ message ReservedFieldNames {
   string model_fields = 2;
   string model_dump = 3;
 }
+
+// ReservedOneof exercises a oneof group where some member names are Python
+// reserved words. The validator must use the aliased Python names (bool_,
+// float_) in getattr() calls, not the original proto names.
+message ReservedOneof {
+  oneof value {
+    bool  bool  = 1;
+    float float = 2;
+    int32 count = 3;
+  }
+}

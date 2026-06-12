@@ -1,4 +1,6 @@
-from api.v1.reserved_names_pydantic import ReservedFieldNames
+import pytest
+
+from api.v1.reserved_names_pydantic import ReservedFieldNames, ReservedOneof
 
 
 def test_reserved_field_names():
@@ -25,3 +27,25 @@ def test_reserved_field_names_roundtrip():
     data = obj.model_dump()
     restored = ReservedFieldNames(**data)
     assert restored == obj
+
+
+def test_reserved_oneof_single_field_valid():
+    """Oneof with reserved-name members accepts a single field set."""
+    obj = ReservedOneof(**{"bool": True})
+    assert obj.bool_ is True
+    assert obj.float_ is None
+    assert obj.count is None
+
+
+def test_reserved_oneof_single_non_reserved_valid():
+    """Oneof with reserved-name members accepts the non-reserved field set."""
+    obj = ReservedOneof(count=5)
+    assert obj.bool_ is None
+    assert obj.float_ is None
+    assert obj.count == 5
+
+
+def test_reserved_oneof_multiple_fields_invalid():
+    """Oneof with reserved-name members rejects multiple fields set."""
+    with pytest.raises(ValueError, match="oneof 'value'"):
+        ReservedOneof(**{"bool": True, "float": 1.5})
