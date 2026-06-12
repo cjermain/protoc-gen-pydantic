@@ -790,6 +790,24 @@ class ValidatedCELCrossField(_ProtoModel):
     max_val: int = _Field(default=0)
 
 
+class ValidatedCELReservedName(_ProtoModel):
+    """
+    ValidatedCELReservedName exercises message-level CEL referencing fields
+    whose names are Python builtins/keywords (renamed with trailing underscore).
+    """
+
+    model_config = _ConfigDict(populate_by_name=True, protected_namespaces=())
+
+    bool_: bool | None = _Field(
+        default=None,
+        alias="bool",
+    )
+    float_: float | None = _Field(
+        default=None,
+        alias="float",
+    )
+
+
 class ValidatedCELDropped(_ProtoModel):
     """
     ValidatedCELDropped exercises the drop path for unsupported CEL
