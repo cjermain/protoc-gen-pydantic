@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 
 	"google.golang.org/protobuf/proto"
@@ -266,6 +267,14 @@ func (e *generator) applyConstraintTypeOverrides(f *Field) {
 		innerType := f.Type[len("list[") : len(f.Type)-1]
 		annotatedInner := e.buildItemAnnotation(innerType, fc.ItemConstraints)
 		if annotatedInner != innerType {
+			if f.NeedsQuote && strings.Contains(annotatedInner, `"`) {
+				// The item annotation embeds double-quoted string literals (e.g.
+				// an enum in/not_in set); quote only the forward-referenced class
+				// name inside it instead of wrapping the whole list[...] in outer
+				// quotes, which would collide with those embedded quotes.
+				annotatedInner = quoteAnnotatedInnerType(annotatedInner)
+				f.NeedsQuote = false
+			}
 			f.Type = "list[" + annotatedInner + "]"
 		}
 		// Propagate item-level drops so they surface as # buf.validate: … comments
@@ -287,6 +296,13 @@ func (e *generator) applyConstraintTypeOverrides(f *Field) {
 			}
 			if fc.ValueConstraints != nil {
 				valType = e.buildItemAnnotation(valType, fc.ValueConstraints)
+				if f.NeedsQuote && strings.Contains(valType, `"`) {
+					// See the matching repeated.items comment above: avoid
+					// wrapping dict[...] in outer quotes when the value
+					// annotation already embeds double-quoted literals.
+					valType = quoteAnnotatedInnerType(valType)
+					f.NeedsQuote = false
+				}
 				if len(fc.ValueConstraints.DroppedConstraints) > 0 {
 					fc.DroppedConstraints = append(fc.DroppedConstraints, fc.ValueConstraints.DroppedConstraints...)
 				}
@@ -477,17 +493,18 @@ func (e *generator) extractFieldConstraints(
 			v.Message().Range(func(rfd protoreflect.FieldDescriptor, rv protoreflect.Value) bool {
 				switch {
 				case string(rfd.Name()) == "items" && rfd.Kind() == protoreflect.MessageKind:
-					result.ItemConstraints = e.extractConstraintsFromMsg(rv.Message(), isFloat, isBytesField)
+					result.ItemConstraints = e.extractConstraintsFromMsg(rv.Message(), isFloat, isBytesField, field.Enum())
 				case string(rfd.Name()) == "keys" && rfd.Kind() == protoreflect.MessageKind && field.IsMap():
 					keyKind := field.MapKey().Kind()
 					isKeyFloat := keyKind == protoreflect.FloatKind || keyKind == protoreflect.DoubleKind
 					isKeyBytes := keyKind == protoreflect.BytesKind
-					result.KeyConstraints = e.extractConstraintsFromMsg(rv.Message(), isKeyFloat, isKeyBytes)
+					// Map keys can never be enum-kinded per the protobuf spec.
+					result.KeyConstraints = e.extractConstraintsFromMsg(rv.Message(), isKeyFloat, isKeyBytes, nil)
 				case string(rfd.Name()) == "values" && rfd.Kind() == protoreflect.MessageKind && field.IsMap():
 					valKind := field.MapValue().Kind()
 					isValFloat := valKind == protoreflect.FloatKind || valKind == protoreflect.DoubleKind
 					isValBytes := valKind == protoreflect.BytesKind
-					result.ValueConstraints = e.extractConstraintsFromMsg(rv.Message(), isValFloat, isValBytes)
+					result.ValueConstraints = e.extractConstraintsFromMsg(rv.Message(), isValFloat, isValBytes, field.MapValue().Enum())
 				default:
 					extractRuleField(result, rfd, rv, isFloat, isBytesField)
 				}
@@ -495,6 +512,12 @@ func (e *generator) extractFieldConstraints(
 			})
 			// Combine prefix/suffix into pattern after all sub-fields are visited.
 			result.combinePatternConstraints()
+			// enum.in/not_in carry proto numbers, but the generated field holds
+			// the enum's Python-side value (its trimmed name when string-backed,
+			// or the number itself when use_integers_for_enums) once
+			// use_enum_values applies — translate so the AfterValidator compares
+			// like with like. field.Enum() is nil for non-enum kinds.
+			e.translateEnumInValues(field.Enum(), result)
 		}
 		return true
 	})
@@ -518,13 +541,57 @@ func (e *generator) extractFieldConstraints(
 	return result
 }
 
+// translateEnumInValues rewrites enum.in/not_in literals from proto numbers
+// (e.g. "1") into the Python literal the field will actually hold at
+// AfterValidator time: with use_integers_for_enums the field's use_enum_values
+// value is already the number, so entries are left as-is; otherwise it's the
+// enum member's (optionally prefix-trimmed) name, so entries are rewritten to
+// the matching quoted string. Numbers with no matching enum value are left
+// untouched (never true, but harmless). enumDesc is nil for non-enum fields
+// (and for enum-typed map keys, which protobuf disallows), a no-op.
+func (e *generator) translateEnumInValues(enumDesc protoreflect.EnumDescriptor, result *FieldConstraints) {
+	if enumDesc == nil || e.config.UseIntegersForEnums {
+		return
+	}
+	if len(result.InValues) == 0 && len(result.NotInValues) == 0 {
+		return
+	}
+	prefix := camelToSnakeCase(string(enumDesc.Name())) + "_"
+	translate := func(values []string) []string {
+		out := make([]string, 0, len(values))
+		for _, s := range values {
+			n, err := strconv.ParseInt(s, 10, 32)
+			if err != nil {
+				out = append(out, s)
+				continue
+			}
+			vd := enumDesc.Values().ByNumber(protoreflect.EnumNumber(n))
+			if vd == nil {
+				out = append(out, s)
+				continue
+			}
+			name := string(vd.Name())
+			if e.config.AutoTrimEnumPrefix {
+				name = strings.TrimPrefix(name, prefix)
+			}
+			out = append(out, pyQuote(name))
+		}
+		return out
+	}
+	result.InValues = translate(result.InValues)
+	result.NotInValues = translate(result.NotInValues)
+}
+
 // extractConstraintsFromMsg extracts FieldConstraints from a nested
 // FieldConstraints sub-message (e.g. the value of repeated.items). It mirrors
 // the inner part of extractFieldConstraints but takes a Message directly.
+// enumDesc is the element's enum descriptor when the element (item/key/value)
+// is enum-kinded, nil otherwise; it drives enum.in/not_in literal translation.
 func (e *generator) extractConstraintsFromMsg(
 	msg protoreflect.Message,
 	isFloat bool,
 	isBytesField bool,
+	enumDesc protoreflect.EnumDescriptor,
 ) *FieldConstraints {
 	result := &FieldConstraints{}
 	msg.Range(func(fd protoreflect.FieldDescriptor, v protoreflect.Value) bool {
@@ -542,6 +609,7 @@ func (e *generator) extractConstraintsFromMsg(
 				return true
 			})
 			result.combinePatternConstraints()
+			e.translateEnumInValues(enumDesc, result)
 		}
 		return true
 	})

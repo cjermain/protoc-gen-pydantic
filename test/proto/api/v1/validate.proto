@@ -199,6 +199,25 @@ message ValidatedIn {
   uint32 limit = 4 [(buf.validate.field) = {uint32: {in: [10, 50, 100]}}];
 }
 
+// ValidatedEnumIn exercises enum.in and enum.not_in translated to AfterValidator,
+// including on repeated.items and map.values elements — those go through a
+// separate nested-constraint extraction path from the plain scalar field case.
+// enum.in/not_in values are proto numbers (int32), but use_enum_values reduces
+// the field to its enum member's name (or number, with use_integers_for_enums)
+// by the time the AfterValidator runs — the generator must translate the
+// numeric literals to match.
+message ValidatedEnumIn {
+  enum Status {
+    STATUS_UNSPECIFIED = 0;
+    STATUS_ACTIVE = 1;
+    STATUS_ARCHIVED = 2;
+  }
+  Status status = 1 [(buf.validate.field).enum = { in: [0, 1] }];
+  Status excluded = 2 [(buf.validate.field).enum = { not_in: [2] }];
+  repeated Status statuses = 3 [(buf.validate.field).repeated.items.enum = { in: [0, 1] }];
+  map<string, Status> status_by_key = 4 [(buf.validate.field).map.values.enum = { in: [0, 1] }];
+}
+
 // ValidatedUnique exercises repeated.unique translated to AfterValidator.
 message ValidatedUnique {
   repeated string tags = 1 [(buf.validate.field).repeated.unique = true];
