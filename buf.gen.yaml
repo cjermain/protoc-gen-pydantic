@@ -20,6 +20,7 @@ plugins:
       - use_integers_for_enums=true
       - disable_field_description=true
       - use_none_union_syntax_instead_of_optional=false
+      - camel_case_alias=false
     out: test/gen_options
   - local:
       - go

@@ -689,4 +689,5 @@ type GeneratorConfig struct {
 	DisableFieldDescription             bool
 	UseNoneUnionSyntaxInsteadOfOptional bool
 	DisableValidate                     bool
+	CamelCaseAlias                      bool
 }

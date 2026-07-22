@@ -284,10 +284,13 @@ class ValidatedTimestamp(_ProtoModel):
     message-typed rule fields and must not panic.
     """
 
+    model_config = _ConfigDict(populate_by_name=True, protected_namespaces=())
+
     # CreatedAt must be after the Unix epoch.
     created_at: ProtoTimestamp | None = _Field(
         default=None,
         description="CreatedAt must be after the Unix epoch.",
+        alias="createdAt",
         # buf.validate: gt (not translated)
     )
 
@@ -370,6 +373,8 @@ class ValidatedFormats(_ProtoModel):
     IP address (v4/v6), UUID, and float finite.
     """
 
+    model_config = _ConfigDict(populate_by_name=True, protected_namespaces=())
+
     # Email must be a valid email address.
     email: _Annotated[str, _AfterValidator(_validate_email)] = _Field(
         description="Email must be a valid email address.",
@@ -394,10 +399,12 @@ class ValidatedFormats(_ProtoModel):
     # Host must be a valid IPv4 address.
     host_v4: _Annotated[str, _AfterValidator(_validate_ipv4)] = _Field(
         description="Host must be a valid IPv4 address.",
+        alias="hostV4",
     )
     # Host must be a valid IPv6 address.
     host_v6: _Annotated[str, _AfterValidator(_validate_ipv6)] = _Field(
         description="Host must be a valid IPv6 address.",
+        alias="hostV6",
     )
 
 
@@ -582,6 +589,8 @@ class ValidatedRequired(_ProtoModel):
     (where it strips | None) vs. message-typed and plain scalar fields (dropped).
     """
 
+    model_config = _ConfigDict(populate_by_name=True, protected_namespaces=())
+
     class Detail(_ProtoModel):
         """
         Detail is a nested message used to test message-typed required handling.
@@ -593,23 +602,27 @@ class ValidatedRequired(_ProtoModel):
     required_name: str = _Field(
         default=...,
         description="required on proto3 optional scalar: | None stripped, field becomes required.",
+        alias="requiredName",
     )
     # required on proto3 optional scalar with an additional constraint.
     required_score: int = _Field(
         default=...,
         description="required on proto3 optional scalar with an additional constraint.",
+        alias="requiredScore",
         gt=0,
     )
     # required on message-typed optional: not translated, emits dropped comment.
     required_detail: "ValidatedRequired.Detail | None" = _Field(
         default=None,
         description="required on message-typed optional: not translated, emits dropped comment.",
+        alias="requiredDetail",
         # buf.validate: required (not translated)
     )
     # required on plain proto3 scalar: not translated, emits dropped comment.
     plain_name: str = _Field(
         default="",
         description="required on plain proto3 scalar: not translated, emits dropped comment.",
+        alias="plainName",
         # buf.validate: required (not translated)
     )
 
@@ -624,14 +637,18 @@ class ValidatedOneofFormat(_ProtoModel):
     _Optional[...] branch.
     """
 
+    model_config = _ConfigDict(populate_by_name=True, protected_namespaces=())
+
     # Must be a valid email address when set.
     email_contact: _Annotated[str, _AfterValidator(_validate_email)] | None = _Field(
         default=None,
         description='Must be a valid email address when set.\nOnly one of the fields can be specified with: ["email_contact", "phone_contact"] (oneof contact)',
+        alias="emailContact",
     )
     phone_contact: str | None = _Field(
         default=None,
         description='Only one of the fields can be specified with: ["email_contact", "phone_contact"] (oneof contact)',
+        alias="phoneContact",
     )
 
     @_model_validator(mode="after")
@@ -655,14 +672,18 @@ class ValidatedConstOptional(_ProtoModel):
     applyConstraintTypeOverrides (lines 1291-1294 in main.go).
     """
 
+    model_config = _ConfigDict(populate_by_name=True, protected_namespaces=())
+
     # Only "fixed" is valid when set.
     fixed_token: _Literal["fixed"] | None = _Field(
         default=None,
         description='Only "fixed" is valid when set.\nOnly one of the fields can be specified with: ["fixed_token", "other_token"] (oneof token_type)',
+        alias="fixedToken",
     )
     other_token: str | None = _Field(
         default=None,
         description='Only one of the fields can be specified with: ["fixed_token", "other_token"] (oneof token_type)',
+        alias="otherToken",
     )
 
     @_model_validator(mode="after")
@@ -683,6 +704,8 @@ class ValidatedFormatsExtended(_ProtoModel):
     original six (email, uri, ip, ipv4, ipv6, uuid).
     """
 
+    model_config = _ConfigDict(populate_by_name=True, protected_namespaces=())
+
     # Hostname must be a valid DNS hostname.
     hostname: _Annotated[str, _AfterValidator(_validate_hostname)] = _Field(
         description="Hostname must be a valid DNS hostname.",
@@ -690,6 +713,7 @@ class ValidatedFormatsExtended(_ProtoModel):
     # UriRef must be a valid URI reference (absolute or relative).
     uri_ref: _Annotated[str, _AfterValidator(_validate_uri_ref)] = _Field(
         description="UriRef must be a valid URI reference (absolute or relative).",
+        alias="uriRef",
     )
     # Addr must be a valid IP address or hostname.
     addr: _Annotated[str, _AfterValidator(_validate_address)] = _Field(
@@ -710,22 +734,27 @@ class ValidatedFormatsExtended(_ProtoModel):
     # CidrV4 must be a valid IPv4 address with prefix length.
     cidr_v4: _Annotated[str, _AfterValidator(_validate_ipv4_with_prefixlen)] = _Field(
         description="CidrV4 must be a valid IPv4 address with prefix length.",
+        alias="cidrV4",
     )
     # CidrV6 must be a valid IPv6 address with prefix length.
     cidr_v6: _Annotated[str, _AfterValidator(_validate_ipv6_with_prefixlen)] = _Field(
         description="CidrV6 must be a valid IPv6 address with prefix length.",
+        alias="cidrV6",
     )
     # IpNet must be a valid IP network (host bits must be zero).
     ip_net: _Annotated[str, _AfterValidator(_validate_ip_prefix)] = _Field(
         description="IpNet must be a valid IP network (host bits must be zero).",
+        alias="ipNet",
     )
     # Ipv4Net must be a valid IPv4 network (host bits must be zero).
     ipv4_net: _Annotated[str, _AfterValidator(_validate_ipv4_prefix)] = _Field(
         description="Ipv4Net must be a valid IPv4 network (host bits must be zero).",
+        alias="ipv4Net",
     )
     # Ipv6Net must be a valid IPv6 network (host bits must be zero).
     ipv6_net: _Annotated[str, _AfterValidator(_validate_ipv6_prefix)] = _Field(
         description="Ipv6Net must be a valid IPv6 network (host bits must be zero).",
+        alias="ipv6Net",
     )
     # Endpoint must be a valid host:port pair.
     endpoint: _Annotated[str, _AfterValidator(_validate_host_and_port)] = _Field(
@@ -738,19 +767,24 @@ class ValidatedWellKnownRegex(_ProtoModel):
     ValidatedWellKnownRegex exercises the well_known_regex enum validator.
     """
 
+    model_config = _ConfigDict(populate_by_name=True, protected_namespaces=())
+
     # HeaderName must be a valid HTTP header name.
     header_name: _Annotated[str, _AfterValidator(_validate_http_header_name)] = _Field(
         description="HeaderName must be a valid HTTP header name.",
+        alias="headerName",
     )
     # HeaderValue must be a valid HTTP header value.
     header_value: _Annotated[str, _AfterValidator(_validate_http_header_value)] = (
         _Field(
             description="HeaderValue must be a valid HTTP header value.",
+            alias="headerValue",
         )
     )
     # LooseHeader uses well_known_regex with strict=false (strict is not translated).
     loose_header: _Annotated[str, _AfterValidator(_validate_http_header_name)] = _Field(
         description="LooseHeader uses well_known_regex with strict=false (strict is not translated).",
+        alias="looseHeader",
         # buf.validate: strict=false (not translated)
     )
 
@@ -901,8 +935,16 @@ class ValidatedCELHas(_ProtoModel):
     ValidatedCELHas exercises the has() presence macro.
     """
 
-    first_name: str | None = _Field(default=None)
-    last_name: str | None = _Field(default=None)
+    model_config = _ConfigDict(populate_by_name=True, protected_namespaces=())
+
+    first_name: str | None = _Field(
+        default=None,
+        alias="firstName",
+    )
+    last_name: str | None = _Field(
+        default=None,
+        alias="lastName",
+    )
 
     @_model_validator(mode="after")
     def _validate_cel_name_required(self) -> "ValidatedCELHas":
@@ -919,8 +961,16 @@ class ValidatedCELCrossField(_ProtoModel):
     ValidatedCELCrossField exercises a cross-field numeric comparison.
     """
 
-    min_val: int = _Field(default=0)
-    max_val: int = _Field(default=0)
+    model_config = _ConfigDict(populate_by_name=True, protected_namespaces=())
+
+    min_val: int = _Field(
+        default=0,
+        alias="minVal",
+    )
+    max_val: int = _Field(
+        default=0,
+        alias="maxVal",
+    )
 
     @_model_validator(mode="after")
     def _validate_cel_min_less_than_max(self) -> "ValidatedCELCrossField":
@@ -1000,17 +1050,22 @@ class ValidatedBytesIP(_ProtoModel):
     ValidatedBytesIP exercises bytes.ip/ipv4/ipv6 binary address validation.
     """
 
+    model_config = _ConfigDict(populate_by_name=True, protected_namespaces=())
+
     # Binary IP address (4 bytes for IPv4 or 16 bytes for IPv6).
     ip_addr: _Annotated[bytes, _AfterValidator(_validate_bytes_ip)] = _Field(
         description="Binary IP address (4 bytes for IPv4 or 16 bytes for IPv6).",
+        alias="ipAddr",
     )
     # Binary IPv4 address (exactly 4 bytes).
     ipv4_addr: _Annotated[bytes, _AfterValidator(_validate_bytes_ipv4)] = _Field(
         description="Binary IPv4 address (exactly 4 bytes).",
+        alias="ipv4Addr",
     )
     # Binary IPv6 address (exactly 16 bytes).
     ipv6_addr: _Annotated[bytes, _AfterValidator(_validate_bytes_ipv6)] = _Field(
         description="Binary IPv6 address (exactly 16 bytes).",
+        alias="ipv6Addr",
     )
 
 
@@ -1145,6 +1200,8 @@ class ValidatedCELIsIp(_ProtoModel):
     ValidatedCELIsIp exercises isIp() with optional version argument.
     """
 
+    model_config = _ConfigDict(populate_by_name=True, protected_namespaces=())
+
     addr: _Annotated[
         str,
         _AfterValidator(
@@ -1160,6 +1217,7 @@ class ValidatedCELIsIp(_ProtoModel):
         ),
     ] = _Field(
         default="",
+        alias="addrV4",
     )
     addr_v6: _Annotated[
         str,
@@ -1168,6 +1226,7 @@ class ValidatedCELIsIp(_ProtoModel):
         ),
     ] = _Field(
         default="",
+        alias="addrV6",
     )
 
 
@@ -1175,6 +1234,8 @@ class ValidatedCELIsIpPrefix(_ProtoModel):
     """
     ValidatedCELIsIpPrefix exercises isIpPrefix().
     """
+
+    model_config = _ConfigDict(populate_by_name=True, protected_namespaces=())
 
     prefix: _Annotated[
         str,
@@ -1196,6 +1257,7 @@ class ValidatedCELIsIpPrefix(_ProtoModel):
         ),
     ] = _Field(
         default="",
+        alias="prefixV4",
     )
 
 
@@ -2247,8 +2309,16 @@ class ValidatedCELExprMessage(_ProtoModel):
     Exercises cel_expression on MessageRules.
     """
 
-    min_val: int = _Field(default=0)
-    max_val: int = _Field(default=0)
+    model_config = _ConfigDict(populate_by_name=True, protected_namespaces=())
+
+    min_val: int = _Field(
+        default=0,
+        alias="minVal",
+    )
+    max_val: int = _Field(
+        default=0,
+        alias="maxVal",
+    )
 
     @_model_validator(mode="after")
     def _validate_cel_this_min_val____this_max_val(self) -> "ValidatedCELExprMessage":

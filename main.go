@@ -103,6 +103,7 @@ func main() {
 	disableFieldDescription := flags.Bool("disable_field_description", false, "")
 	useNoneUnionSyntaxInsteadOfOptional := flags.Bool("use_none_union_syntax_instead_of_optional", true, "")
 	disableValidate := flags.Bool("disable_validate", false, "")
+	camelCaseAlias := flags.Bool("camel_case_alias", true, "")
 
 	opts := protogen.Options{
 		ParamFunc: flags.Set,
@@ -117,6 +118,7 @@ func main() {
 			DisableFieldDescription:             *disableFieldDescription,
 			UseNoneUnionSyntaxInsteadOfOptional: *useNoneUnionSyntaxInsteadOfOptional,
 			DisableValidate:                     *disableValidate,
+			CamelCaseAlias:                      *camelCaseAlias,
 		})
 		e.resolver = buildEnumValueOptionsResolver(gen)
 		e.customOptionFields = buildCustomOptionFields(gen)

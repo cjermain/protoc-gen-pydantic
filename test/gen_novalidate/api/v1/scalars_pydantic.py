@@ -51,8 +51,16 @@ class Scalars(_ProtoModel):
         INACTIVE = ("INACTIVE", 2)
 
     class NestedMessage(_ProtoModel):
-        first_name: str = _Field(default="")
-        last_name: str = _Field(default="")
+        model_config = _ConfigDict(populate_by_name=True, protected_namespaces=())
+
+        first_name: str = _Field(
+            default="",
+            alias="firstName",
+        )
+        last_name: str = _Field(
+            default="",
+            alias="lastName",
+        )
 
     int32: int = _Field(default=0)
     int64: ProtoInt64 = _Field(default=0)
@@ -79,25 +87,88 @@ class Scalars(_ProtoModel):
         alias="bytes",
     )
     enum: "Enum | None" = _Field(default=None)
-    nested_enum: "Scalars.NestedEnum | None" = _Field(default=None)
+    nested_enum: "Scalars.NestedEnum | None" = _Field(
+        default=None,
+        alias="nestedEnum",
+    )
     message: "Message | None" = _Field(default=None)
-    nested_message: "Scalars.NestedMessage | None" = _Field(default=None)
-    int32_optional: int | None = _Field(default=None)
-    int64_optional: ProtoInt64 | None = _Field(default=None)
-    uint32_optional: int | None = _Field(default=None)
-    uint64_optional: ProtoUInt64 | None = _Field(default=None)
-    fixed32_optional: int | None = _Field(default=None)
-    fixed64_optional: ProtoUInt64 | None = _Field(default=None)
-    sint32_optional: int | None = _Field(default=None)
-    sint64_optional: ProtoInt64 | None = _Field(default=None)
-    sfixed32_optional: int | None = _Field(default=None)
-    sfixed64_optional: ProtoInt64 | None = _Field(default=None)
-    bool_optional: bool | None = _Field(default=None)
-    float_optional: float | None = _Field(default=None)
-    double_optional: float | None = _Field(default=None)
-    string_optional: str | None = _Field(default=None)
-    bytes_optional: bytes | None = _Field(default=None)
-    enum_optional: "Enum | None" = _Field(default=None)
-    nested_enum_optional: "Scalars.NestedEnum | None" = _Field(default=None)
-    message_optional: "Message | None" = _Field(default=None)
-    nested_message_optional: "Scalars.NestedMessage | None" = _Field(default=None)
+    nested_message: "Scalars.NestedMessage | None" = _Field(
+        default=None,
+        alias="nestedMessage",
+    )
+    int32_optional: int | None = _Field(
+        default=None,
+        alias="int32Optional",
+    )
+    int64_optional: ProtoInt64 | None = _Field(
+        default=None,
+        alias="int64Optional",
+    )
+    uint32_optional: int | None = _Field(
+        default=None,
+        alias="uint32Optional",
+    )
+    uint64_optional: ProtoUInt64 | None = _Field(
+        default=None,
+        alias="uint64Optional",
+    )
+    fixed32_optional: int | None = _Field(
+        default=None,
+        alias="fixed32Optional",
+    )
+    fixed64_optional: ProtoUInt64 | None = _Field(
+        default=None,
+        alias="fixed64Optional",
+    )
+    sint32_optional: int | None = _Field(
+        default=None,
+        alias="sint32Optional",
+    )
+    sint64_optional: ProtoInt64 | None = _Field(
+        default=None,
+        alias="sint64Optional",
+    )
+    sfixed32_optional: int | None = _Field(
+        default=None,
+        alias="sfixed32Optional",
+    )
+    sfixed64_optional: ProtoInt64 | None = _Field(
+        default=None,
+        alias="sfixed64Optional",
+    )
+    bool_optional: bool | None = _Field(
+        default=None,
+        alias="boolOptional",
+    )
+    float_optional: float | None = _Field(
+        default=None,
+        alias="floatOptional",
+    )
+    double_optional: float | None = _Field(
+        default=None,
+        alias="doubleOptional",
+    )
+    string_optional: str | None = _Field(
+        default=None,
+        alias="stringOptional",
+    )
+    bytes_optional: bytes | None = _Field(
+        default=None,
+        alias="bytesOptional",
+    )
+    enum_optional: "Enum | None" = _Field(
+        default=None,
+        alias="enumOptional",
+    )
+    nested_enum_optional: "Scalars.NestedEnum | None" = _Field(
+        default=None,
+        alias="nestedEnumOptional",
+    )
+    message_optional: "Message | None" = _Field(
+        default=None,
+        alias="messageOptional",
+    )
+    nested_message_optional: "Scalars.NestedMessage | None" = _Field(
+        default=None,
+        alias="nestedMessageOptional",
+    )

@@ -45,153 +45,205 @@ class _ProtoModel(_BaseModel):
 
 
 class Collections(_ProtoModel):
+    model_config = _ConfigDict(populate_by_name=True, protected_namespaces=())
+
     int32_repeated: list[int] = _Field(
         default_factory=list,
+        alias="int32Repeated",
     )
     int64_repeated: list[ProtoInt64] = _Field(
         default_factory=list,
+        alias="int64Repeated",
     )
     uint32_repeated: list[int] = _Field(
         default_factory=list,
+        alias="uint32Repeated",
     )
     uint64_repeated: list[ProtoUInt64] = _Field(
         default_factory=list,
+        alias="uint64Repeated",
     )
     fixed32_repeated: list[int] = _Field(
         default_factory=list,
+        alias="fixed32Repeated",
     )
     fixed64_repeated: list[ProtoUInt64] = _Field(
         default_factory=list,
+        alias="fixed64Repeated",
     )
     sint32_repeated: list[int] = _Field(
         default_factory=list,
+        alias="sint32Repeated",
     )
     sint64_repeated: list[ProtoInt64] = _Field(
         default_factory=list,
+        alias="sint64Repeated",
     )
     sfixed32_repeated: list[int] = _Field(
         default_factory=list,
+        alias="sfixed32Repeated",
     )
     sfixed64_repeated: list[ProtoInt64] = _Field(
         default_factory=list,
+        alias="sfixed64Repeated",
     )
     bool_repeated: list[bool] = _Field(
         default_factory=list,
+        alias="boolRepeated",
     )
     float_repeated: list[float] = _Field(
         default_factory=list,
+        alias="floatRepeated",
     )
     double_repeated: list[float] = _Field(
         default_factory=list,
+        alias="doubleRepeated",
     )
     string_repeated: list[str] = _Field(
         default_factory=list,
+        alias="stringRepeated",
     )
     bytes_repeated: list[bytes] = _Field(
         default_factory=list,
+        alias="bytesRepeated",
     )
     enum_repeated: "list[Enum]" = _Field(
         default_factory=list,
+        alias="enumRepeated",
     )
     nested_enum_repeated: "list[Scalars.NestedEnum]" = _Field(
         default_factory=list,
+        alias="nestedEnumRepeated",
     )
     message_repeated: "list[Message]" = _Field(
         default_factory=list,
+        alias="messageRepeated",
     )
     nested_message_repeated: "list[Scalars.NestedMessage]" = _Field(
         default_factory=list,
+        alias="nestedMessageRepeated",
     )
     int32_map_key: dict[int, str] = _Field(
         default_factory=dict,
+        alias="int32MapKey",
     )
     int64_map_key: dict[ProtoInt64, str] = _Field(
         default_factory=dict,
+        alias="int64MapKey",
     )
     uint32_map_key: dict[int, str] = _Field(
         default_factory=dict,
+        alias="uint32MapKey",
     )
     uint64_map_key: dict[ProtoUInt64, str] = _Field(
         default_factory=dict,
+        alias="uint64MapKey",
     )
     fixed32_map_key: dict[int, str] = _Field(
         default_factory=dict,
+        alias="fixed32MapKey",
     )
     fixed64_map_key: dict[ProtoUInt64, str] = _Field(
         default_factory=dict,
+        alias="fixed64MapKey",
     )
     sint32_map_key: dict[int, str] = _Field(
         default_factory=dict,
+        alias="sint32MapKey",
     )
     sint64_map_key: dict[ProtoInt64, str] = _Field(
         default_factory=dict,
+        alias="sint64MapKey",
     )
     sfixed32_map_key: dict[int, str] = _Field(
         default_factory=dict,
+        alias="sfixed32MapKey",
     )
     sfixed64_map_key: dict[ProtoInt64, str] = _Field(
         default_factory=dict,
+        alias="sfixed64MapKey",
     )
     bool_map_key: dict[bool, str] = _Field(
         default_factory=dict,
+        alias="boolMapKey",
     )
     string_map_key: dict[str, str] = _Field(
         default_factory=dict,
+        alias="stringMapKey",
     )
     int32_map_value: dict[str, int] = _Field(
         default_factory=dict,
+        alias="int32MapValue",
     )
     int64_map_value: dict[str, ProtoInt64] = _Field(
         default_factory=dict,
+        alias="int64MapValue",
     )
     uint32_map_value: dict[str, int] = _Field(
         default_factory=dict,
+        alias="uint32MapValue",
     )
     uint64_map_value: dict[str, ProtoUInt64] = _Field(
         default_factory=dict,
+        alias="uint64MapValue",
     )
     fixed32_map_value: dict[str, int] = _Field(
         default_factory=dict,
+        alias="fixed32MapValue",
     )
     fixed64_map_value: dict[str, ProtoUInt64] = _Field(
         default_factory=dict,
+        alias="fixed64MapValue",
     )
     sint32_map_value: dict[str, int] = _Field(
         default_factory=dict,
+        alias="sint32MapValue",
     )
     sint64_map_value: dict[str, ProtoInt64] = _Field(
         default_factory=dict,
+        alias="sint64MapValue",
     )
     sfixed32_map_value: dict[str, int] = _Field(
         default_factory=dict,
+        alias="sfixed32MapValue",
     )
     sfixed64_map_value: dict[str, ProtoInt64] = _Field(
         default_factory=dict,
+        alias="sfixed64MapValue",
     )
     bool_map_value: dict[str, bool] = _Field(
         default_factory=dict,
+        alias="boolMapValue",
     )
     float_map_value: dict[str, float] = _Field(
         default_factory=dict,
+        alias="floatMapValue",
     )
     double_map_value: dict[str, float] = _Field(
         default_factory=dict,
+        alias="doubleMapValue",
     )
     string_map_value: dict[str, str] = _Field(
         default_factory=dict,
+        alias="stringMapValue",
     )
     bytes_map_value: dict[str, bytes] = _Field(
         default_factory=dict,
+        alias="bytesMapValue",
     )
     enum_map_value: "dict[str, Enum]" = _Field(
         default_factory=dict,
+        alias="enumMapValue",
     )
     nested_enum_map_value: "dict[str, Scalars.NestedEnum]" = _Field(
         default_factory=dict,
+        alias="nestedEnumMapValue",
     )
     message_map_value: "dict[str, Message]" = _Field(
         default_factory=dict,
+        alias="messageMapValue",
     )
     nested_message_map_value: "dict[str, Scalars.NestedMessage]" = _Field(
         default_factory=dict,
+        alias="nestedMessageMapValue",
     )

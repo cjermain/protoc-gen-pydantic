@@ -2,7 +2,7 @@
 
 Verifies that:
 - model_dump_json/model_dump omit proto3 default values
-- Aliased fields use original proto names
+- Aliased fields use camelCase wire names by default (camel_case_alias=true)
 - model_validate/model_validate_json deserialize correctly
 - Roundtrips preserve data
 """
@@ -36,12 +36,12 @@ def test_model_dump_json_includes_non_defaults():
     """model_dump_json includes fields with non-default values."""
     m = Message(first_name="John")
     result = json.loads(m.model_dump_json())
-    assert result == {"first_name": "John"}
+    assert result == {"firstName": "John"}
 
 
 def test_model_dump_includes_non_defaults():
     m = Message(first_name="John", last_name="Doe")
-    assert m.model_dump() == {"first_name": "John", "last_name": "Doe"}
+    assert m.model_dump() == {"firstName": "John", "lastName": "Doe"}
 
 
 def test_model_dump_json_uses_alias():
@@ -85,7 +85,7 @@ def test_model_dump_json_nested_message():
     msg = Message(first_name="John", last_name="Doe")
     s = Scalars(message=msg)
     result = json.loads(s.model_dump_json())
-    assert result["message"] == {"first_name": "John", "last_name": "Doe"}
+    assert result["message"] == {"firstName": "John", "lastName": "Doe"}
 
 
 def test_nested_model_omits_defaults():
@@ -97,13 +97,13 @@ def test_nested_model_omits_defaults():
 
     # model_dump_json path
     result = json.loads(s.model_dump_json())
-    assert "last_name" not in result["message"]
-    assert result["message"] == {"first_name": "John"}
+    assert "lastName" not in result["message"]
+    assert result["message"] == {"firstName": "John"}
 
     # model_dump path — same defaults must apply
     result_dict = s.model_dump()
-    assert "last_name" not in result_dict["message"]
-    assert result_dict["message"] == {"first_name": "John"}
+    assert "lastName" not in result_dict["message"]
+    assert result_dict["message"] == {"firstName": "John"}
 
     # Scalars has bool_ (alias "bool") — alias must be used
     s2 = Scalars(message=Message(first_name="Jane"), bool_=True)
@@ -119,7 +119,7 @@ def test_model_dump_json_repeated():
     """Non-empty repeated fields are included."""
     c = Collections(int32_repeated=[1, 2, 3])
     result = json.loads(c.model_dump_json())
-    assert result["int32_repeated"] == [1, 2, 3]
+    assert result["int32Repeated"] == [1, 2, 3]
 
 
 def test_model_dump_json_enum():
@@ -133,8 +133,8 @@ def test_model_dump_json_override_exclude_defaults():
     """Callers can override exclude_defaults=False to include all fields."""
     m = Message()
     result = json.loads(m.model_dump_json(exclude_defaults=False))
-    assert "first_name" in result
-    assert result["first_name"] == ""
+    assert "firstName" in result
+    assert result["firstName"] == ""
 
 
 def test_model_dump_override_by_alias():
@@ -185,8 +185,8 @@ def test_model_dump_json_wkt_timestamp():
         wkt_duration=datetime.timedelta(seconds=5),
     )
     result = json.loads(wkt.model_dump_json())
-    assert result["wkt_timestamp"] == "2024-01-15T10:30:00Z"
-    assert result["wkt_duration"] == "5s"
+    assert result["wktTimestamp"] == "2024-01-15T10:30:00Z"
+    assert result["wktDuration"] == "5s"
 
 
 def test_model_dump_json_nested_message_in_collections():
@@ -198,8 +198,8 @@ def test_model_dump_json_nested_message_in_collections():
         ]
     )
     result = json.loads(c.model_dump_json())
-    assert len(result["message_repeated"]) == 2
-    assert result["message_repeated"][0]["first_name"] == "John"
+    assert len(result["messageRepeated"]) == 2
+    assert result["messageRepeated"][0]["firstName"] == "John"
 
 
 def test_model_dump_json_map_with_message_values():
@@ -208,7 +208,7 @@ def test_model_dump_json_map_with_message_values():
         message_map_value={"user1": Message(first_name="John", last_name="Doe")}
     )
     result = json.loads(c.model_dump_json())
-    assert result["message_map_value"]["user1"]["first_name"] == "John"
+    assert result["messageMapValue"]["user1"]["firstName"] == "John"
 
 
 def test_model_dump_json_scalars_roundtrip():

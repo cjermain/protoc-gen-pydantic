@@ -14,6 +14,7 @@ Options control how `protoc-gen-pydantic` generates Python output. They are pass
 | Option | Default | Description |
 |---|---|---|
 | `preserving_proto_field_name` | `true` | Use snake_case proto names instead of camelCase |
+| `camel_case_alias` | `true` | Add a camelCase JSON `alias=` to every field, independent of attribute casing |
 | `auto_trim_enum_prefix` | `true` | Remove enum type prefix from value names |
 | `use_integers_for_enums` | `false` | Use integer values instead of string names |
 | `disable_field_description` | `false` | Omit `description=` from field annotations |
@@ -24,9 +25,11 @@ Options control how `protoc-gen-pydantic` generates Python output. They are pass
 
 ## `preserving_proto_field_name`
 
-Controls whether field names use the proto snake_case name or the camelCase JSON name.
+Controls whether the **Python attribute name** uses the proto snake_case name or the camelCase
+JSON name. This is independent of the wire/JSON name, which [`camel_case_alias`](#camel_case_alias)
+controls — see that option for how the two combine.
 
-**Default:** `true` (snake_case)
+**Default:** `true` (snake_case attribute)
 
 === ":lucide-file-code: user.proto"
 
@@ -41,8 +44,10 @@ Controls whether field names use the proto snake_case name or the camelCase JSON
 
     ```python
     class User(_ProtoModel):
-        is_active: "bool" = _Field(default=False)
-        first_name: "str" = _Field(default="")
+        model_config = _ConfigDict(populate_by_name=True, ...)
+
+        is_active: "bool" = _Field(default=False, alias="isActive")
+        first_name: "str" = _Field(default="", alias="firstName")
     ```
 
 === "false"
@@ -62,6 +67,65 @@ opt:
 **protoc:**
 ```sh
 --pydantic_opt=preserving_proto_field_name=false
+```
+
+---
+
+## `camel_case_alias` {#camel_case_alias}
+
+Adds `alias="<camelCase JSON name>"` to every field whose wire name would otherwise differ
+from its Python attribute name, and enables `populate_by_name=True` on the message. This keeps
+the Python attribute governed solely by `preserving_proto_field_name` while making the JSON/dict
+wire format default to camelCase — the canonical proto3 JSON encoding used by most
+cross-language protobuf tooling (grpc-gateway, Envoy, TypeScript/JS clients, etc).
+
+Both spellings are always accepted on input regardless of this option's value: the Python
+attribute name (via `populate_by_name=True`) and, when set, the alias.
+
+**Default:** `true` (camelCase wire alias)
+
+=== ":lucide-file-code: user.proto"
+
+    ```proto
+    message User {
+      string first_name = 1;
+    }
+    ```
+
+=== "true (default)"
+
+    ```python
+    class User(_ProtoModel):
+        model_config = _ConfigDict(populate_by_name=True, ...)
+
+        first_name: "str" = _Field(default="", alias="firstName")
+    ```
+
+=== "false"
+
+    ```python
+    class User(_ProtoModel):
+        first_name: "str" = _Field(default="")
+    ```
+
+```python
+User(first_name="Ada")  # Python attribute name — always works
+User(**{"firstName": "Ada"})  # camelCase alias — only when camel_case_alias=true
+
+# By default, serialization uses the alias:
+User(first_name="Ada").model_dump()  # {"firstName": "Ada"}
+User(first_name="Ada").model_dump(by_alias=False)  # {"first_name": "Ada"}
+```
+
+**buf.gen.yaml:**
+```yaml
+opt:
+  - camel_case_alias=false
+```
+
+**protoc:**
+```sh
+--pydantic_opt=camel_case_alias=false
 ```
 
 ---
@@ -292,6 +356,7 @@ plugins:
     opt:
       - paths=source_relative
       - preserving_proto_field_name=false
+      - camel_case_alias=false
       - auto_trim_enum_prefix=false
       - use_integers_for_enums=true
       - disable_field_description=true
@@ -300,7 +365,7 @@ plugins:
 
 ```sh
 # protoc
-protoc --pydantic_opt=preserving_proto_field_name=false,auto_trim_enum_prefix=false \
+protoc --pydantic_opt=preserving_proto_field_name=false,camel_case_alias=false,auto_trim_enum_prefix=false \
        --pydantic_opt=use_integers_for_enums=true \
        ...
 ```

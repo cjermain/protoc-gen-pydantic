@@ -37,8 +37,16 @@ class _ProtoModel(_BaseModel):
 
 
 class Message(_ProtoModel):
-    first_name: str = _Field(default="")
-    last_name: str = _Field(default="")
+    model_config = _ConfigDict(populate_by_name=True, protected_namespaces=())
+
+    first_name: str = _Field(
+        default="",
+        alias="firstName",
+    )
+    last_name: str = _Field(
+        default="",
+        alias="lastName",
+    )
 
 
 class Empty(_ProtoModel):

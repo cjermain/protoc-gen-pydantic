@@ -208,10 +208,13 @@ class ValidatedTimestamp(_ProtoModel):
     message-typed rule fields and must not panic.
     """
 
+    model_config = _ConfigDict(populate_by_name=True, protected_namespaces=())
+
     # CreatedAt must be after the Unix epoch.
     created_at: ProtoTimestamp | None = _Field(
         default=None,
         description="CreatedAt must be after the Unix epoch.",
+        alias="createdAt",
     )
 
 
@@ -287,6 +290,8 @@ class ValidatedFormats(_ProtoModel):
     IP address (v4/v6), UUID, and float finite.
     """
 
+    model_config = _ConfigDict(populate_by_name=True, protected_namespaces=())
+
     # Email must be a valid email address.
     email: str = _Field(
         default="",
@@ -316,11 +321,13 @@ class ValidatedFormats(_ProtoModel):
     host_v4: str = _Field(
         default="",
         description="Host must be a valid IPv4 address.",
+        alias="hostV4",
     )
     # Host must be a valid IPv6 address.
     host_v6: str = _Field(
         default="",
         description="Host must be a valid IPv6 address.",
+        alias="hostV6",
     )
 
 
@@ -487,6 +494,8 @@ class ValidatedRequired(_ProtoModel):
     (where it strips | None) vs. message-typed and plain scalar fields (dropped).
     """
 
+    model_config = _ConfigDict(populate_by_name=True, protected_namespaces=())
+
     class Detail(_ProtoModel):
         """
         Detail is a nested message used to test message-typed required handling.
@@ -498,21 +507,25 @@ class ValidatedRequired(_ProtoModel):
     required_name: str | None = _Field(
         default=None,
         description="required on proto3 optional scalar: | None stripped, field becomes required.",
+        alias="requiredName",
     )
     # required on proto3 optional scalar with an additional constraint.
     required_score: int | None = _Field(
         default=None,
         description="required on proto3 optional scalar with an additional constraint.",
+        alias="requiredScore",
     )
     # required on message-typed optional: not translated, emits dropped comment.
     required_detail: "ValidatedRequired.Detail | None" = _Field(
         default=None,
         description="required on message-typed optional: not translated, emits dropped comment.",
+        alias="requiredDetail",
     )
     # required on plain proto3 scalar: not translated, emits dropped comment.
     plain_name: str = _Field(
         default="",
         description="required on plain proto3 scalar: not translated, emits dropped comment.",
+        alias="plainName",
     )
 
 
@@ -526,14 +539,18 @@ class ValidatedOneofFormat(_ProtoModel):
     _Optional[...] branch.
     """
 
+    model_config = _ConfigDict(populate_by_name=True, protected_namespaces=())
+
     # Must be a valid email address when set.
     email_contact: str | None = _Field(
         default=None,
         description='Must be a valid email address when set.\nOnly one of the fields can be specified with: ["email_contact", "phone_contact"] (oneof contact)',
+        alias="emailContact",
     )
     phone_contact: str | None = _Field(
         default=None,
         description='Only one of the fields can be specified with: ["email_contact", "phone_contact"] (oneof contact)',
+        alias="phoneContact",
     )
 
     @_model_validator(mode="after")
@@ -557,14 +574,18 @@ class ValidatedConstOptional(_ProtoModel):
     applyConstraintTypeOverrides (lines 1291-1294 in main.go).
     """
 
+    model_config = _ConfigDict(populate_by_name=True, protected_namespaces=())
+
     # Only "fixed" is valid when set.
     fixed_token: str | None = _Field(
         default=None,
         description='Only "fixed" is valid when set.\nOnly one of the fields can be specified with: ["fixed_token", "other_token"] (oneof token_type)',
+        alias="fixedToken",
     )
     other_token: str | None = _Field(
         default=None,
         description='Only one of the fields can be specified with: ["fixed_token", "other_token"] (oneof token_type)',
+        alias="otherToken",
     )
 
     @_model_validator(mode="after")
@@ -585,6 +606,8 @@ class ValidatedFormatsExtended(_ProtoModel):
     original six (email, uri, ip, ipv4, ipv6, uuid).
     """
 
+    model_config = _ConfigDict(populate_by_name=True, protected_namespaces=())
+
     # Hostname must be a valid DNS hostname.
     hostname: str = _Field(
         default="",
@@ -594,6 +617,7 @@ class ValidatedFormatsExtended(_ProtoModel):
     uri_ref: str = _Field(
         default="",
         description="UriRef must be a valid URI reference (absolute or relative).",
+        alias="uriRef",
     )
     # Addr must be a valid IP address or hostname.
     addr: str = _Field(
@@ -619,26 +643,31 @@ class ValidatedFormatsExtended(_ProtoModel):
     cidr_v4: str = _Field(
         default="",
         description="CidrV4 must be a valid IPv4 address with prefix length.",
+        alias="cidrV4",
     )
     # CidrV6 must be a valid IPv6 address with prefix length.
     cidr_v6: str = _Field(
         default="",
         description="CidrV6 must be a valid IPv6 address with prefix length.",
+        alias="cidrV6",
     )
     # IpNet must be a valid IP network (host bits must be zero).
     ip_net: str = _Field(
         default="",
         description="IpNet must be a valid IP network (host bits must be zero).",
+        alias="ipNet",
     )
     # Ipv4Net must be a valid IPv4 network (host bits must be zero).
     ipv4_net: str = _Field(
         default="",
         description="Ipv4Net must be a valid IPv4 network (host bits must be zero).",
+        alias="ipv4Net",
     )
     # Ipv6Net must be a valid IPv6 network (host bits must be zero).
     ipv6_net: str = _Field(
         default="",
         description="Ipv6Net must be a valid IPv6 network (host bits must be zero).",
+        alias="ipv6Net",
     )
     # Endpoint must be a valid host:port pair.
     endpoint: str = _Field(
@@ -652,20 +681,25 @@ class ValidatedWellKnownRegex(_ProtoModel):
     ValidatedWellKnownRegex exercises the well_known_regex enum validator.
     """
 
+    model_config = _ConfigDict(populate_by_name=True, protected_namespaces=())
+
     # HeaderName must be a valid HTTP header name.
     header_name: str = _Field(
         default="",
         description="HeaderName must be a valid HTTP header name.",
+        alias="headerName",
     )
     # HeaderValue must be a valid HTTP header value.
     header_value: str = _Field(
         default="",
         description="HeaderValue must be a valid HTTP header value.",
+        alias="headerValue",
     )
     # LooseHeader uses well_known_regex with strict=false (strict is not translated).
     loose_header: str = _Field(
         default="",
         description="LooseHeader uses well_known_regex with strict=false (strict is not translated).",
+        alias="looseHeader",
     )
 
 
@@ -777,8 +811,16 @@ class ValidatedCELHas(_ProtoModel):
     ValidatedCELHas exercises the has() presence macro.
     """
 
-    first_name: str | None = _Field(default=None)
-    last_name: str | None = _Field(default=None)
+    model_config = _ConfigDict(populate_by_name=True, protected_namespaces=())
+
+    first_name: str | None = _Field(
+        default=None,
+        alias="firstName",
+    )
+    last_name: str | None = _Field(
+        default=None,
+        alias="lastName",
+    )
 
 
 class ValidatedCELCrossField(_ProtoModel):
@@ -786,8 +828,16 @@ class ValidatedCELCrossField(_ProtoModel):
     ValidatedCELCrossField exercises a cross-field numeric comparison.
     """
 
-    min_val: int = _Field(default=0)
-    max_val: int = _Field(default=0)
+    model_config = _ConfigDict(populate_by_name=True, protected_namespaces=())
+
+    min_val: int = _Field(
+        default=0,
+        alias="minVal",
+    )
+    max_val: int = _Field(
+        default=0,
+        alias="maxVal",
+    )
 
 
 class ValidatedCELReservedName(_ProtoModel):
@@ -833,20 +883,25 @@ class ValidatedBytesIP(_ProtoModel):
     ValidatedBytesIP exercises bytes.ip/ipv4/ipv6 binary address validation.
     """
 
+    model_config = _ConfigDict(populate_by_name=True, protected_namespaces=())
+
     # Binary IP address (4 bytes for IPv4 or 16 bytes for IPv6).
     ip_addr: bytes = _Field(
         default=b"",
         description="Binary IP address (4 bytes for IPv4 or 16 bytes for IPv6).",
+        alias="ipAddr",
     )
     # Binary IPv4 address (exactly 4 bytes).
     ipv4_addr: bytes = _Field(
         default=b"",
         description="Binary IPv4 address (exactly 4 bytes).",
+        alias="ipv4Addr",
     )
     # Binary IPv6 address (exactly 16 bytes).
     ipv6_addr: bytes = _Field(
         default=b"",
         description="Binary IPv6 address (exactly 16 bytes).",
+        alias="ipv6Addr",
     )
 
 
@@ -962,9 +1017,17 @@ class ValidatedCELIsIp(_ProtoModel):
     ValidatedCELIsIp exercises isIp() with optional version argument.
     """
 
+    model_config = _ConfigDict(populate_by_name=True, protected_namespaces=())
+
     addr: str = _Field(default="")
-    addr_v4: str = _Field(default="")
-    addr_v6: str = _Field(default="")
+    addr_v4: str = _Field(
+        default="",
+        alias="addrV4",
+    )
+    addr_v6: str = _Field(
+        default="",
+        alias="addrV6",
+    )
 
 
 class ValidatedCELIsIpPrefix(_ProtoModel):
@@ -972,8 +1035,13 @@ class ValidatedCELIsIpPrefix(_ProtoModel):
     ValidatedCELIsIpPrefix exercises isIpPrefix().
     """
 
+    model_config = _ConfigDict(populate_by_name=True, protected_namespaces=())
+
     prefix: str = _Field(default="")
-    prefix_v4: str = _Field(default="")
+    prefix_v4: str = _Field(
+        default="",
+        alias="prefixV4",
+    )
 
 
 class ValidatedCELIsHostname(_ProtoModel):
@@ -1462,8 +1530,16 @@ class ValidatedCELExprMessage(_ProtoModel):
     Exercises cel_expression on MessageRules.
     """
 
-    min_val: int = _Field(default=0)
-    max_val: int = _Field(default=0)
+    model_config = _ConfigDict(populate_by_name=True, protected_namespaces=())
+
+    min_val: int = _Field(
+        default=0,
+        alias="minVal",
+    )
+    max_val: int = _Field(
+        default=0,
+        alias="maxVal",
+    )
 
 
 class ValidatedCELExprMessageMulti(_ProtoModel):

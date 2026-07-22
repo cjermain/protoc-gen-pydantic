@@ -135,9 +135,10 @@ name
   Input should be a valid string [type=string_type, ...]
 ```
 
-`model_dump_json()` omits fields at their default (zero) values and uses the original proto
-field names. `model_validate_json()` is the standard Pydantic deserializer — no custom wrapper
-needed. See [Generated Model API](../features/generated-model-api.md) for the full interface.
+`model_dump_json()` omits fields at their default (zero) values and uses camelCase field names
+by default (matching proto3 canonical JSON). `model_validate_json()` is the standard Pydantic
+deserializer — no custom wrapper needed. See
+[Generated Model API](../features/generated-model-api.md) for the full interface.
 
 ## What's next?
 

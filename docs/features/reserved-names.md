@@ -23,8 +23,9 @@ from api.v1.reserved_names_pydantic import BuiltinNames, ReservedFieldNames
 When a proto field name is a reserved word in Python, the generator:
 
 1. Appends `_` to the Python attribute name (e.g. `bool` → `bool_`)
-2. Sets `alias="<original_name>"` on the field so JSON / dict serialization still uses
-   the original proto name
+2. Sets `alias="<camelCase JSON name>"` on the field (identical to the proto name for
+   single-word fields) so JSON / dict serialization uses the canonical wire name — see
+   [`camel_case_alias`](../options.md#camel_case_alias)
 3. Adds `populate_by_name=True` to `model_config` so you can pass either the alias or
    the Python name when constructing the model
 
@@ -87,7 +88,7 @@ Pydantic internals
 ```python exec="on" session="reserved-names"
 r = ReservedFieldNames(model_config_="cfg", model_fields_="flds")
 assert r.model_config_ == "cfg"
-assert r.model_dump() == {"model_config": "cfg", "model_fields": "flds"}
+assert r.model_dump() == {"modelConfig": "cfg", "modelFields": "flds"}
 ```
 
 ## Using the aliased fields

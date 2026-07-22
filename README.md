@@ -178,7 +178,7 @@ from pydantic import ValidationError
 # Construct and validate
 user = ValidatedUser(name="Alice", age=30, email="alice@example.com", role=ValidatedUser.Role.EDITOR)
 
-# Serialize (ProtoJSON — omits zero values, uses original proto field names)
+# Serialize (ProtoJSON — omits zero values, uses camelCase field names)
 print(user.model_dump_json())
 # {"name":"Alice","age":30,"email":"alice@example.com","role":"EDITOR"}
 
@@ -193,6 +193,7 @@ Passed via `opt:` in buf.gen.yaml or `--pydantic_opt=` with protoc:
 | Option | Default | Description |
 |--------|---------|-------------|
 | `preserving_proto_field_name` | `true` | Keep snake_case proto field names instead of camelCase |
+| `camel_case_alias` | `true` | Add a camelCase JSON `alias=` to every field, independent of attribute casing |
 | `auto_trim_enum_prefix` | `true` | Remove enum type name prefix from value names |
 | `use_integers_for_enums` | `false` | Use integer values for enums instead of string names |
 | `disable_field_description` | `false` | Omit `description=` from generated fields |

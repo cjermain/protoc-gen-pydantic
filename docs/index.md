@@ -147,7 +147,7 @@ code = (
     "# Construct and validate\n"
     'user = ValidatedUser(name="Alice", age=30, email="alice@example.com", role=ValidatedUser.Role.EDITOR)\n'
     "\n"
-    "# Serialize (ProtoJSON — omits zero values, uses original proto field names)\n"
+    "# Serialize (ProtoJSON — omits zero values, uses camelCase field names)\n"
     "print(user.model_dump_json())\n"
     f"# {proto_json}\n"
     "\n"

@@ -39,6 +39,8 @@ class _ProtoModel(_BaseModel):
 
 
 class Shipment(_ProtoModel):
+    model_config = _ConfigDict(populate_by_name=True, protected_namespaces=())
+
     class Status(_ProtoEnum):
         UNSPECIFIED = ("UNSPECIFIED", 0)
         PENDING = ("PENDING", 1)
@@ -50,9 +52,15 @@ class Shipment(_ProtoModel):
         quantity: int = _Field(default=0)
         price: float = _Field(default=0.0)
 
-    order_id: str = _Field(default="")
+    order_id: str = _Field(
+        default="",
+        alias="orderId",
+    )
     items: "list[Shipment.Item]" = _Field(
         default_factory=list,
     )
-    status_note: str = _Field(default="")
+    status_note: str = _Field(
+        default="",
+        alias="statusNote",
+    )
     status: "Shipment.Status | None" = _Field(default=None)
