@@ -400,12 +400,16 @@ class ValidatedIn(_ProtoModel):
 
 class ValidatedEnumIn(_ProtoModel):
     """
-    ValidatedEnumIn exercises enum.in and enum.not_in translated to AfterValidator.
+    ValidatedEnumIn exercises enum.in and enum.not_in translated to AfterValidator,
+    including on repeated.items and map.values elements — those go through a
+    separate nested-constraint extraction path from the plain scalar field case.
     enum.in/not_in values are proto numbers (int32), but use_enum_values reduces
     the field to its enum member's name (or number, with use_integers_for_enums)
     by the time the AfterValidator runs — the generator must translate the
     numeric literals to match.
     """
+
+    model_config = _ConfigDict(populate_by_name=True, protected_namespaces=())
 
     class Status(_ProtoEnum):
         UNSPECIFIED = ("UNSPECIFIED", 0)
@@ -414,6 +418,13 @@ class ValidatedEnumIn(_ProtoModel):
 
     status: "ValidatedEnumIn.Status | None" = _Field(default=None)
     excluded: "ValidatedEnumIn.Status | None" = _Field(default=None)
+    statuses: "list[ValidatedEnumIn.Status]" = _Field(
+        default_factory=list,
+    )
+    status_by_key: "dict[str, ValidatedEnumIn.Status]" = _Field(
+        default_factory=dict,
+        alias="statusByKey",
+    )
 
 
 class ValidatedUnique(_ProtoModel):

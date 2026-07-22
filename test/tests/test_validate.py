@@ -976,6 +976,26 @@ def test_validated_enum_not_in_excluded_invalid():
         ValidatedEnumIn(excluded="ARCHIVED")
 
 
+def test_validated_enum_in_repeated_items_valid():
+    m = ValidatedEnumIn(statuses=["ACTIVE", "UNSPECIFIED"])
+    assert m.statuses == ["ACTIVE", "UNSPECIFIED"]
+
+
+def test_validated_enum_in_repeated_items_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedEnumIn(statuses=["ARCHIVED"])
+
+
+def test_validated_enum_in_map_values_valid():
+    m = ValidatedEnumIn(status_by_key={"a": "ACTIVE"})
+    assert m.status_by_key == {"a": "ACTIVE"}
+
+
+def test_validated_enum_in_map_values_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedEnumIn(status_by_key={"a": "ARCHIVED"})
+
+
 # ---------------------------------------------------------------------------
 # ValidatedUnique — repeated.unique translated to AfterValidator
 # ---------------------------------------------------------------------------

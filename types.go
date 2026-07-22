@@ -314,8 +314,20 @@ func (f Field) TypeAnnotationFormatted(bi string) string {
 		}
 		if keyType, valType, ok := splitDictType(annotation); ok {
 			indent := bi + "    "
+			keyType = formatBracketElement(keyType, indent)
+			valType = formatBracketElement(valType, indent)
 			return "dict[\n" + indent + keyType + ",\n" + indent + valType + ",\n" + bi + "]"
 		}
+	}
+
+	// list[Elem] splitting: when Elem is annotated the line can exceed 88 chars.
+	if strings.HasPrefix(annotation, "list[") && strings.HasSuffix(annotation, "]") {
+		if len(annotationLine+" = _Field(") <= 88 {
+			return annotation
+		}
+		indent := bi + "    "
+		elemType := formatBracketElement(annotation[len("list["):len(annotation)-1], indent)
+		return "list[\n" + indent + elemType + "\n" + bi + "]"
 	}
 
 	return annotation

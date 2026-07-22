@@ -295,6 +295,33 @@ func formatAnnotationElement(s, elemIndent string) string {
 	return s
 }
 
+// formatBracketElement formats a single list[...]/dict[...] element type at
+// elemIndent, matching ruff's style: if "elem," fits at elemIndent it is
+// returned unchanged; if it's an _Annotated[...] that doesn't fit, it is
+// split one part per line (mirroring the top-level _Annotated[...] case in
+// Field.TypeAnnotationFormatted). Other overlong element types are returned
+// unchanged — best effort, since no further split rule is defined for them.
+func formatBracketElement(s, elemIndent string) string {
+	if len(elemIndent+s+",") <= 88 {
+		return s
+	}
+	if !strings.HasPrefix(s, "_Annotated[") || !strings.HasSuffix(s, "]") {
+		return s
+	}
+	inner := s[len("_Annotated[") : len(s)-1]
+	innerIndent := elemIndent + "    "
+	parts := splitTopLevelCommas(inner)
+	var sb strings.Builder
+	sb.WriteString("_Annotated[\n")
+	for _, p := range parts {
+		trimmed := strings.TrimSpace(p)
+		formatted := formatAnnotationElement(trimmed, innerIndent)
+		sb.WriteString(innerIndent + formatted + ",\n")
+	}
+	sb.WriteString(elemIndent + "]")
+	return sb.String()
+}
+
 // formatFactoryCall wraps a factory(args) call when it doesn't fit on one
 // line at indent. Two strategies are tried in order:
 //  1. All args on one inner line (ruff's preferred form when they fit).
