@@ -16,7 +16,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7.0.0
 
-      - uses: actions/setup-go@v6
+      - uses: actions/setup-go@v6.4.0
         with:
           go-version-file: go.mod
           cache: true
@@ -38,7 +38,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7.0.0
 
-      - uses: actions/setup-go@v6
+      - uses: actions/setup-go@v6.4.0
         with:
           go-version-file: go.mod
           cache: true
@@ -53,7 +53,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7.0.0
 
-      - uses: actions/setup-go@v6
+      - uses: actions/setup-go@v6.4.0
         with:
           go-version-file: go.mod
           cache: true
@@ -68,7 +68,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7.0.0
 
-      - uses: actions/setup-go@v6
+      - uses: actions/setup-go@v6.4.0
         with:
           go-version-file: go.mod
           cache: true
