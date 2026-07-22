@@ -76,6 +76,7 @@ from api.v1.validate_pydantic import (
     ValidatedConstOptional,
     ValidatedDropped,
     ValidatedDuration,
+    ValidatedEnumIn,
     ValidatedExamples,
     ValidatedFinite,
     ValidatedFloatExamples,
@@ -948,6 +949,31 @@ def test_validated_in_required():
     # status, priority, limit are now ConstrainedRequired (zero values not in allowed set).
     with pytest.raises(ValidationError):
         ValidatedIn()
+
+
+# ---------------------------------------------------------------------------
+# ValidatedEnumIn — enum.in / enum.not_in translated to AfterValidator
+# ---------------------------------------------------------------------------
+
+
+def test_validated_enum_in_status_valid():
+    m = ValidatedEnumIn(status="ACTIVE")
+    assert m.status == "ACTIVE"
+
+
+def test_validated_enum_in_status_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedEnumIn(status="ARCHIVED")
+
+
+def test_validated_enum_not_in_excluded_valid():
+    m = ValidatedEnumIn(excluded="ACTIVE")
+    assert m.excluded == "ACTIVE"
+
+
+def test_validated_enum_not_in_excluded_invalid():
+    with pytest.raises(ValidationError):
+        ValidatedEnumIn(excluded="ARCHIVED")
 
 
 # ---------------------------------------------------------------------------

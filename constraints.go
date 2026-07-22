@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 
 	"google.golang.org/protobuf/proto"
@@ -495,6 +496,14 @@ func (e *generator) extractFieldConstraints(
 			})
 			// Combine prefix/suffix into pattern after all sub-fields are visited.
 			result.combinePatternConstraints()
+			// enum.in/not_in carry proto numbers, but the generated field holds
+			// the enum's Python-side value (its trimmed name when string-backed,
+			// or the number itself when use_integers_for_enums) once
+			// use_enum_values applies — translate so the AfterValidator compares
+			// like with like.
+			if field.Kind() == protoreflect.EnumKind {
+				e.translateEnumInValues(field.Enum(), result)
+			}
 		}
 		return true
 	})
@@ -516,6 +525,46 @@ func (e *generator) extractFieldConstraints(
 		e.addStdImport("_AfterValidator")
 	}
 	return result
+}
+
+// translateEnumInValues rewrites enum.in/not_in literals from proto numbers
+// (e.g. "1") into the Python literal the field will actually hold at
+// AfterValidator time: with use_integers_for_enums the field's use_enum_values
+// value is already the number, so entries are left as-is; otherwise it's the
+// enum member's (optionally prefix-trimmed) name, so entries are rewritten to
+// the matching quoted string. Numbers with no matching enum value are left
+// untouched (never true, but harmless).
+func (e *generator) translateEnumInValues(enumDesc protoreflect.EnumDescriptor, result *FieldConstraints) {
+	if e.config.UseIntegersForEnums {
+		return
+	}
+	if len(result.InValues) == 0 && len(result.NotInValues) == 0 {
+		return
+	}
+	prefix := camelToSnakeCase(string(enumDesc.Name())) + "_"
+	translate := func(values []string) []string {
+		out := make([]string, 0, len(values))
+		for _, s := range values {
+			n, err := strconv.ParseInt(s, 10, 32)
+			if err != nil {
+				out = append(out, s)
+				continue
+			}
+			vd := enumDesc.Values().ByNumber(protoreflect.EnumNumber(n))
+			if vd == nil {
+				out = append(out, s)
+				continue
+			}
+			name := string(vd.Name())
+			if e.config.AutoTrimEnumPrefix {
+				name = strings.TrimPrefix(name, prefix)
+			}
+			out = append(out, pyQuote(name))
+		}
+		return out
+	}
+	result.InValues = translate(result.InValues)
+	result.NotInValues = translate(result.NotInValues)
 }
 
 // extractConstraintsFromMsg extracts FieldConstraints from a nested

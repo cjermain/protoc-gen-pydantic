@@ -398,6 +398,24 @@ class ValidatedIn(_ProtoModel):
     )
 
 
+class ValidatedEnumIn(_ProtoModel):
+    """
+    ValidatedEnumIn exercises enum.in and enum.not_in translated to AfterValidator.
+    enum.in/not_in values are proto numbers (int32), but use_enum_values reduces
+    the field to its enum member's name (or number, with use_integers_for_enums)
+    by the time the AfterValidator runs — the generator must translate the
+    numeric literals to match.
+    """
+
+    class Status(_ProtoEnum):
+        UNSPECIFIED = ("UNSPECIFIED", 0)
+        ACTIVE = ("ACTIVE", 1)
+        ARCHIVED = ("ARCHIVED", 2)
+
+    status: "ValidatedEnumIn.Status | None" = _Field(default=None)
+    excluded: "ValidatedEnumIn.Status | None" = _Field(default=None)
+
+
 class ValidatedUnique(_ProtoModel):
     """
     ValidatedUnique exercises repeated.unique translated to AfterValidator.
