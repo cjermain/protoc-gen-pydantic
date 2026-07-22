@@ -67,15 +67,15 @@ class ReservedFieldNames(_ProtoModel):
 
     model_config_: str = _Field(
         default="",
-        alias="model_config",
+        alias="modelConfig",
     )
     model_fields_: str = _Field(
         default="",
-        alias="model_fields",
+        alias="modelFields",
     )
     model_dump_: str = _Field(
         default="",
-        alias="model_dump",
+        alias="modelDump",
     )
 
 

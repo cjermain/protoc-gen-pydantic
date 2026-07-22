@@ -148,13 +148,13 @@ def test_timestamp_native_python_type(wkt):
 def test_timestamp_json_mode_rfc3339(wkt):
     """Timestamp serializes as RFC 3339 in JSON mode."""
     data = wkt.model_dump(mode="json")
-    assert data["wkt_timestamp"] == "2024-01-15T10:30:00Z"
+    assert data["wktTimestamp"] == "2024-01-15T10:30:00Z"
 
 
 def test_timestamp_python_mode_datetime(wkt):
     """Timestamp stays as datetime in Python mode."""
     data = wkt.model_dump()
-    assert isinstance(data["wkt_timestamp"], datetime.datetime)
+    assert isinstance(data["wktTimestamp"], datetime.datetime)
 
 
 def test_timestamp_accepts_rfc3339():
@@ -173,7 +173,7 @@ def test_timestamp_with_microseconds():
     ts = datetime.datetime(2024, 1, 15, 10, 30, 0, 123456, tzinfo=datetime.timezone.utc)
     wkt = make_wkt(wkt_timestamp=ts)
     data = wkt.model_dump(mode="json")
-    assert data["wkt_timestamp"] == "2024-01-15T10:30:00.123456Z"
+    assert data["wktTimestamp"] == "2024-01-15T10:30:00.123456Z"
 
 
 # --- Duration serialization ---
@@ -187,20 +187,20 @@ def test_duration_native_python_type(wkt):
 def test_duration_json_mode_string(wkt):
     """Duration serializes as 'Ns' string in JSON mode."""
     data = wkt.model_dump(mode="json")
-    assert data["wkt_duration"] == "3.5s"
+    assert data["wktDuration"] == "3.5s"
 
 
 def test_duration_python_mode_timedelta(wkt):
     """Duration stays as timedelta in Python mode."""
     data = wkt.model_dump()
-    assert isinstance(data["wkt_duration"], datetime.timedelta)
+    assert isinstance(data["wktDuration"], datetime.timedelta)
 
 
 def test_duration_integer_seconds():
     """Duration with whole seconds omits decimal."""
     wkt = make_wkt(wkt_duration=datetime.timedelta(seconds=30))
     data = wkt.model_dump(mode="json")
-    assert data["wkt_duration"] == "30s"
+    assert data["wktDuration"] == "30s"
 
 
 def test_duration_accepts_string():

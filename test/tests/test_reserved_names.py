@@ -12,9 +12,9 @@ def test_reserved_field_names():
 
 
 def test_reserved_field_names_by_alias():
-    """Reserved fields can also be constructed using the alias (original proto name)."""
+    """Reserved fields can also be constructed using the alias (camelCase wire name)."""
     obj = ReservedFieldNames(
-        **{"model_config": "a", "model_fields": "b", "model_dump": "c"}
+        **{"modelConfig": "a", "modelFields": "b", "modelDump": "c"}
     )
     assert obj.model_config_ == "a"
     assert obj.model_fields_ == "b"

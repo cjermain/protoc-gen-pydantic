@@ -110,7 +110,8 @@ Passed via `opt:` in buf.gen.yaml or `--pydantic_opt=` with protoc:
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `preserving_proto_field_name` | `true` | Use snake_case proto names instead of camelCase |
+| `preserving_proto_field_name` | `true` | Use snake_case proto names instead of camelCase (Python attribute casing only) |
+| `camel_case_alias` | `true` | Add a camelCase JSON `alias=` to every field, independent of attribute casing |
 | `auto_trim_enum_prefix` | `true` | Remove enum type prefix from value names |
 | `use_integers_for_enums` | `false` | Use int values instead of string names |
 | `disable_field_description` | `false` | Skip field descriptions from comments |
@@ -124,8 +125,21 @@ constraint translation. See the buf.validate section in Key Implementation Detai
 
 ## Key Implementation Details
 
+### camelCase wire aliasing
+With `camel_case_alias=true` (default), every field whose `field.JSONName()` (canonical
+camelCase, respects an explicit `json_name` proto option) differs from its Python attribute
+name gets `Field(alias="<camelCase>")`, and the message gets
+`ConfigDict(populate_by_name=True, ...)`. This decouples the Python attribute case (governed
+solely by `preserving_proto_field_name`) from the wire/JSON name: `model_dump`/`model_dump_json`
+already default `by_alias=True`, so camelCase becomes the default wire format while the Python
+API stays snake_case. Both the alias and the attribute name are always accepted on
+construction/`model_validate`. Set `camel_case_alias=false` to restore the pre-camelCase-alias
+behavior (alias only emitted for reserved-name collisions, matching the attribute's own casing).
+Logic lives in `processMessage` in `generator.go` (name/alias computation, right after the
+oneof-fieldNames block).
+
 ### Python Builtin Shadowing
-Proto fields named `bool`, `float`, `bytes` etc. shadow Python builtins. The generator renames these with a PEP 8 trailing underscore (e.g., `bool_`) and adds `Field(alias="bool")` with `ConfigDict(populate_by_name=True)`. The `reservedNames` map in types.go controls which names trigger this (Python builtins, keywords, and Pydantic BaseModel attributes).
+Proto fields named `bool`, `float`, `bytes` etc. shadow Python builtins. The generator renames these with a PEP 8 trailing underscore (e.g., `bool_`) and adds `Field(alias=...)` with `ConfigDict(populate_by_name=True)` — the alias is the camelCase JSON name when `camel_case_alias=true` (default), or the original snake_case proto name when `false`. The `reservedNames` map in types.go controls which names trigger the trailing-underscore rename (Python builtins, keywords, and Pydantic BaseModel attributes).
 
 ### Well-Known Types
 Protobuf WKTs are mapped to native Python types (not raw `_pb2` classes):

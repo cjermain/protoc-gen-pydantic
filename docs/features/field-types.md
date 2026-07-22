@@ -101,7 +101,7 @@ assert req.page_size is None
 assert req.include_deleted is None
 assert req.model_dump_json() == "{}"
 req2 = SearchRequest(query="hello", page_size=10)
-assert req2.model_dump_json() == '{"query":"hello","page_size":10}'
+assert req2.model_dump_json() == '{"query":"hello","pageSize":10}'
 ```
 
 ## Repeated fields
@@ -191,7 +191,7 @@ pay = Payment(credit_card="4242424242424242")
 assert pay.credit_card == "4242424242424242"
 assert pay.paypal is None
 assert pay.bank_iban is None
-assert pay.model_dump_json() == '{"credit_card":"4242424242424242"}'
+assert pay.model_dump_json() == '{"creditCard":"4242424242424242"}'
 try:
     Payment(credit_card="4242424242424242", paypal="me@paypal.com")  # raises
 except ValidationError:
@@ -230,7 +230,7 @@ assert order.address.city == "Springfield"
 assert Order().address is None
 assert (
     order.model_dump_json()
-    == '{"order_id":"ord-1","address":{"street":"Main St","city":"Springfield"}}'
+    == '{"orderId":"ord-1","address":{"street":"Main St","city":"Springfield"}}'
 )
 ```
 

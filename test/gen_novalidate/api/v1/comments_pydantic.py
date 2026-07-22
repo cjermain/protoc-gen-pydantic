@@ -44,6 +44,8 @@ class CommentedMessage(_ProtoModel):
     CommentedMessage exercises all comment positions.
     """
 
+    model_config = _ConfigDict(populate_by_name=True, protected_namespaces=())
+
     class NestedEnum(_ProtoEnum):
         """
         Leading comment on NestedEnum.
@@ -69,6 +71,8 @@ class CommentedMessage(_ProtoModel):
         A message nested inside CommentedMessage.
         """
 
+        model_config = _ConfigDict(populate_by_name=True, protected_namespaces=())
+
         # Trailing comment on NestedMessage.
         # Documents internal structure.
 
@@ -77,6 +81,7 @@ class CommentedMessage(_ProtoModel):
         first_name: str = _Field(
             default="",
             description="Leading comment on nested first_name.\nThe given name in the nested message.",
+            alias="firstName",
         )
         # Right comment on nested first_name.
         # Leading comment on nested last_name.
@@ -84,6 +89,7 @@ class CommentedMessage(_ProtoModel):
         last_name: str = _Field(
             default="",
             description="Leading comment on nested last_name.\nThe family name in the nested message.",
+            alias="lastName",
         )
         # Right comment on nested last_name.
 
@@ -95,6 +101,7 @@ class CommentedMessage(_ProtoModel):
     first_name: str = _Field(
         default="",
         description="Leading comment on first_name.\nThe given name of the person.",
+        alias="firstName",
     )
     # Right comment on first_name.
     # Leading comment on last_name.
@@ -102,6 +109,7 @@ class CommentedMessage(_ProtoModel):
     last_name: str = _Field(
         default="",
         description="Leading comment on last_name.\nThe family name of the person.",
+        alias="lastName",
     )
     # Right comment on last_name.
 
@@ -110,6 +118,8 @@ class Outer(_ProtoModel):
     """
     Outer message comment.
     """
+
+    model_config = _ConfigDict(populate_by_name=True, protected_namespaces=())
 
     class OuterEnum(_ProtoEnum):
         """
@@ -124,6 +134,8 @@ class Outer(_ProtoModel):
         Inner message comment.
         """
 
+        model_config = _ConfigDict(populate_by_name=True, protected_namespaces=())
+
         class InnerEnum(_ProtoEnum):
             """
             Inner enum comment.
@@ -137,20 +149,25 @@ class Outer(_ProtoModel):
             Deepest message comment.
             """
 
+            model_config = _ConfigDict(populate_by_name=True, protected_namespaces=())
+
             # Deepest field comment.
             deepest_field: str = _Field(
                 default="",
                 description="Deepest field comment.",
+                alias="deepestField",
             )
 
         # Inner field comment.
         inner_field: str = _Field(
             default="",
             description="Inner field comment.",
+            alias="innerField",
         )
 
     # Outer field comment.
     outer_field: str = _Field(
         default="",
         description="Outer field comment.",
+        alias="outerField",
     )

@@ -65,9 +65,12 @@ class SingleOneof(_ProtoModel):
     tuple form ("field_name",) in the generated @model_validator.
     """
 
+    model_config = _ConfigDict(populate_by_name=True, protected_namespaces=())
+
     the_value: int | None = _Field(
         default=None,
         description='Only one of the fields can be specified with: ["the_value"] (oneof choice)',
+        alias="theValue",
     )
 
     @_model_validator(mode="after")

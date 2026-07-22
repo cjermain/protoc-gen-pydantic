@@ -47,7 +47,11 @@ class CrossRefMessage(_ProtoModel):
         default="",
         alias="id",
     )
-    referenced_message: "Message | None" = _Field(default=None)
+    referenced_message: "Message | None" = _Field(
+        default=None,
+        alias="referencedMessage",
+    )
     scalars_list: "list[Scalars]" = _Field(
         default_factory=list,
+        alias="scalarsList",
     )

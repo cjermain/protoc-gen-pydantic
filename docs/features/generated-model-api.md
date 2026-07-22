@@ -6,8 +6,9 @@ icon: lucide/layers
 
 Every generated `_pydantic.py` file contains a `_ProtoModel` base class that all message
 classes in that file inherit from. It overrides `model_dump` and `model_dump_json` to omit
-zero-value fields and use proto field names by default — matching ProtoJSON conventions — with
-no extra setup required.
+zero-value fields and use camelCase JSON names by default — matching proto3 canonical JSON
+conventions (see [`camel_case_alias`](../options.md#camel_case_alias)) — with no extra setup
+required.
 
 ```python exec="on" session="api"
 import datetime
@@ -78,7 +79,7 @@ with proto-aware consumers.
 Serialize to a `dict` using ProtoJSON conventions:
 
 - Omits fields at their **default (zero) value** (`exclude_defaults=True`)
-- Uses **original proto field names** (`by_alias=True`)
+- Uses **camelCase JSON names** (`by_alias=True`)
 
 ```python
 user = User(name="Alice", age=30, active=False)
@@ -98,7 +99,7 @@ user.model_dump(by_alias=False)  # use Python attribute names
 Serialize to a JSON string using ProtoJSON conventions:
 
 - Omits fields at their **default (zero) value** (`exclude_defaults=True`)
-- Uses **original proto field names** (`by_alias=True`)
+- Uses **camelCase JSON names** (`by_alias=True`)
 
 ```python
 user.model_dump_json()
@@ -114,8 +115,9 @@ user = User.model_validate({"name": "Alice", "age": 30})
 user = User.model_validate_json('{"name":"Alice","age":30}')
 ```
 
-Models with reserved-name fields (e.g. `bool_` aliased to `"bool"`) also accept the original
-proto name in input data because `populate_by_name=True` is set on those models.
+Models accept either the camelCase alias or the Python (snake_case) attribute name as input
+(e.g. `first_name`/`firstName`, or `bool_` aliased to `"bool"`) because `populate_by_name=True`
+is set on those models.
 
 ```python exec="on" session="api"
 user = User(name="Alice", age=30, active=False)
@@ -221,7 +223,7 @@ wkt = WellKnownTypes(
     ),
     wkt_duration=datetime.timedelta(hours=1),
 )
-json_str = '{"wkt_timestamp":"2024-01-15T10:30:00Z","wkt_duration":"3600s"}'
+json_str = '{"wktTimestamp":"2024-01-15T10:30:00Z","wktDuration":"3600s"}'
 assert wkt.model_dump_json() == json_str
 parsed = WellKnownTypes.model_validate_json(json_str)
 assert parsed.wkt_timestamp == datetime.datetime(

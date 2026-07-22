@@ -98,7 +98,7 @@ wkt = WellKnownTypes(
     ),
     wkt_duration=datetime.timedelta(hours=1),
 )
-json_str = '{"wkt_timestamp":"2024-01-15T10:30:00Z","wkt_duration":"3600s"}'
+json_str = '{"wktTimestamp":"2024-01-15T10:30:00Z","wktDuration":"3600s"}'
 assert wkt.model_dump_json() == json_str
 parsed = WellKnownTypes.model_validate_json(json_str)
 assert parsed.wkt_timestamp == datetime.datetime(

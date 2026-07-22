@@ -379,10 +379,18 @@ func (e *generator) processMessage(
 		if e.config.PreservingProtoFieldName {
 			name = string(field.Name())
 		}
-		var alias string
-		if reservedNames[name] {
-			alias = name
+		reserved := reservedNames[name]
+		if reserved {
 			name = name + "_"
+		}
+		var alias string
+		switch {
+		case e.config.CamelCaseAlias:
+			if wireName := field.JSONName(); wireName != name {
+				alias = wireName
+			}
+		case reserved:
+			alias = strings.TrimSuffix(name, "_")
 		}
 		isEnum := field.Kind() == protoreflect.EnumKind
 		var enumClass string

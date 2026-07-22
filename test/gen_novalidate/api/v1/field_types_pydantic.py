@@ -58,9 +58,17 @@ class Person(_ProtoModel):
 
 
 class SearchRequest(_ProtoModel):
+    model_config = _ConfigDict(populate_by_name=True, protected_namespaces=())
+
     query: str | None = _Field(default=None)
-    page_size: int | None = _Field(default=None)
-    include_deleted: bool | None = _Field(default=None)
+    page_size: int | None = _Field(
+        default=None,
+        alias="pageSize",
+    )
+    include_deleted: bool | None = _Field(
+        default=None,
+        alias="includeDeleted",
+    )
 
 
 class TaggedItem(_ProtoModel):
@@ -83,9 +91,12 @@ class Config(_ProtoModel):
 
 
 class Payment(_ProtoModel):
+    model_config = _ConfigDict(populate_by_name=True, protected_namespaces=())
+
     credit_card: str | None = _Field(
         default=None,
         description='Only one of the fields can be specified with: ["credit_card", "paypal", "bank_iban"] (oneof method)',
+        alias="creditCard",
     )
     paypal: str | None = _Field(
         default=None,
@@ -94,6 +105,7 @@ class Payment(_ProtoModel):
     bank_iban: str | None = _Field(
         default=None,
         description='Only one of the fields can be specified with: ["credit_card", "paypal", "bank_iban"] (oneof method)',
+        alias="bankIban",
     )
 
     @_model_validator(mode="after")
@@ -114,15 +126,25 @@ class Address(_ProtoModel):
 
 
 class Order(_ProtoModel):
-    order_id: str = _Field(default="")
+    model_config = _ConfigDict(populate_by_name=True, protected_namespaces=())
+
+    order_id: str = _Field(
+        default="",
+        alias="orderId",
+    )
     address: "Address | None" = _Field(default=None)
 
 
 class Task(_ProtoModel):
+    model_config = _ConfigDict(populate_by_name=True, protected_namespaces=())
+
     class Status(_ProtoEnum):
         UNSPECIFIED = ("UNSPECIFIED", 0)
         OPEN = ("OPEN", 1)
         DONE = ("DONE", 2)
 
-    status_label: str = _Field(default="")
+    status_label: str = _Field(
+        default="",
+        alias="statusLabel",
+    )
     status: "Task.Status | None" = _Field(default=None)
