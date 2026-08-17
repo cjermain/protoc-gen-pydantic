@@ -1,12 +1,9 @@
-from pathlib import Path
-
-import pytest
-from pydantic import ValidationError
-
 import datetime
 from datetime import datetime as _dt_datetime
 from datetime import timedelta, timezone
+from pathlib import Path
 
+import pytest
 from api.v1.validate_pydantic import (
     ValidatedBytes,
     ValidatedBytesIP,
@@ -19,50 +16,59 @@ from api.v1.validate_pydantic import (
     ValidatedCELCastString,
     ValidatedCELCastUint,
     ValidatedCELContains,
-    ValidatedCELEndsWith,
-    ValidatedCELEnum,
-    ValidatedCELFloatLiteral,
-    ValidatedCELGlobalSize,
-    ValidatedCELIndex,
-    ValidatedCELInList,
-    ValidatedCELIsInfDir,
-    ValidatedCELIsIpPrefixV6,
-    ValidatedCELMapField,
-    ValidatedCELMapLiteral,
-    ValidatedCELNegate,
-    ValidatedCELNullCheck,
-    ValidatedCELTsDate,
-    ValidatedCELTsMinutes,
-    ValidatedCELTsSeconds,
-    ValidatedCELUint,
     ValidatedCELCrossField,
     ValidatedCELDropped,
-    ValidatedCELExists,
-    ValidatedCELExistsOne,
-    ValidatedCELField,
-    ValidatedCELFilter,
-    ValidatedCELHas,
-    ValidatedCELIsEmail,
-    ValidatedCELIsHostAndPort,
-    ValidatedCELIsHostname,
-    ValidatedCELIsIp,
-    ValidatedCELIsIpPrefix,
-    ValidatedCELIsNanInf,
-    ValidatedCELIsUri,
+    ValidatedCELDuration,
+    ValidatedCELDurationRange,
     ValidatedCELDurGetHours,
     ValidatedCELDurGetMillis,
     ValidatedCELDurGetMinutes,
     ValidatedCELDurGetSeconds,
-    ValidatedCELDuration,
-    ValidatedCELDurationRange,
+    ValidatedCELEndsWith,
+    ValidatedCELEnum,
+    ValidatedCELEnumAliased,
+    ValidatedCELEnumField,
+    ValidatedCELExists,
+    ValidatedCELExistsOne,
+    ValidatedCELExprField,
+    ValidatedCELExprFieldDropped,
+    ValidatedCELExprFieldMulti,
+    ValidatedCELExprFieldString,
+    ValidatedCELExprMessage,
+    ValidatedCELExprMessageDropped,
+    ValidatedCELExprMessageMulti,
+    ValidatedCELField,
+    ValidatedCELFilter,
+    ValidatedCELFloatLiteral,
+    ValidatedCELGlobalSize,
+    ValidatedCELHas,
+    ValidatedCELIndex,
+    ValidatedCELInList,
+    ValidatedCELInsideItems,
+    ValidatedCELInsideMapValues,
+    ValidatedCELIsEmail,
+    ValidatedCELIsHostAndPort,
+    ValidatedCELIsHostname,
+    ValidatedCELIsInfDir,
+    ValidatedCELIsIp,
+    ValidatedCELIsIpPrefix,
+    ValidatedCELIsIpPrefixV6,
+    ValidatedCELIsNanInf,
+    ValidatedCELIsUri,
     ValidatedCELMapAll,
+    ValidatedCELMapField,
+    ValidatedCELMapLiteral,
     ValidatedCELMessage,
     ValidatedCELMessageAll,
+    ValidatedCELNegate,
+    ValidatedCELNullCheck,
+    ValidatedCELReservedName,
     ValidatedCELStillDropped,
     ValidatedCELStringReturn,
     ValidatedCELTimestamp,
     ValidatedCELTimestampAfter,
     ValidatedCELTimestampWindow,
+    ValidatedCELTsDate,
     ValidatedCELTsDayOfMonth,
     ValidatedCELTsDayOfWeek,
     ValidatedCELTsDayOfYear,
@@ -70,8 +76,11 @@ from api.v1.validate_pydantic import (
     ValidatedCELTsHoursTZ,
     ValidatedCELTsHoursUTC,
     ValidatedCELTsMillis,
+    ValidatedCELTsMinutes,
     ValidatedCELTsMonth,
+    ValidatedCELTsSeconds,
     ValidatedCELTsYear,
+    ValidatedCELUint,
     ValidatedConst,
     ValidatedConstOptional,
     ValidatedDropped,
@@ -83,6 +92,7 @@ from api.v1.validate_pydantic import (
     ValidatedFloatIn,
     ValidatedFormats,
     ValidatedFormatsExtended,
+    ValidatedIgnore,
     ValidatedIn,
     ValidatedMap,
     ValidatedMapConstraints,
@@ -91,77 +101,64 @@ from api.v1.validate_pydantic import (
     ValidatedOneofFormat,
     ValidatedRepeated,
     ValidatedRepeatedItems,
+    ValidatedRequired,
     ValidatedReserved,
     ValidatedScalars,
     ValidatedStringAffix,
-    ValidatedRequired,
+    ValidatedStringBytes,
     ValidatedStringContains,
     ValidatedStringLen,
     ValidatedStrings,
     ValidatedTimestamp,
     ValidatedUnique,
     ValidatedWellKnownRegex,
-    ValidatedIgnore,
-    ValidatedStringBytes,
-    ValidatedCELExprField,
-    ValidatedCELExprFieldString,
-    ValidatedCELExprFieldMulti,
-    ValidatedCELExprMessage,
-    ValidatedCELExprMessageMulti,
-    ValidatedCELExprFieldDropped,
-    ValidatedCELExprMessageDropped,
-    ValidatedCELInsideItems,
-    ValidatedCELInsideMapValues,
-    ValidatedCELEnumField,
-    ValidatedCELEnumAliased,
-    ValidatedCELReservedName,
 )
-
+from pydantic import ValidationError
 
 # Minimum valid kwargs for messages where multiple fields became ConstrainedRequired.
-_VALID_FORMATS = dict(
-    email="user@example.com",
-    website="https://example.com",
-    address="1.2.3.4",
-    token="550e8400-e29b-41d4-a716-446655440000",
-    host_v4="1.2.3.4",
-    host_v6="::1",
-)
-_VALID_FORMATS_EXT = dict(
-    hostname="example.com",
-    uri_ref="https://example.com",
-    addr="example.com",
-    tuuid="550e8400e29b41d4a716446655440000",
-    ulid="01ARZ3NDEKTSV4RRFFQ69G5FAV",
-    cidr="192.168.0.1/24",
-    cidr_v4="192.168.0.1/24",
-    cidr_v6="::1/128",
-    ip_net="192.168.0.0/24",
-    ipv4_net="192.168.0.0/24",
-    ipv6_net="2001:db8::/32",
-    endpoint="example.com:80",
-)
-_VALID_WKR = dict(
-    header_name="Content-Type",
-    header_value="application/json",
-    loose_header="Content-Type",
-)
-_VALID_IN = dict(status="active", priority=1, limit=10)
-_VALID_AFFIX = dict(
-    url="https://example.com",
-    filename="main.go",
-    path="/home/user/notes.txt",
-    content="abc",
-    report="report_2024",
-    notes="abcnote",
-)
-_VALID_BYTES = dict(
-    token=b"x" * 16,
-    hash=b"x" * 32,
-    uuid=b"\x55\x0e\x84\x00\xe2\x9b\x41\xd4\xa7\x16\x44\x66\x55\x44\x00\x00",
-)
-_VALID_CONTAINS = dict(topic="protobuf guide", label="env-prod-us")
-_VALID_STR_BYTES = dict(payload="x", token="a" * 32, tag="ab")
+_VALID_FORMATS = {
+    "email": "user@example.com",
+    "website": "https://example.com",
+    "address": "1.2.3.4",
+    "token": "550e8400-e29b-41d4-a716-446655440000",
+    "host_v4": "1.2.3.4",
+    "host_v6": "::1",
+}
+_VALID_FORMATS_EXT = {
+    "hostname": "example.com",
+    "uri_ref": "https://example.com",
+    "addr": "example.com",
+    "tuuid": "550e8400e29b41d4a716446655440000",
+    "ulid": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+    "cidr": "192.168.0.1/24",
+    "cidr_v4": "192.168.0.1/24",
+    "cidr_v6": "::1/128",
+    "ip_net": "192.168.0.0/24",
+    "ipv4_net": "192.168.0.0/24",
+    "ipv6_net": "2001:db8::/32",
+    "endpoint": "example.com:80",
+}
+_VALID_WKR = {
+    "header_name": "Content-Type",
+    "header_value": "application/json",
+    "loose_header": "Content-Type",
+}
+_VALID_IN = {"status": "active", "priority": 1, "limit": 10}
+_VALID_AFFIX = {
+    "url": "https://example.com",
+    "filename": "main.go",
+    "path": "/home/user/notes.txt",
+    "content": "abc",
+    "report": "report_2024",
+    "notes": "abcnote",
+}
+_VALID_BYTES = {
+    "token": b"x" * 16,
+    "hash": b"x" * 32,
+    "uuid": b"\x55\x0e\x84\x00\xe2\x9b\x41\xd4\xa7\x16\x44\x66\x55\x44\x00\x00",
+}
+_VALID_CONTAINS = {"topic": "protobuf guide", "label": "env-prod-us"}
+_VALID_STR_BYTES = {"payload": "x", "token": "a" * 32, "tag": "ab"}
 
 # ---------------------------------------------------------------------------
 # ValidatedScalars
@@ -430,7 +427,7 @@ def test_validated_reserved_alias_and_constraint():
 
 def test_validated_reserved_alias_construction():
     # alias allows construction with the original proto name
-    r = ValidatedReserved(**{"float": 1.0})
+    r = ValidatedReserved(float=1.0)
     assert r.float_ == pytest.approx(1.0)
 
 
@@ -562,28 +559,28 @@ def opts_validate(load_module):
 def test_gen_options_scalars_constraints_enforced(opts_validate):
     VS = opts_validate.ValidatedScalars
     VS(age=1, score=0.0, priority=1, ratio=0.0, rank=1)  # valid
-    with pytest.raises(Exception):  # ValidationError
+    with pytest.raises(ValidationError):
         VS(age=0, score=0.0, priority=1, ratio=0.0, rank=1)
 
 
 def test_gen_options_strings_constraints_enforced(opts_validate):
     VS = opts_validate.ValidatedStrings
     VS(name="a", code="A", bio="", tag="ab")
-    with pytest.raises(Exception):  # ValidationError
+    with pytest.raises(ValidationError):
         VS(name="", code="A", bio="", tag="ab")
 
 
 def test_gen_options_repeated_constraints_enforced(opts_validate):
     VR = opts_validate.ValidatedRepeated
     VR(items=["x"], tags=["y"])
-    with pytest.raises(Exception):  # ValidationError
+    with pytest.raises(ValidationError):
         VR(items=[], tags=["y"])
 
 
 def test_gen_options_map_constraints_enforced(opts_validate):
     VM = opts_validate.ValidatedMap
     VM(labels={"k": "v"})
-    with pytest.raises(Exception):  # ValidationError
+    with pytest.raises(ValidationError):
         VM(labels={})
 
 
@@ -1817,23 +1814,23 @@ def test_cel_reserved_name_unset_passes():
 
 
 def test_cel_reserved_name_bool_true_valid():
-    m = ValidatedCELReservedName(**{"bool": True})
+    m = ValidatedCELReservedName(bool=True)
     assert m.bool_ is True
 
 
 def test_cel_reserved_name_bool_false_invalid():
     with pytest.raises(ValidationError):
-        ValidatedCELReservedName(**{"bool": False})
+        ValidatedCELReservedName(bool=False)
 
 
 def test_cel_reserved_name_float_positive_valid():
-    m = ValidatedCELReservedName(**{"float": 1.5})
+    m = ValidatedCELReservedName(float=1.5)
     assert m.float_ == 1.5
 
 
 def test_cel_reserved_name_float_negative_invalid():
     with pytest.raises(ValidationError):
-        ValidatedCELReservedName(**{"float": -0.5})
+        ValidatedCELReservedName(float=-0.5)
 
 
 # ---------------------------------------------------------------------------
@@ -2409,7 +2406,7 @@ def test_map_constraints_key_too_long_fails():
 def test_map_constraints_key_max_len_boundary_valid():
     # Key of exactly 63 chars is valid.
     m = ValidatedMapConstraints(labels={"a" * 63: "prod"})
-    assert len(list(m.labels.keys())[0]) == 63
+    assert len(next(iter(m.labels.keys()))) == 63
 
 
 def test_map_constraints_value_empty_fails():

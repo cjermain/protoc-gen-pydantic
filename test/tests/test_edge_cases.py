@@ -3,11 +3,9 @@
 import datetime
 
 import pytest
-
 from api.v1.collections_pydantic import Collections
 from api.v1.known_types_pydantic import WellKnownTypes
 from api.v1.scalars_pydantic import Scalars
-
 
 # --- Integer boundary values ---
 
@@ -79,7 +77,7 @@ def test_negative_duration():
 
 def test_naive_datetime_accepted():
     """Pydantic accepts naive datetimes (no timezone)."""
-    naive_dt = datetime.datetime(2024, 1, 15, 10, 30, 0)
+    naive_dt = datetime.datetime(2024, 1, 15, 10, 30, 0)  # noqa: DTZ001
     wkt = WellKnownTypes(wkt_timestamp=naive_dt)
     assert wkt.wkt_timestamp.year == 2024
 

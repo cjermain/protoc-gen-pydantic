@@ -12,31 +12,30 @@ import base64
 import datetime
 
 import pytest
-
 from api.v1.enums_pydantic import Enum
 from api.v1.known_types_pydantic import WellKnownTypes
 from api.v1.messages_pydantic import Message
 from api.v1.scalars_pydantic import Scalars
 
-_WKT_DEFAULTS = dict(
-    wkt_timestamp=datetime.datetime(2024, 1, 1, tzinfo=datetime.timezone.utc),
-    wkt_duration=datetime.timedelta(seconds=0),
-    wkt_struct={},
-    wkt_value=None,
-    wkt_list_value=[],
-    wkt_any=None,
-    wkt_field_mask=[],
-    wkt_bool=False,
-    wkt_int32=0,
-    wkt_int64=0,
-    wkt_uint32=0,
-    wkt_uint64=0,
-    wkt_float=0.0,
-    wkt_double=0.0,
-    wkt_string="",
-    wkt_bytes=b"",
-    wkt_empty=None,
-)
+_WKT_DEFAULTS = {
+    "wkt_timestamp": datetime.datetime(2024, 1, 1, tzinfo=datetime.timezone.utc),
+    "wkt_duration": datetime.timedelta(seconds=0),
+    "wkt_struct": {},
+    "wkt_value": None,
+    "wkt_list_value": [],
+    "wkt_any": None,
+    "wkt_field_mask": [],
+    "wkt_bool": False,
+    "wkt_int32": 0,
+    "wkt_int64": 0,
+    "wkt_uint32": 0,
+    "wkt_uint64": 0,
+    "wkt_float": 0.0,
+    "wkt_double": 0.0,
+    "wkt_string": "",
+    "wkt_bytes": b"",
+    "wkt_empty": None,
+}
 
 
 def make_wkt(**overrides):

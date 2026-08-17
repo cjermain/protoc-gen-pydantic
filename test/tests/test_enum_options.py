@@ -1,7 +1,5 @@
 import pytest
-
 from api.v1.enum_options_pydantic import Status
-
 
 # --- options access ---
 

@@ -294,7 +294,7 @@ ProtoUInt64 = _Annotated[
 
 def _parse_timestamp(v):
     if isinstance(v, str):
-        return _datetime.datetime.fromisoformat(v.replace("Z", "+00:00"))
+        return _datetime.datetime.fromisoformat(v)
     if isinstance(v, _datetime.datetime):
         return v
     raise ValueError(f"Cannot parse timestamp from {type(v)}")
@@ -911,7 +911,7 @@ def _cel_duration(total_seconds: float) -> _datetime.timedelta:
 const protoTypesCELTimestampFunc = `
 
 def _cel_timestamp(s: str) -> _datetime.datetime:
-    return _datetime.datetime.fromisoformat(s.replace("Z", "+00:00"))
+    return _datetime.datetime.fromisoformat(s)
 `
 
 // buildProtoTypesContent assembles the content for _proto_types.py, including

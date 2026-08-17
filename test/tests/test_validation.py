@@ -1,11 +1,10 @@
 """Pydantic validation error tests for generated models."""
 
 import pytest
-from pydantic import ValidationError
-
 from api.v1.messages_pydantic import Message
 from api.v1.oneofs_pydantic import Oneofs
 from api.v1.scalars_pydantic import Scalars
+from pydantic import ValidationError
 
 
 def test_wrong_type_for_int32():

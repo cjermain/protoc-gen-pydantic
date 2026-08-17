@@ -1,6 +1,5 @@
 from api.v1.collections_pydantic import Collections
 from api.v1.enums_pydantic import Enum
-
 from conftest import make_collections
 
 

@@ -1,5 +1,4 @@
 import pytest
-
 from api.v1.enums_pydantic import Enum, Shape
 from api.v1.scalars_pydantic import Scalars
 

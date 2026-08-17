@@ -32,7 +32,7 @@ def test_model_dump_json_uses_camel_case_by_default():
 
 def test_construct_by_camel_case_alias():
     """Fields can be constructed using the camelCase wire name."""
-    m = Message(**{"firstName": "John", "lastName": "Doe"})
+    m = Message(firstName="John", lastName="Doe")
     assert m.first_name == "John"
     assert m.last_name == "Doe"
 

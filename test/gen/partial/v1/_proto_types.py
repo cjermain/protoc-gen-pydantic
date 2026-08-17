@@ -27,7 +27,7 @@ ProtoUInt64 = _Annotated[
 
 def _parse_timestamp(v):
     if isinstance(v, str):
-        return _datetime.datetime.fromisoformat(v.replace("Z", "+00:00"))
+        return _datetime.datetime.fromisoformat(v)
     if isinstance(v, _datetime.datetime):
         return v
     raise ValueError(f"Cannot parse timestamp from {type(v)}")

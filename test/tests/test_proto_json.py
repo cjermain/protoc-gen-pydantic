@@ -15,7 +15,6 @@ from api.v1.enums_pydantic import Enum
 from api.v1.known_types_pydantic import WellKnownTypes
 from api.v1.messages_pydantic import Message
 from api.v1.scalars_pydantic import Scalars
-
 from conftest import make_scalars
 
 

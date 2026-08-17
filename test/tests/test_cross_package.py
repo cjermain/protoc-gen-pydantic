@@ -2,7 +2,6 @@ from api.v1.messages_pydantic import Message
 from foo.bar.v1.cross_options_pydantic import Language
 from foo.bar.v1.cross_reference_pydantic import CrossRefMessage
 
-
 # --- cross_reference ---
 
 

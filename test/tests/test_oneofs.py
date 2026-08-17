@@ -1,7 +1,6 @@
 import pytest
-from pydantic import ValidationError
-
 from api.v1.oneofs_pydantic import Oneofs, SingleOneof
+from pydantic import ValidationError
 
 
 def test_default_none():

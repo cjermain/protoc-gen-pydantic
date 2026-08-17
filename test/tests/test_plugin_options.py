@@ -15,7 +15,6 @@ from enum import Enum as StdEnum
 from pathlib import Path
 
 import pytest
-
 from conftest import _load_module
 
 GEN_OPTIONS_DIR = Path("gen_options/api/v1")

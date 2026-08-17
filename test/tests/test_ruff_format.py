@@ -7,6 +7,7 @@ def test_ruff_format(generated_file):
         ["ruff", "format", "--check", str(generated_file)],
         capture_output=True,
         text=True,
+        check=False,
     )
     assert result.returncode == 0, (
         f"ruff format diff:\n{result.stderr or result.stdout}"
