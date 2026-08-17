@@ -1,7 +1,6 @@
 import datetime
 
 import pytest
-
 from api.v1.known_types_pydantic import WellKnownTypes
 
 

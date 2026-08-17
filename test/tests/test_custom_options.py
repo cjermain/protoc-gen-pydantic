@@ -1,7 +1,5 @@
 import pytest
-
 from api.v1.custom_options_pydantic import Color, Currency
-
 
 # --- custom options access ---
 

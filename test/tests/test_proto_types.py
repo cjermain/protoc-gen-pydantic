@@ -7,9 +7,8 @@ functions actually needed by files in each output directory.
 from pathlib import Path
 
 import pytest
-from pydantic import ValidationError
-
 from partial.v1.validate_partial_pydantic import ValidatedEmail, ValidatedUUID
+from pydantic import ValidationError
 
 GEN = Path("gen")
 

@@ -1,8 +1,6 @@
 import pytest
-
 from api.v1.enums_pydantic import Enum
 from api.v1.scalars_pydantic import Scalars
-
 from conftest import make_scalars
 
 
@@ -58,7 +56,9 @@ def test_alias_construction_by_alias(message, nested_message):
         message=message,
         nested_message=nested_message,
         # Use alias names (original proto names) instead of Python attr names
-        **{"bool": True, "float": 1.5, "bytes": b"world"},
+        bool=True,
+        float=1.5,
+        bytes=b"world",
     )
     assert s.bool_ is True
     assert s.float_ == 1.5

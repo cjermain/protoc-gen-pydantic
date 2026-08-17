@@ -7,5 +7,6 @@ def test_ty(generated_file):
         ["ty", "check", str(generated_file)],
         capture_output=True,
         text=True,
+        check=False,
     )
     assert result.returncode == 0, f"ty errors:\n{result.stderr or result.stdout}"
