@@ -99,6 +99,7 @@ from api.v1.validate_pydantic import (
     ValidatedNotContains,
     ValidatedOneof,
     ValidatedOneofFormat,
+    ValidatedPatternEmpty,
     ValidatedRepeated,
     ValidatedRepeatedItems,
     ValidatedRequired,
@@ -3759,3 +3760,25 @@ def test_cel_inside_map_values_drop_comment():
     text = _GEN_VALIDATE.read_text()
     # The comment appears once for items (scores field) and once here; check presence.
     assert text.count("# buf.validate: cel_expression (not translated)") >= 2
+
+
+# ---------------------------------------------------------------------------
+# ValidatedPatternEmpty
+# ---------------------------------------------------------------------------
+
+
+def test_validated_pattern_empty_label_optional():
+    # label's pattern matches "", so zero-arg construction must work.
+    m = ValidatedPatternEmpty(slug="abc")
+    assert m.label == ""
+
+
+def test_validated_pattern_empty_slug_required():
+    # slug's pattern rejects "", so it stays required.
+    with pytest.raises(ValidationError):
+        ValidatedPatternEmpty(label="ok")
+
+
+def test_validated_pattern_empty_label_rejects_control_chars():
+    with pytest.raises(ValidationError):
+        ValidatedPatternEmpty(label="a\x00b", slug="abc")

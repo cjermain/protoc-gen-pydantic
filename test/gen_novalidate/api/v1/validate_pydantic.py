@@ -1667,3 +1667,20 @@ class ValidatedCELEnumAliased(_ProtoModel):
         default=None,
         alias="type",
     )
+
+
+class ValidatedPatternEmpty(_ProtoModel):
+    """
+    ValidatedPatternEmpty exercises string patterns that accept the empty string.
+    """
+
+    # Label rejects control characters only; "" matches, so the field is optional.
+    label: str = _Field(
+        default="",
+        description='Label rejects control characters only; "" matches, so the field is optional.',
+    )
+    # Slug requires at least one lowercase letter; "" does not match, so it is required.
+    slug: str = _Field(
+        default="",
+        description='Slug requires at least one lowercase letter; "" does not match, so it is required.',
+    )

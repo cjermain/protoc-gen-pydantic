@@ -629,12 +629,14 @@ func (c *FieldConstraints) ZeroValueFails(kind protoreflect.Kind) bool {
 	if c.LenBytes != nil && *c.LenBytes > 0 {
 		return true
 	}
-	// All patterns produced by the generator (from prefix/suffix/contains/min_len
-	// or explicit string.pattern rules) reject the empty string. A user-supplied
-	// pattern that can match "" (e.g. "[a-z]*") would be a false positive here,
-	// but such patterns are not generated.
+	// Patterns derived from prefix/suffix/contains reject the empty string, but an
+	// explicit string.pattern may accept it (e.g. "^[a-z]*$"). Evaluate the pattern
+	// against "" (buf.validate uses RE2, as does Go's regexp). If it doesn't compile
+	// here, assume it rejects "".
 	if c.Pattern != nil {
-		return true
+		if re, err := regexp.Compile(*c.Pattern); err != nil || !re.MatchString("") {
+			return true
+		}
 	}
 	if len(c.InValues) > 0 && !c.inValuesContainZero(kind) {
 		return true

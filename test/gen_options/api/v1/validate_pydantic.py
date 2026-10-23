@@ -2246,3 +2246,20 @@ class ValidatedCELEnumAliased(_ProtoModel):
         if not (_cel_enum_number(ValidatedCELEnumAliased.Kind, self.type_) < 3):
             raise ValueError("type must be A or B")
         return self
+
+
+class ValidatedPatternEmpty(_ProtoModel):
+    """
+    ValidatedPatternEmpty exercises string patterns that accept the empty string.
+    """
+
+    # Label rejects control characters only; "" matches, so the field is optional.
+    label: str = _Field(
+        default="",
+        max_length=64,
+        pattern="^[^\\x00-\\x1F\\x7F]*$",
+    )
+    # Slug requires at least one lowercase letter; "" does not match, so it is required.
+    slug: str = _Field(
+        pattern="^[a-z]+$",
+    )
