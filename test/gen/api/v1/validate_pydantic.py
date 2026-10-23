@@ -1054,13 +1054,13 @@ class ValidatedCELReservedName(_ProtoModel):
 
     @_model_validator(mode="after")
     def _validate_cel_reserved_check(self) -> "ValidatedCELReservedName":
-        if not ("bool_" not in self.model_fields_set or (self.bool_ == True)):
+        if not (not ("bool_" in self.model_fields_set) or (self.bool_ == True)):
             raise ValueError("bool field must be true when set")
         return self
 
     @_model_validator(mode="after")
     def _validate_cel_float_check(self) -> "ValidatedCELReservedName":
-        if not ("float_" not in self.model_fields_set or (self.float_ > 0.0)):
+        if not (not ("float_" in self.model_fields_set) or (self.float_ > 0.0)):
             raise ValueError("float field must be positive when set")
         return self
 
