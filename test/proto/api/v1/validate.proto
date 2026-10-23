@@ -1267,3 +1267,14 @@ message ValidatedCELEnumAliased {
     message: "type must be A or B"
   };
 }
+
+// ValidatedPatternEmpty exercises string patterns that accept the empty string.
+message ValidatedPatternEmpty {
+  // Label rejects control characters only; "" matches, so the field is optional.
+  string label = 1 [
+    (buf.validate.field).string.pattern = "^[^\\x00-\\x1F\\x7F]*$",
+    (buf.validate.field).string.max_len = 64
+  ];
+  // Slug requires at least one lowercase letter; "" does not match, so it is required.
+  string slug = 2 [(buf.validate.field).string.pattern = "^[a-z]+$"];
+}
