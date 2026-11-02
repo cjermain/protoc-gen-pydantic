@@ -20,7 +20,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7.0.1
 
-      - uses: jdx/mise-action@v5.1.2
+      - uses: jdx/mise-action@v5.2.3
 
       - name: Build docs
         run: just docs-ci
