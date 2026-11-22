@@ -60,12 +60,13 @@ Run `just --list` to see all available recipes.
     ├── proto/api/v1/*.proto         # Test proto definitions
     ├── gen/api/v1/*_pydantic.py     # Generated output (committed)
     ├── gen_options/                 # Generated output with non-default options
+    ├── gen_novalidate/              # Generated output with disable_validate=true
     └── tests/                      # Pytest test suite
 ```
 
 ## Architecture
 
-The plugin is split across six files in `package main`:
+The plugin is split across seven files in `package main`:
 
 | File | Responsibility |
 |---|---|
@@ -73,6 +74,7 @@ The plugin is split across six files in `package main`:
 | `generator.go` | `processFile()`, `processMessage()`, type resolution |
 | `types.go` | Domain types (`Message`, `Field`, `Enum`, …), `wellKnownTypes`, `reservedNames` |
 | `constraints.go` | buf.validate extraction (`extractFieldConstraints()`, `applyConstraintTypeOverrides()`) |
+| `cel_transpile.go` | CEL-to-Python transpiler (`transpileCELField()`, `transpileCELMessage()`) |
 | `template.go` | `modelTemplate` constant, `buildProtoTypesContent()` |
 | `format.go` | Formatting utilities |
 
@@ -139,7 +141,7 @@ regenerate and commit the updated output:
 
 ```sh
 just generate
-git add test/gen/ test/gen_options/
+git add test/gen/ test/gen_options/ test/gen_novalidate/
 ```
 
 You can verify locally with:
